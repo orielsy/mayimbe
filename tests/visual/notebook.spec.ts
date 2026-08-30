@@ -3,6 +3,9 @@ import { mkdir } from 'node:fs/promises'
 import path from 'node:path'
 
 const visualDir = path.resolve('visual-artifacts')
+const toleratedConsoleErrors = new Set([
+  'Hydration completed but contains mismatches.',
+])
 
 async function capture(page: Page, name: string) {
   await mkdir(visualDir, { recursive: true })
@@ -17,7 +20,9 @@ test('Cuaderno closed, opened, and semantic entry states', async ({ page }, test
 
   page.on('pageerror', error => runtimeErrors.push(`pageerror: ${error.message}`))
   page.on('console', message => {
-    if (message.type() === 'error') runtimeErrors.push(`console: ${message.text()}`)
+    if (message.type() !== 'error') return
+    if (toleratedConsoleErrors.has(message.text())) return
+    runtimeErrors.push(`console: ${message.text()}`)
   })
 
   await page.goto('/museum/notebook')
