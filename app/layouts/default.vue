@@ -1,11 +1,17 @@
 <script setup lang="ts">
 const route = useRoute()
-const inMuseum = computed(() => route.path === '/museum' || route.path.startsWith('/museum/'))
+
+/*
+ * /museum is still part of the Mayimbe interface and keeps normal site chrome.
+ * Only a focused physical exhibit (/museum/<exhibit>/...) becomes immersive.
+ * Archive, search, research and other conventional UI routes always keep it.
+ */
+const inFocusedExhibit = computed(() => route.path.startsWith('/museum/'))
 </script>
 
 <template>
-  <div class="site-shell" :class="{ 'site-shell--museum': inMuseum }">
-    <header v-if="!inMuseum" class="site-header">
+  <div class="site-shell" :class="{ 'site-shell--museum': inFocusedExhibit }">
+    <header v-if="!inFocusedExhibit" class="site-header">
       <NuxtLink class="site-brand" to="/">AntonySantos.com / Mayimbe</NuxtLink>
       <nav class="site-nav" aria-label="Primary">
         <NuxtLink to="/museum">Museum</NuxtLink>
