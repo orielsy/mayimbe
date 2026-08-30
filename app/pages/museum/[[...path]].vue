@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import MuseumShell from '~/components/museum/MuseumShell.vue'
 import type { MuseumDestination } from '~~/core/museum'
 
 const route = useRoute()

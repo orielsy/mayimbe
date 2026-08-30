@@ -1,10 +1,11 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { extname, join } from 'node:path'
 import YAML from 'yaml'
+import type { PersonEntity } from '../core/archive/entities.ts'
 import { personSchema } from '../schemas/archive/person.ts'
 
 export interface LoadedContent {
-  people: Array<ReturnType<typeof personSchema.parse>>
+  people: PersonEntity[]
 }
 
 async function filesIn(directory: string, extension: string): Promise<string[]> {
@@ -23,7 +24,7 @@ async function filesIn(directory: string, extension: string): Promise<string[]> 
 
 export async function loadContent(root = process.cwd()): Promise<LoadedContent> {
   const peopleFiles = await filesIn(join(root, 'content', 'people'), '.yaml')
-  const people = []
+  const people: PersonEntity[] = []
 
   for (const file of peopleFiles) {
     const raw = await readFile(file, 'utf8')

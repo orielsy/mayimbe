@@ -1,5 +1,17 @@
 <script setup lang="ts">
+import AlbumExhibit from './AlbumExhibit.vue'
+import ListeningExhibit from './ListeningExhibit.vue'
+import MuseumDesk from './MuseumDesk.vue'
+import NotebookExhibit from './NotebookExhibit.vue'
+import PhotoExhibit from './PhotoExhibit.vue'
+
 const { state } = useMuseum()
+
+const activeTarget = computed(() => (
+  state.value.destination.kind === 'exhibit'
+    ? state.value.destination.target
+    : undefined
+))
 </script>
 
 <template>
@@ -8,19 +20,19 @@ const { state } = useMuseum()
 
     <NotebookExhibit
       v-if="state.activeExhibit === 'notebook'"
-      :target="state.destination.target"
+      :target="activeTarget"
     />
     <ListeningExhibit
       v-else-if="state.activeExhibit === 'listening'"
-      :target="state.destination.target"
+      :target="activeTarget"
     />
     <AlbumExhibit
       v-else-if="state.activeExhibit === 'albums'"
-      :target="state.destination.target"
+      :target="activeTarget"
     />
     <PhotoExhibit
       v-else-if="state.activeExhibit === 'photos'"
-      :target="state.destination.target"
+      :target="activeTarget"
     />
     <div v-else class="exhibit-placeholder">
       <p class="eyebrow">Desk overview</p>
