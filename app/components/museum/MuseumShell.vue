@@ -6,6 +6,7 @@ import NotebookExhibit from './NotebookExhibit.vue'
 import PhotoExhibit from './PhotoExhibit.vue'
 
 const { state } = useMuseum()
+const { go } = useMuseumNavigator()
 
 const activeTarget = computed(() => (
   state.value.destination.kind === 'exhibit'
@@ -22,7 +23,18 @@ const isFocused = computed(() => Boolean(state.value.activeExhibit))
     :class="{ 'museum-stage--focused': isFocused }"
     aria-label="Mayimbe museum shell"
   >
-    <MuseumDesk :compact="isFocused" />
+    <MuseumDesk v-if="!isFocused" />
+
+    <button
+      v-if="isFocused"
+      type="button"
+      class="museum-return"
+      aria-label="Return to museum desk"
+      @click="go({ kind: 'desk' })"
+    >
+      <span aria-hidden="true">←</span>
+      <span>Desk</span>
+    </button>
 
     <NotebookExhibit
       v-if="state.activeExhibit === 'notebook'"
