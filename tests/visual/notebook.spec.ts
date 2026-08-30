@@ -130,14 +130,17 @@ test('portrait Experiment B keeps the book whole until a page is inspected', asy
   await capture(page, `${testInfo.project.name}-experiment-b-left-inspect.png`)
   await captureGeometry(page, `${testInfo.project.name}-experiment-b-left-geometry.json`)
 
+  // The inspected page remains on-screen and is the natural way back to the
+  // full physical object before choosing the opposite page.
+  await leftPage.click({ position: { x: 80, y: 90 } })
+  await page.waitForTimeout(550)
+  await capture(page, `${testInfo.project.name}-experiment-b-return-from-left.png`)
+
   await rightPage.click({ position: { x: 80, y: 90 } })
   await page.waitForTimeout(550)
   await capture(page, `${testInfo.project.name}-experiment-b-right-inspect.png`)
 
-  // This run is for visual comparison, not final touch-target certification.
-  // Dispatch the toggle directly so an intentionally experimental off-axis
-  // composition cannot turn the capture harness into a hit-testing test.
-  await rightPage.dispatchEvent('click')
+  await rightPage.click({ position: { x: 80, y: 90 } })
   await page.waitForTimeout(550)
   await capture(page, `${testInfo.project.name}-experiment-b-return-overview.png`)
 
