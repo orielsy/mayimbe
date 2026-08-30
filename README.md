@@ -7,7 +7,7 @@ The architectural foundation lives in `docs/`. The implementation is intentional
 ## Requirements
 
 - Node.js 24+
-- npm 12
+- npm 11 (the repository currently records npm 11.17.0)
 
 ## Development
 
@@ -39,5 +39,6 @@ npm run generate
 - persistent client-side museum runtime state
 - semantic museum deep links
 - placeholder Notebook, Listening, Album, and Photo exhibits
+- GitHub Actions verification for archive validation, tests, and static generation
 
 The existing notebook prototype has **not** been migrated. The production notebook will be integrated only after these boundaries are proven.
