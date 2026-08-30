@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { MAYIMBE_WORK_VERSION } from '~/work-version'
+
 const route = useRoute()
 
 /*
@@ -21,5 +23,9 @@ const inFocusedExhibit = computed(() => route.path.startsWith('/museum/'))
     <main>
       <slot />
     </main>
+
+    <div class="work-version" aria-label="Development version">
+      v{{ MAYIMBE_WORK_VERSION }}
+    </div>
   </div>
 </template>
