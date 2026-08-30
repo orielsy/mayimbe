@@ -291,6 +291,18 @@ code {
   color: #ead3b3;
 }
 
+.work-version {
+  position: fixed;
+  left: max(.5rem, env(safe-area-inset-left));
+  bottom: max(.35rem, env(safe-area-inset-bottom));
+  z-index: 1000;
+  pointer-events: none;
+  font: 500 10px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: .04em;
+  color: rgba(241, 234, 223, .46);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .65);
+}
+
 @media (max-width: 640px) {
   .site-header {
     align-items: flex-start;
