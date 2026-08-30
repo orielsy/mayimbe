@@ -1,3 +1,7 @@
+import type { NotebookPhysicalProfile } from './profiles'
+
+export type { NotebookPhysicalProfile } from './profiles'
+
 export type NotebookPosition = 'closed-front' | 'open' | 'closed-back'
 
 export type NotebookCloseSide = 'front' | 'back'
@@ -13,6 +17,8 @@ export interface NotebookEngineState {
   position: NotebookPosition
   /** Number of physical sheets that have been turned to the left. */
   turned: number
+  /** 1-based authored page, used to preserve meaning across physical profiles. */
+  page?: number
   /** Last meaningful semantic target, if one was used to reach this state. */
   target?: NotebookTarget
 }
@@ -40,6 +46,8 @@ export interface NotebookEngine {
 export interface NotebookEngineMountOptions {
   /** Abort work if the owning exhibit is disposed while the heavy engine loads. */
   signal?: AbortSignal
+  /** Physical form selected from the exhibit's available space. */
+  profile?: NotebookPhysicalProfile
 }
 
 export type MountNotebookEngine = (
