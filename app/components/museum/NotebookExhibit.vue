@@ -90,8 +90,50 @@ function scheduleProfile(width: number, height: number) {
   }, 140)
 }
 
+const previous = async () => {
+  await engine.value?.previous()
+}
+
+const next = async () => {
+  await engine.value?.next()
+}
+
+function isEditableTarget(target: EventTarget | null) {
+  const element = target instanceof HTMLElement ? target : null
+  return Boolean(
+    element?.isContentEditable
+    || element?.closest('input, textarea, select, [contenteditable="true"]'),
+  )
+}
+
+function onNotebookKeydown(event: KeyboardEvent) {
+  if (
+    !engine.value
+    || event.defaultPrevented
+    || event.repeat
+    || event.altKey
+    || event.ctrlKey
+    || event.metaKey
+    || event.shiftKey
+    || isEditableTarget(event.target)
+  ) return
+
+  if (event.key === 'ArrowLeft') {
+    event.preventDefault()
+    void previous()
+    return
+  }
+
+  if (event.key === 'ArrowRight') {
+    event.preventDefault()
+    void next()
+  }
+}
+
 onMounted(async () => {
   if (!host.value) return
+
+  window.addEventListener('keydown', onNotebookKeydown)
 
   const rect = host.value.getBoundingClientRect()
   profile.value = resolveNotebookProfile(rect.width, rect.height)
@@ -109,6 +151,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   abortController.abort()
+  window.removeEventListener('keydown', onNotebookKeydown)
   resizeObserver?.disconnect()
   resizeObserver = null
   if (resizeTimer !== undefined) window.clearTimeout(resizeTimer)
@@ -119,14 +162,6 @@ onBeforeUnmount(() => {
     engine.value = null
   }
 })
-
-const previous = async () => {
-  await engine.value?.previous()
-}
-
-const next = async () => {
-  await engine.value?.next()
-}
 </script>
 
 <template>
@@ -143,8 +178,8 @@ const next = async () => {
     <p v-else-if="error" class="notebook-status notebook-error">{{ error }}</p>
 
     <nav v-if="engine && !error" class="notebook-controls" aria-label="Notebook controls">
-      <button type="button" @click="previous">◀ Back</button>
-      <button type="button" @click="next">Forward ▶</button>
+      <button type="button" aria-keyshortcuts="ArrowLeft" @click="previous">◀ Back</button>
+      <button type="button" aria-keyshortcuts="ArrowRight" @click="next">Forward ▶</button>
     </nav>
   </article>
 </template>
@@ -228,6 +263,20 @@ const next = async () => {
 .notebook-engine-host[data-notebook-profile='pocket'] :deep(.nbn .page-content p) {
   font-size: clamp(13px, 3.6vw, 16px);
   line-height: 1.55;
+}
+
+/*
+ * The native renderer already owns real pointer-drag mechanics. In Pocket the
+ * far-left physical edge is intentionally outside the viewport, so relocate
+ * only the previous-page hit strip to the visible gutter edge. The right strip
+ * remains on the visible fore-edge and keeps the canonical forward drag.
+ */
+.notebook-engine-host[data-notebook-profile='pocket'] :deep(.nbn .grab) {
+  width: 10%;
+}
+
+.notebook-engine-host[data-notebook-profile='pocket'] :deep(.nbn .grab.prev) {
+  left: 50%;
 }
 
 /* Native Lab parity: while the front board is closed, the page-edge drag
