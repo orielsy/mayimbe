@@ -243,16 +243,20 @@ onBeforeUnmount(() => {
 
 /*
  * Pocket Cuaderno: same complete side-bound physical object and same turn
- * mechanics, but each authored page owns one sheet. The notebook itself is
- * taller/narrower and is statically positioned so the right working face fills
- * the constrained viewport; the left stack still exists physically offscreen.
+ * mechanics, but each authored page owns one sheet. The right working face is
+ * positioned into the constrained viewport using layout coordinates rather
+ * than a CSS transform. Keeping the stage untransformed is intentional: Android
+ * Chrome can otherwise composite the entire DOM/clip-path/WebGL subtree as one
+ * transformed layer and lose resting cover/text content after an animation.
  */
 .notebook-engine-host[data-notebook-profile='pocket'] :deep(.nbn .stage) {
+  --pocket-stage-shift: min(47vw, 30.667dvh, 275px);
   width: min(188vw, 122.67dvh, 1100px);
   aspect-ratio: 4 / 3;
+  position: relative;
+  left: calc(-1 * var(--pocket-stage-shift));
   margin-inline: 0;
-  transform: translateX(-25%);
-  transform-origin: 50% 50%;
+  transform: none;
 }
 
 @supports (width: 1cqw) {
@@ -261,6 +265,7 @@ onBeforeUnmount(() => {
   }
 
   .notebook-engine-host[data-notebook-profile='pocket'] :deep(.nbn .stage) {
+    --pocket-stage-shift: min(47cqw, 30.667cqh, 275px);
     width: min(188cqw, 122.67cqh, 1100px);
   }
 }
