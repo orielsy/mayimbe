@@ -29,7 +29,7 @@ useSeoMeta({
     </div>
 
     <div class="actions">
-      <NuxtLink class="button" to="/museum/notebook/early-years">Experience this in the museum</NuxtLink>
+      <NuxtLink class="button" to="/stories/early-years">Read the first sourced story</NuxtLink>
       <NuxtLink class="button" to="/archive">Back to archive</NuxtLink>
     </div>
   </article>

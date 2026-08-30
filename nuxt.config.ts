@@ -14,6 +14,7 @@ export default defineNuxtConfig({
         '/',
         '/archive',
         '/people/antony-santos',
+        '/stories/early-years',
         '/museum',
         '/museum/notebook/early-years',
       ],

@@ -1,5 +1,6 @@
 export * from './destination'
 export * from './exhibit'
+export * from './experience'
 export * from './navigator'
 export * from './registry'
 export * from './state'

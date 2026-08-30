@@ -1,9 +1,5 @@
 import { z } from 'zod'
-
-export const localizedTextSchema = z.object({
-  en: z.string().min(1).optional(),
-  es: z.string().min(1).optional(),
-})
+import { localizedTextSchema } from '../shared/localized-text'
 
 export const personSchema = z.object({
   id: z.string().regex(/^person:[a-z0-9][a-z0-9-]*$/),

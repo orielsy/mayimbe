@@ -10,6 +10,56 @@
       ]
     }
   ],
+  "sources": [
+    {
+      "id": "source:allmusic-antony-santos",
+      "type": "source",
+      "slug": "allmusic-antony-santos",
+      "sourceType": "website",
+      "title": "Antony Santos Biography",
+      "publication": "AllMusic",
+      "author": "Drago Bonacich",
+      "url": "https://www.allmusic.com/artist/antony-santos-mn0000492120",
+      "accessedAt": "2026-08-30",
+      "note": "Used for the account of Santos's early local band and the 1992 debut date AllMusic gives for La Chupadera."
+    },
+    {
+      "id": "source:iaso-antony-santos",
+      "type": "source",
+      "slug": "iaso-antony-santos",
+      "sourceType": "website",
+      "title": "Antony Santos Bachata",
+      "publication": "iASO Records",
+      "url": "https://www.iasorecords.com/artists/antony-santos-bachata",
+      "accessedAt": "2026-08-30",
+      "note": "Used for the account of Santos playing güira in Luis Vargas's group and the 1991 date given for La Chupadera."
+    }
+  ],
+  "stories": [
+    {
+      "id": "story:early-years",
+      "type": "story",
+      "slug": "early-years",
+      "status": "published",
+      "language": "en",
+      "title": {
+        "en": "Early Years",
+        "es": "Primeros años"
+      },
+      "summary": {
+        "en": "A small sourced starting point for the story of Antony Santos before and at the beginning of his solo recording career.",
+        "es": "Un punto de partida breve y documentado sobre Antony Santos antes y al comienzo de su carrera discográfica como solista."
+      },
+      "references": [
+        "person:antony-santos"
+      ],
+      "sources": [
+        "source:iaso-antony-santos",
+        "source:allmusic-antony-santos"
+      ],
+      "body": "Before launching his solo recording career, Antony Santos played güira in Luis Vargas's group. The available sources agree on that apprenticeship but do not line up perfectly on the date of his first production, *La Chupadera*.\n\niASO Records places that first production in 1991, while AllMusic describes *La Chupadera* as his 1992 debut. Until stronger primary evidence resolves the difference, Mayimbe preserves the disagreement rather than forcing a false exact date: the beginning of Santos's solo recording career belongs in the early 1990s."
+    }
+  ],
   "byId": {
     "person:antony-santos": {
       "id": "person:antony-santos",
@@ -19,6 +69,52 @@
       "aliases": [
         "Anthony Santos"
       ]
+    },
+    "source:allmusic-antony-santos": {
+      "id": "source:allmusic-antony-santos",
+      "type": "source",
+      "slug": "allmusic-antony-santos",
+      "sourceType": "website",
+      "title": "Antony Santos Biography",
+      "publication": "AllMusic",
+      "author": "Drago Bonacich",
+      "url": "https://www.allmusic.com/artist/antony-santos-mn0000492120",
+      "accessedAt": "2026-08-30",
+      "note": "Used for the account of Santos's early local band and the 1992 debut date AllMusic gives for La Chupadera."
+    },
+    "source:iaso-antony-santos": {
+      "id": "source:iaso-antony-santos",
+      "type": "source",
+      "slug": "iaso-antony-santos",
+      "sourceType": "website",
+      "title": "Antony Santos Bachata",
+      "publication": "iASO Records",
+      "url": "https://www.iasorecords.com/artists/antony-santos-bachata",
+      "accessedAt": "2026-08-30",
+      "note": "Used for the account of Santos playing güira in Luis Vargas's group and the 1991 date given for La Chupadera."
+    },
+    "story:early-years": {
+      "id": "story:early-years",
+      "type": "story",
+      "slug": "early-years",
+      "status": "published",
+      "language": "en",
+      "title": {
+        "en": "Early Years",
+        "es": "Primeros años"
+      },
+      "summary": {
+        "en": "A small sourced starting point for the story of Antony Santos before and at the beginning of his solo recording career.",
+        "es": "Un punto de partida breve y documentado sobre Antony Santos antes y al comienzo de su carrera discográfica como solista."
+      },
+      "references": [
+        "person:antony-santos"
+      ],
+      "sources": [
+        "source:iaso-antony-santos",
+        "source:allmusic-antony-santos"
+      ],
+      "body": "Before launching his solo recording career, Antony Santos played güira in Luis Vargas's group. The available sources agree on that apprenticeship but do not line up perfectly on the date of his first production, *La Chupadera*.\n\niASO Records places that first production in 1991, while AllMusic describes *La Chupadera* as his 1992 debut. Until stronger primary evidence resolves the difference, Mayimbe preserves the disagreement rather than forcing a false exact date: the beginning of Santos's solo recording career belongs in the early 1990s."
     }
   }
 }

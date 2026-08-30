@@ -1,0 +1,38 @@
+{
+  "mappings": [
+    {
+      "id": "experience:notebook-early-years",
+      "subject": "story:early-years",
+      "role": "primary",
+      "destination": {
+        "kind": "exhibit",
+        "exhibit": "notebook",
+        "target": "early-years",
+        "entity": "story:early-years"
+      },
+      "label": {
+        "en": "Experience in the Cuaderno",
+        "es": "Vivirlo en el Cuaderno"
+      }
+    }
+  ],
+  "bySubject": {
+    "story:early-years": [
+      {
+        "id": "experience:notebook-early-years",
+        "subject": "story:early-years",
+        "role": "primary",
+        "destination": {
+          "kind": "exhibit",
+          "exhibit": "notebook",
+          "target": "early-years",
+          "entity": "story:early-years"
+        },
+        "label": {
+          "en": "Experience in the Cuaderno",
+          "es": "Vivirlo en el Cuaderno"
+        }
+      }
+    ]
+  }
+}
