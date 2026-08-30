@@ -72,19 +72,26 @@ const next = () => engine.value?.next()
 
 <style scoped>
 .notebook-exhibit {
+  --notebook-focus-block: min(80dvh, 100%);
+
+  position: relative;
   width: 100%;
   height: 100%;
   min-height: 0;
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  justify-items: center;
-  padding: .25rem 0 0;
+  place-items: center;
   overflow: hidden;
 }
 
+/*
+ * The object does not consume the entire museum viewport. The historical
+ * Santos prototype deliberately gave the current object ~80vh and reserved
+ * the remainder for spatial context/navigation. Keep that useful constraint
+ * here without committing the desktop museum to a final spatial layout yet.
+ */
 .notebook-engine-host {
   width: 100%;
-  height: 100%;
+  height: var(--notebook-focus-block);
   min-width: 0;
   min-height: 0;
   display: grid;
@@ -100,14 +107,14 @@ const next = () => engine.value?.next()
 
 /* Fallback for browsers without container query units. */
 .notebook-engine-host :deep(.nbn .stage) {
-  width: min(100%, calc((100dvh - 12rem) * 1.5), 1500px);
+  width: min(94vw, calc(80dvh * 1.5), 1500px);
 }
 
-/* The notebook is 3:2. Size it from BOTH dimensions of the actual exhibit
-   slot so the complete physical object stays inside the remaining viewport. */
+/* The native notebook is 3:2. Size from BOTH dimensions of the focus envelope
+   so the complete physical object remains visible in every resting state. */
 @supports (width: 1cqw) {
   .notebook-engine-host :deep(.nbn .stage) {
-    width: min(100cqw, calc(100cqh * 1.5), 1500px);
+    width: min(96cqw, calc(96cqh * 1.5), 1500px);
   }
 }
 
@@ -118,7 +125,11 @@ const next = () => engine.value?.next()
 }
 
 .notebook-status {
-  margin: .5rem 0 0;
+  position: absolute;
+  left: 50%;
+  bottom: 4dvh;
+  translate: -50% 0;
+  margin: 0;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: .8rem;
   opacity: .7;
@@ -129,24 +140,55 @@ const next = () => engine.value?.next()
   opacity: 1;
 }
 
+/* Temporary direct controls while the spatial/miniature navigator is still
+   being designed. Keep them out of the notebook's sizing math so they do not
+   turn the exhibit back into a card-with-buttons layout. */
 .notebook-controls {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(.7rem, 2.2dvh, 1.5rem);
+  translate: -50% 0;
   display: flex;
   gap: .5rem;
-  margin-top: .35rem;
-  flex: none;
+  margin: 0;
+  z-index: 20;
+  opacity: .58;
+  transition: opacity 140ms ease;
+}
+
+.notebook-controls:hover,
+.notebook-controls:focus-within {
+  opacity: 1;
 }
 
 .notebook-controls button {
-  border: 1px solid rgba(224, 203, 166, .2);
-  border-radius: 5px;
-  padding: .45rem .7rem;
-  background: rgba(66, 48, 30, .72);
-  color: #e8e0d2;
-  font: 13px/1.2 Georgia, serif;
+  border: 1px solid rgba(224, 203, 166, .16);
+  border-radius: 999px;
+  padding: .4rem .65rem;
+  background: rgba(31, 22, 15, .48);
+  color: rgba(232, 224, 210, .8);
+  backdrop-filter: blur(7px);
+  font: 12px/1.2 Georgia, serif;
   cursor: pointer;
 }
 
-.notebook-controls button:hover {
-  background: rgba(83, 60, 37, .84);
+.notebook-controls button:hover,
+.notebook-controls button:focus-visible {
+  background: rgba(62, 44, 28, .78);
+  color: #f0e7d8;
+}
+
+@media (max-width: 640px) {
+  .notebook-exhibit {
+    --notebook-focus-block: min(80dvh, 100%);
+  }
+
+  .notebook-engine-host :deep(.nbn .stage) {
+    width: min(98cqw, calc(96cqh * 1.5));
+  }
+
+  .notebook-controls {
+    bottom: max(.55rem, env(safe-area-inset-bottom));
+  }
 }
 </style>
