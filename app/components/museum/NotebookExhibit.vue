@@ -190,17 +190,21 @@ onBeforeUnmount(() => {
   width: 100%;
   height: 100%;
   min-height: 0;
-  display: grid;
-  place-items: center;
   overflow: hidden;
+  isolation: isolate;
 }
 
 /*
  * In focused exhibit mode the viewport is the museum surface. This host is
  * merely the clipping/measurement window for the physical renderer; it should
- * never create a smaller visible panel inside that surface.
+ * never create a smaller visible panel inside that surface. Give the renderer
+ * its own explicit lower stacking layer so Android's GPU canvas cannot merge
+ * above exhibit-level controls.
  */
 .notebook-engine-host {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
   width: 100%;
   height: 100%;
   min-width: 0;
@@ -289,6 +293,7 @@ onBeforeUnmount(() => {
   position: absolute;
   left: 50%;
   bottom: 4dvh;
+  z-index: 50;
   translate: -50% 0;
   margin: 0;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -302,16 +307,17 @@ onBeforeUnmount(() => {
 }
 
 /* Temporary direct controls while the spatial/miniature navigator is still
-   being designed. Keep them out of the notebook's sizing math. */
+   being designed. Keep them out of the notebook's sizing math and in a layer
+   that is unambiguously above the physical renderer on mobile GPUs. */
 .notebook-controls {
   position: absolute;
   left: 50%;
   bottom: clamp(.7rem, 2.2dvh, 1.5rem);
+  z-index: 50;
   translate: -50% 0;
   display: flex;
   gap: .5rem;
   margin: 0;
-  z-index: 20;
   opacity: .58;
   transition: opacity 140ms ease;
 }
