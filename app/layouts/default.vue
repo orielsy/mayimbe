@@ -29,3 +29,14 @@ const inFocusedExhibit = computed(() => route.path.startsWith('/museum/'))
     </div>
   </div>
 </template>
+
+<style>
+/* Android can retain the cover-flight visibility result for the resting DOM
+   after WebGL relinquishes the closing animation. Make the canonical closed
+   state explicit so the physical cover is guaranteed to own the resting view. */
+.site-shell--museum .nbn .book.closed:not(.coverflight) .cover {
+  display: flex;
+  visibility: visible;
+  opacity: 1;
+}
+</style>
