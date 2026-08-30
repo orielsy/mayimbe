@@ -22,6 +22,8 @@ const destination = computed<MuseumDestination>(() => {
   }
 })
 
+const isFocusedExhibit = computed(() => destination.value.kind === 'exhibit')
+
 watch(
   destination,
   (next) => {
@@ -37,12 +39,19 @@ useSeoMeta({
 </script>
 
 <template>
-  <section class="page">
-    <p class="eyebrow">Museum runtime</p>
-    <h1>You discover Antony Santos through his things.</h1>
-    <p class="lede">
-      The Cuaderno is the first real museum exhibit running inside the persistent shell. The listening device, albums, and photo objects remain placeholders while their own exhibit engines are developed.
-    </p>
+  <section
+    class="page museum-page"
+    :class="{ 'museum-page--focused': isFocusedExhibit }"
+  >
+    <header v-if="!isFocusedExhibit" class="museum-intro">
+      <p class="eyebrow">Museum runtime</p>
+      <h1>You discover Antony Santos through his things.</h1>
+      <p class="lede">
+        The Cuaderno is the first real museum exhibit running inside the persistent shell. The listening device, albums, and photo objects remain placeholders while their own exhibit engines are developed.
+      </p>
+    </header>
+    <h1 v-else class="visually-hidden">Antony Santos museum exhibit</h1>
+
     <MuseumShell />
   </section>
 </template>
