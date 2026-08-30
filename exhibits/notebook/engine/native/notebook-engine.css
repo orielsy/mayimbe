@@ -38,7 +38,7 @@
   position: absolute;
   top: calc(-1 * var(--boardout)); bottom: calc(-1 * var(--boardout)); right: calc(-1 * var(--boardout)); left: calc(-1 * var(--boardout));
   transform-origin: 100% 50%; transform: scaleX(var(--deskx, .5)); will-change: transform;
-  border-radius: 10px; background: #2a1f12;
+  border-radius: 10px; background: transparent;
   box-shadow: 0 34px 70px rgba(0,0,0,.62), 0 12px 30px rgba(0,0,0,.45);
 }
 .nbn .backcover, .nbn .frontboard {
