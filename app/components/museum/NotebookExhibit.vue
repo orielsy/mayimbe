@@ -5,7 +5,10 @@ import { NOTEBOOK_NATIVE_SOURCE } from '~~/exhibits/notebook/engine/source'
 defineProps<{ target?: unknown }>()
 
 type MobileFocus = 'left' | 'right'
+type MobileInspect = 'overview' | 'left' | 'right'
+type MobilePresentation = 'focus' | 'inspect'
 
+const route = useRoute()
 const host = useTemplateRef<HTMLElement>('host')
 const notebook = useNotebookRuntime()
 const engine = shallowRef<NotebookEngine | null>(null)
@@ -13,11 +16,24 @@ const loading = ref(true)
 const error = ref<string | null>(null)
 const mobilePortrait = ref(false)
 const mobileFocus = ref<MobileFocus>('right')
+const mobileInspect = ref<MobileInspect>('overview')
 const abortController = new AbortController()
 let mobileMedia: MediaQueryList | null = null
 
+/*
+ * Temporary comparison switch, deliberately outside the notebook contract.
+ *
+ *   /museum/notebook                 -> Experiment A: persistent face focus
+ *   /museum/notebook?mobile=inspect  -> Experiment B: full object + inspect
+ *
+ * Neither behavior is canonical yet.
+ */
+const mobilePresentation = computed<MobilePresentation>(() =>
+  route.query.mobile === 'inspect' ? 'inspect' : 'focus',
+)
+
 function focusForRestingState(state: NotebookEngineState, direction: 'initial' | 'forward' | 'backward' = 'initial') {
-  if (!mobilePortrait.value) return
+  if (!mobilePortrait.value || mobilePresentation.value !== 'focus') return
 
   if (state.position === 'closed-front') {
     mobileFocus.value = 'right'
@@ -34,20 +50,26 @@ function focusForRestingState(state: NotebookEngineState, direction: 'initial' |
     return
   }
 
-  // A forward physical turn lands on the new left-hand page. A backward
-  // physical turn lands on the facing right-hand page. This is presentation
-  // state only; the native engine continues to own the actual sheet state.
+  // Experiment A: a forward physical turn lands on the new left-hand page.
+  // A backward physical turn lands on the facing right-hand page.
   mobileFocus.value = direction === 'backward' ? 'right' : 'left'
 }
 
-function syncMobileMode(event?: MediaQueryListEvent) {
-  mobilePortrait.value = event ? event.matches : Boolean(mobileMedia?.matches)
+function resetMobilePresentation() {
+  mobileInspect.value = 'overview'
   if (!mobilePortrait.value) {
     mobileFocus.value = 'right'
     return
   }
   if (engine.value) focusForRestingState(engine.value.getState())
 }
+
+function syncMobileMode(event?: MediaQueryListEvent) {
+  mobilePortrait.value = event ? event.matches : Boolean(mobileMedia?.matches)
+  resetMobilePresentation()
+}
+
+watch(mobilePresentation, () => resetMobilePresentation())
 
 onMounted(async () => {
   mobileMedia = window.matchMedia('(max-width: 640px) and (orientation: portrait)')
@@ -71,7 +93,7 @@ onMounted(async () => {
 
     engine.value = mounted
     await notebook.attachEngine(mounted)
-    focusForRestingState(mounted.getState())
+    resetMobilePresentation()
   } catch (cause) {
     if (!abortController.signal.aborted) {
       error.value = cause instanceof Error ? cause.message : String(cause)
@@ -92,16 +114,35 @@ onBeforeUnmount(() => {
   }
 })
 
+function inspectPage(event: MouseEvent) {
+  if (
+    !mobilePortrait.value
+    || mobilePresentation.value !== 'inspect'
+    || engine.value?.getState().position !== 'open'
+  ) return
+
+  const target = event.target as Element | null
+  const half = target?.closest('.half') as HTMLElement | null
+  if (!half || !host.value?.contains(half)) return
+
+  // Do not zoom an intentionally absent face (first/last asymmetric spread).
+  if (!half.querySelector('.leaf:not(.absent)')) return
+
+  const side: Exclude<MobileInspect, 'overview'> = half.classList.contains('left') ? 'left' : 'right'
+  mobileInspect.value = mobileInspect.value === side ? 'overview' : side
+}
+
 const previous = async () => {
   const current = engine.value
   if (!current) return
 
   const before = current.getState()
 
-  // Portrait-mobile experiment: when both faces are physically open, moving
-  // from the right page back to the left page is only a viewpoint change.
+  // Experiment A only: when both faces are physically open, right -> left is
+  // a viewpoint move rather than another physical sheet turn.
   if (
     mobilePortrait.value
+    && mobilePresentation.value === 'focus'
     && before.position === 'open'
     && before.turned > 0
     && mobileFocus.value === 'right'
@@ -112,6 +153,11 @@ const previous = async () => {
 
   await current.previous()
   const after = current.getState()
+
+  if (mobilePresentation.value === 'inspect') {
+    mobileInspect.value = 'overview'
+    return
+  }
 
   // Reopening the back cover exposes the final left-hand page; otherwise a
   // backward physical turn lands on the right-hand face of the prior spread.
@@ -124,10 +170,11 @@ const next = async () => {
 
   const before = current.getState()
 
-  // Portrait-mobile experiment: traverse the visible spread one face at a
-  // time. Left -> right changes framing without turning another sheet.
+  // Experiment A only: traverse the visible spread one face at a time. Left ->
+  // right changes framing without turning another physical sheet.
   if (
     mobilePortrait.value
+    && mobilePresentation.value === 'focus'
     && before.position === 'open'
     && before.turned > 0
     && mobileFocus.value === 'left'
@@ -137,6 +184,12 @@ const next = async () => {
   }
 
   await current.next()
+
+  if (mobilePresentation.value === 'inspect') {
+    mobileInspect.value = 'overview'
+    return
+  }
+
   focusForRestingState(current.getState(), 'forward')
 }
 </script>
@@ -148,8 +201,11 @@ const next = async () => {
       class="notebook-engine-host"
       :data-native-source="NOTEBOOK_NATIVE_SOURCE.route"
       :data-mobile-portrait="mobilePortrait ? 'true' : undefined"
-      :data-mobile-focus="mobilePortrait ? mobileFocus : undefined"
+      :data-mobile-presentation="mobilePortrait ? mobilePresentation : undefined"
+      :data-mobile-focus="mobilePortrait && mobilePresentation === 'focus' ? mobileFocus : undefined"
+      :data-mobile-inspect="mobilePortrait && mobilePresentation === 'inspect' ? mobileInspect : undefined"
       aria-label="Cuaderno exhibit"
+      @click="inspectPage"
     />
 
     <p v-if="loading" class="notebook-status">Preparing the Cuaderno…</p>
@@ -269,32 +325,55 @@ const next = async () => {
 
 @media (max-width: 640px) and (orientation: portrait) {
   /*
-   * EXPERIMENT — not an architectural rule.
-   *
-   * Keep the native two-page notebook intact, but enlarge it until one face is
-   * approximately phone-width and move the physical spread underneath the
-   * portrait viewport. Reverting this block + the tiny focus state above
-   * returns the production renderer to full-spread framing unchanged.
+   * EXPERIMENT A — persistent single-face focus.
+   * Keep the native two-page notebook intact, enlarge it until one face is
+   * approximately phone-width, then move the physical spread underneath the
+   * portrait viewport as reading progresses.
    */
-  .notebook-engine-host[data-mobile-portrait='true'] :deep(.nbn .stage) {
+  .notebook-engine-host[data-mobile-presentation='focus'] :deep(.nbn .stage) {
     width: min(184cqw, calc(96cqh * 1.5));
     transform-origin: 50% 50%;
     transition: transform 360ms cubic-bezier(.22, .74, .22, 1);
   }
 
-  .notebook-engine-host[data-mobile-portrait='true'][data-mobile-focus='left'] :deep(.nbn .stage) {
+  .notebook-engine-host[data-mobile-presentation='focus'][data-mobile-focus='left'] :deep(.nbn .stage) {
     transform: translateX(25%);
   }
 
-  .notebook-engine-host[data-mobile-portrait='true'][data-mobile-focus='right'] :deep(.nbn .stage) {
+  .notebook-engine-host[data-mobile-presentation='focus'][data-mobile-focus='right'] :deep(.nbn .stage) {
     transform: translateX(-25%);
   }
 
-  /* Direct edge-drag semantics still mean "turn a sheet" in the native engine,
-     while this experiment sometimes means "move to the facing page". Disable
-     those grab strips for the experiment rather than silently skipping a face.
-     The temporary exhibit controls drive the prototype until the concept earns
-     a dedicated touch gesture model. */
+  /*
+   * EXPERIMENT B — object overview + temporary inspection.
+   * The complete open notebook remains the resting composition. Tapping an
+   * existing face enlarges it for reading; tapping that same face again returns
+   * to the physical overview. Sheet navigation always occurs from the engine
+   * and returns to overview when it settles.
+   */
+  .notebook-engine-host[data-mobile-presentation='inspect'] :deep(.nbn .stage) {
+    width: min(98cqw, calc(96cqh * 1.5));
+    transform: translateX(0);
+    transform-origin: 50% 50%;
+    transition:
+      width 360ms cubic-bezier(.22, .74, .22, 1),
+      transform 360ms cubic-bezier(.22, .74, .22, 1);
+  }
+
+  .notebook-engine-host[data-mobile-presentation='inspect'][data-mobile-inspect='left'] :deep(.nbn .stage) {
+    width: min(184cqw, calc(96cqh * 1.5));
+    transform: translateX(25%);
+  }
+
+  .notebook-engine-host[data-mobile-presentation='inspect'][data-mobile-inspect='right'] :deep(.nbn .stage) {
+    width: min(184cqw, calc(96cqh * 1.5));
+    transform: translateX(-25%);
+  }
+
+  /* The production edge strips still mean "turn a sheet" while Experiment A
+     sometimes means "move viewpoint", and Experiment B adds page inspection.
+     Disable direct strips for both prototypes rather than mix gesture models
+     before either concept has earned a real touch interaction design. */
   .notebook-engine-host[data-mobile-portrait='true'] :deep(.nbn .grab) {
     pointer-events: none;
   }
