@@ -41,7 +41,7 @@ useSeoMeta({
     <p class="eyebrow">Museum runtime</p>
     <h1>You discover Antony Santos through his things.</h1>
     <p class="lede">
-      These objects are placeholders. The purpose of this slice is to prove that semantic destinations can activate exhibits without coupling the Navigator to their physical implementation.
+      The Cuaderno is the first real museum exhibit running inside the persistent shell. The listening device, albums, and photo objects remain placeholders while their own exhibit engines are developed.
     </p>
     <MuseumShell />
   </section>
