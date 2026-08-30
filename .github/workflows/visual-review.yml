@@ -2,6 +2,12 @@ name: Visual Review
 
 on:
   workflow_dispatch:
+    inputs:
+      video:
+        description: 'Record full Playwright video for this review run'
+        required: false
+        default: false
+        type: boolean
   push:
     branches: [main]
     paths:
@@ -28,6 +34,8 @@ jobs:
   capture:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      PW_VIDEO: ${{ inputs.video && '1' || '0' }}
 
     steps:
       - name: Checkout
@@ -56,7 +64,6 @@ jobs:
           path: |
             visual-artifacts
             test-results
-            playwright-report
           if-no-files-found: warn
           retention-days: 1
           compression-level: 6
