@@ -15,7 +15,7 @@ async function capture(page: Page, name: string) {
   })
 }
 
-test('Cuaderno closed, opened, and semantic entry states', async ({ page }, testInfo) => {
+function collectRuntimeErrors(page: Page) {
   const runtimeErrors: string[] = []
 
   page.on('pageerror', error => runtimeErrors.push(`pageerror: ${error.message}`))
@@ -24,6 +24,12 @@ test('Cuaderno closed, opened, and semantic entry states', async ({ page }, test
     if (toleratedConsoleErrors.has(message.text())) return
     runtimeErrors.push(`console: ${message.text()}`)
   })
+
+  return runtimeErrors
+}
+
+test('Cuaderno closed, opened, and semantic entry states', async ({ page }, testInfo) => {
+  const runtimeErrors = collectRuntimeErrors(page)
 
   await page.goto('/museum/notebook')
 
@@ -40,24 +46,60 @@ test('Cuaderno closed, opened, and semantic entry states', async ({ page }, test
   await capture(page, `${testInfo.project.name}-notebook-open.png`)
 
   if (testInfo.project.name.startsWith('mobile-')) {
-    // First continuation after page 1 physically turns a sheet and should
-    // settle on the new left-hand page.
+    // Experiment A: first continuation after page 1 physically turns a sheet
+    // and settles on the new left-hand page.
     await forward.click()
     await page.waitForTimeout(1_800)
-    await capture(page, `${testInfo.project.name}-notebook-page-2-focus.png`)
+    await capture(page, `${testInfo.project.name}-experiment-a-page-2-focus.png`)
 
-    // The next continuation is deliberately only a framing move across the
-    // already-open spread. This is the behavior under evaluation, not a
-    // permanent notebook contract.
+    // Experiment A: next continuation is deliberately only a framing move
+    // across the already-open spread.
     await forward.click()
     await page.waitForTimeout(550)
-    await capture(page, `${testInfo.project.name}-notebook-page-3-focus.png`)
+    await capture(page, `${testInfo.project.name}-experiment-a-page-3-focus.png`)
   }
 
   await page.goto('/museum/notebook/early-years')
   await expect(controls).toBeVisible()
   await page.waitForTimeout(1_200)
   await capture(page, `${testInfo.project.name}-notebook-early-years.png`)
+
+  expect(runtimeErrors, runtimeErrors.join('\n')).toEqual([])
+})
+
+test('portrait Experiment B keeps the book whole until a page is inspected', async ({ page }, testInfo) => {
+  test.skip(!testInfo.project.name.startsWith('mobile-'), 'portrait presentation comparison only')
+
+  const runtimeErrors = collectRuntimeErrors(page)
+  await page.goto('/museum/notebook?mobile=inspect')
+
+  const controls = page.getByRole('navigation', { name: 'Notebook controls' })
+  const forward = page.getByRole('button', { name: /Forward/ })
+  await expect(controls).toBeVisible()
+  await expect(page.locator(".notebook-engine-host[data-mobile-presentation='inspect'] .nbn")).toBeVisible()
+
+  // Open the cover, then turn one physical sheet so both faces contain pages.
+  await forward.click()
+  await page.waitForTimeout(1_800)
+  await forward.click()
+  await page.waitForTimeout(1_800)
+
+  await capture(page, `${testInfo.project.name}-experiment-b-overview.png`)
+
+  const leftPage = page.locator('.notebook-engine-host .half.left .leaf:not(.absent)')
+  const rightPage = page.locator('.notebook-engine-host .half.right .leaf:not(.absent)')
+
+  await leftPage.click({ position: { x: 80, y: 90 } })
+  await page.waitForTimeout(550)
+  await capture(page, `${testInfo.project.name}-experiment-b-left-inspect.png`)
+
+  await rightPage.click({ position: { x: 80, y: 90 } })
+  await page.waitForTimeout(550)
+  await capture(page, `${testInfo.project.name}-experiment-b-right-inspect.png`)
+
+  await rightPage.click({ position: { x: 80, y: 90 } })
+  await page.waitForTimeout(550)
+  await capture(page, `${testInfo.project.name}-experiment-b-return-overview.png`)
 
   expect(runtimeErrors, runtimeErrors.join('\n')).toEqual([])
 })
