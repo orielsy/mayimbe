@@ -199,6 +199,10 @@ onBeforeUnmount(() => {
  * In focused exhibit mode the viewport is the museum surface. This host is
  * merely the clipping/measurement window for the physical renderer; it should
  * never create a smaller visible panel inside that surface.
+ *
+ * Pointer input is intentionally disabled for this troubleshooting checkpoint.
+ * Buttons and keyboard are the only notebook navigation paths until resting
+ * DOM/WebGL handoff is proven stable on the real Android device.
  */
 .notebook-engine-host {
   width: 100%;
@@ -210,6 +214,7 @@ onBeforeUnmount(() => {
   place-items: center;
   overflow: hidden;
   container-type: size;
+  pointer-events: none;
 }
 
 .notebook-engine-host :deep(.nbn) {
@@ -265,26 +270,6 @@ onBeforeUnmount(() => {
   line-height: 1.55;
 }
 
-/*
- * The native renderer already owns real pointer-drag mechanics. In Pocket the
- * far-left physical edge is intentionally outside the viewport, so relocate
- * only the previous-page hit strip to the visible gutter edge. The right strip
- * remains on the visible fore-edge and keeps the canonical forward drag.
- */
-.notebook-engine-host[data-notebook-profile='pocket'] :deep(.nbn .grab) {
-  width: 10%;
-}
-
-.notebook-engine-host[data-notebook-profile='pocket'] :deep(.nbn .grab.prev) {
-  left: 50%;
-}
-
-/* Native Lab parity: while the front board is closed, the page-edge drag
-   zones must not sit above the cover. The cover itself owns the opening drag. */
-.notebook-engine-host :deep(.nbn .book.closed ~ .grab) {
-  display: none;
-}
-
 .notebook-status {
   position: absolute;
   left: 50%;
@@ -301,46 +286,43 @@ onBeforeUnmount(() => {
   opacity: 1;
 }
 
-/* Temporary direct controls while the spatial/miniature navigator is still
-   being designed. Keep them out of the notebook's sizing math. */
+/* Diagnostic controls: intentionally obvious/reliable while pointer navigation
+   is disabled. They remain outside the notebook's sizing and renderer layers. */
 .notebook-controls {
   position: absolute;
   left: 50%;
-  bottom: clamp(.7rem, 2.2dvh, 1.5rem);
+  bottom: clamp(.8rem, 2.4dvh, 1.6rem);
   translate: -50% 0;
   display: flex;
-  gap: .5rem;
+  gap: .6rem;
   margin: 0;
   z-index: 20;
-  opacity: .58;
-  transition: opacity 140ms ease;
-}
-
-.notebook-controls:hover,
-.notebook-controls:focus-within {
-  opacity: 1;
+  opacity: .92;
 }
 
 .notebook-controls button {
-  border: 1px solid rgba(224, 203, 166, .16);
+  min-height: 2.5rem;
+  border: 1px solid rgba(224, 203, 166, .24);
   border-radius: 999px;
-  padding: .4rem .65rem;
-  background: rgba(31, 22, 15, .48);
-  color: rgba(232, 224, 210, .8);
+  padding: .5rem .8rem;
+  background: rgba(31, 22, 15, .72);
+  color: rgba(242, 234, 220, .94);
   backdrop-filter: blur(7px);
-  font: 12px/1.2 Georgia, serif;
+  font: 13px/1.2 Georgia, serif;
   cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
 }
 
 .notebook-controls button:hover,
 .notebook-controls button:focus-visible {
-  background: rgba(62, 44, 28, .78);
+  background: rgba(62, 44, 28, .88);
   color: #f0e7d8;
 }
 
 @media (max-width: 640px) {
   .notebook-controls {
-    bottom: max(.55rem, env(safe-area-inset-bottom));
+    bottom: max(.7rem, env(safe-area-inset-bottom));
   }
 }
 </style>
