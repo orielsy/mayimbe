@@ -1,4 +1,4 @@
-import { defineConfig, devices } from '@playwright/test'
+import { defineConfig } from '@playwright/test'
 
 export default defineConfig({
   testDir: './tests/visual',
@@ -9,15 +9,13 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   retries: process.env.CI ? 1 : 0,
-  reporter: [
-    ['line'],
-    ['html', { outputFolder: 'playwright-report', open: 'never' }],
-  ],
+  reporter: 'line',
   use: {
     baseURL: 'http://127.0.0.1:3000',
+    browserName: 'chromium',
     colorScheme: 'dark',
     trace: 'retain-on-failure',
-    video: 'on',
+    video: process.env.PW_VIDEO === '1' ? 'on' : 'retain-on-failure',
   },
   webServer: {
     command: 'npm run dev -- --host 127.0.0.1',
@@ -35,8 +33,10 @@ export default defineConfig({
     {
       name: 'mobile-390x844',
       use: {
-        ...devices['iPhone 13'],
         viewport: { width: 390, height: 844 },
+        isMobile: true,
+        hasTouch: true,
+        deviceScaleFactor: 2,
       },
     },
   ],
