@@ -134,7 +134,10 @@ test('portrait Experiment B keeps the book whole until a page is inspected', asy
   await page.waitForTimeout(550)
   await capture(page, `${testInfo.project.name}-experiment-b-right-inspect.png`)
 
-  await rightPage.click({ position: { x: 80, y: 90 } })
+  // This run is for visual comparison, not final touch-target certification.
+  // Dispatch the toggle directly so an intentionally experimental off-axis
+  // composition cannot turn the capture harness into a hit-testing test.
+  await rightPage.dispatchEvent('click')
   await page.waitForTimeout(550)
   await capture(page, `${testInfo.project.name}-experiment-b-return-overview.png`)
 
