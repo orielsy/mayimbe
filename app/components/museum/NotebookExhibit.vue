@@ -72,8 +72,6 @@ const next = () => engine.value?.next()
 
 <style scoped>
 .notebook-exhibit {
-  --notebook-focus-block: min(80dvh, 100%);
-
   position: relative;
   width: 100%;
   height: 100%;
@@ -84,14 +82,13 @@ const next = () => engine.value?.next()
 }
 
 /*
- * The object does not consume the entire museum viewport. The historical
- * Santos prototype deliberately gave the current object ~80vh and reserved
- * the remainder for spatial context/navigation. Keep that useful constraint
- * here without committing the desktop museum to a final spatial layout yet.
+ * The object does not consume the entire museum viewport. The shell provides
+ * a default focus envelope (currently ~80dvh), leaving the exhibit itself
+ * independent from the museum's eventual desktop/mobile spatial composition.
  */
 .notebook-engine-host {
   width: 100%;
-  height: var(--notebook-focus-block);
+  height: min(var(--museum-focus-block, 80dvh), 100%);
   min-width: 0;
   min-height: 0;
   display: grid;
@@ -179,10 +176,6 @@ const next = () => engine.value?.next()
 }
 
 @media (max-width: 640px) {
-  .notebook-exhibit {
-    --notebook-focus-block: min(80dvh, 100%);
-  }
-
   .notebook-engine-host :deep(.nbn .stage) {
     width: min(98cqw, calc(96cqh * 1.5));
   }
