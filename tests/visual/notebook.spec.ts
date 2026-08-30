@@ -1,10 +1,10 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { mkdir } from 'node:fs/promises'
 import path from 'node:path'
 
 const visualDir = path.resolve('visual-artifacts')
 
-async function capture(page: Parameters<typeof test>[0] extends never ? never : any, name: string) {
+async function capture(page: Page, name: string) {
   await mkdir(visualDir, { recursive: true })
   await page.screenshot({
     path: path.join(visualDir, name),
