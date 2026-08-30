@@ -1,0 +1,14 @@
+.notebook-engine-root .m2stack {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  container-type: inline-size;
+  --u: 1cqw;
+}
+
+.notebook-engine-root .m2stack > .m2sheet {
+  position: absolute;
+  top: 7%;
+  left: 6%;
+  height: 86%;
+  width: 86%;
+}
