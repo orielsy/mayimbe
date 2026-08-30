@@ -36,8 +36,29 @@ button {
   font: inherit;
 }
 
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
 .site-shell {
-  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.site-shell > main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .site-header {
@@ -45,6 +66,7 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 2rem;
+  flex: none;
   padding: 1rem 1.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.09);
 }
@@ -72,6 +94,25 @@ button {
   width: min(1100px, calc(100% - 2rem));
   margin: 0 auto;
   padding: 4rem 0;
+}
+
+.museum-page {
+  display: flex;
+  flex-direction: column;
+}
+
+.museum-page--focused {
+  width: 100%;
+  max-width: none;
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: .65rem .85rem .75rem;
+  overflow: hidden;
+}
+
+.museum-intro {
+  flex: none;
 }
 
 .eyebrow {
@@ -148,11 +189,27 @@ h1 {
   background: rgba(48, 34, 24, 0.38);
 }
 
+.museum-stage--focused {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  padding: .55rem;
+  border-radius: .9rem;
+  overflow: hidden;
+}
+
 .museum-desk {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 0.75rem;
   margin-bottom: 1rem;
+}
+
+.museum-desk--compact {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .45rem;
+  margin-bottom: .45rem;
 }
 
 .museum-object {
@@ -166,9 +223,29 @@ h1 {
   text-align: left;
 }
 
+.museum-object-status {
+  display: block;
+  margin-top: .5rem;
+}
+
+.museum-desk--compact .museum-object {
+  min-height: 3.2rem;
+  padding: .55rem .7rem;
+  border-radius: .65rem;
+}
+
+.museum-desk--compact .museum-object-status {
+  display: none;
+}
+
 .museum-object[aria-current='true'] {
   outline: 2px solid #c1a37f;
   outline-offset: 2px;
+}
+
+.museum-stage--focused > .notebook-exhibit,
+.museum-stage--focused > .exhibit-placeholder {
+  min-height: 0;
 }
 
 .exhibit-placeholder {
@@ -198,5 +275,30 @@ code {
 
   .page {
     padding-top: 2.5rem;
+  }
+
+  .museum-page--focused {
+    width: 100%;
+    padding: .4rem;
+  }
+
+  .museum-stage--focused {
+    padding: .4rem;
+  }
+
+  .museum-desk--compact {
+    display: flex;
+    gap: .4rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+    padding: 2px;
+  }
+
+  .museum-desk--compact .museum-object {
+    flex: 0 0 auto;
+    min-width: 9.5rem;
+    min-height: 2.9rem;
+    white-space: nowrap;
   }
 }
