@@ -196,13 +196,13 @@ onBeforeUnmount(() => {
 }
 
 /*
- * The shell owns the exhibit envelope. The Cuaderno chooses a physical profile
- * from the actual space inside that envelope; the profile then scales without
- * changing shape on every small resize.
+ * In focused exhibit mode the viewport is the museum surface. This host is
+ * merely the clipping/measurement window for the physical renderer; it should
+ * never create a smaller visible panel inside that surface.
  */
 .notebook-engine-host {
   width: 100%;
-  height: min(var(--museum-focus-block, 80dvh), 100%);
+  height: 100%;
   min-width: 0;
   min-height: 0;
   display: grid;
@@ -222,7 +222,7 @@ onBeforeUnmount(() => {
 
 /* Standard Cuaderno: canonical two-page, duplex spread. */
 .notebook-engine-host[data-notebook-profile='standard'] :deep(.nbn .stage) {
-  width: min(94vw, calc(80dvh * 1.5), 1500px);
+  width: min(94vw, calc(96dvh * 1.5), 1500px);
   aspect-ratio: 3 / 2;
 }
 
@@ -233,7 +233,7 @@ onBeforeUnmount(() => {
  * the constrained viewport; the left stack still exists physically offscreen.
  */
 .notebook-engine-host[data-notebook-profile='pocket'] :deep(.nbn .stage) {
-  width: min(188vw, 106.67dvh, 1100px);
+  width: min(188vw, 122.67dvh, 1100px);
   aspect-ratio: 4 / 3;
   margin-inline: 0;
   transform: translateX(-25%);
