@@ -73,16 +73,42 @@ const next = () => engine.value?.next()
 <style scoped>
 .notebook-exhibit {
   width: 100%;
-  min-height: min(760px, calc(100vh - 7rem));
+  height: 100%;
+  min-height: 0;
   display: grid;
-  align-content: center;
+  grid-template-rows: minmax(0, 1fr) auto;
   justify-items: center;
-  padding: 1rem 0 2rem;
+  padding: .25rem 0 0;
+  overflow: hidden;
 }
 
 .notebook-engine-host {
   width: 100%;
-  min-height: 1px;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  container-type: size;
+}
+
+.notebook-engine-host :deep(.nbn) {
+  width: 100%;
+  height: 100%;
+  justify-content: center;
+}
+
+/* Fallback for browsers without container query units. */
+.notebook-engine-host :deep(.nbn .stage) {
+  width: min(100%, calc((100dvh - 12rem) * 1.5), 1500px);
+}
+
+/* The notebook is 3:2. Size it from BOTH dimensions of the actual exhibit
+   slot so the complete physical object stays inside the remaining viewport. */
+@supports (width: 1cqw) {
+  .notebook-engine-host :deep(.nbn .stage) {
+    width: min(100cqw, calc(100cqh * 1.5), 1500px);
+  }
 }
 
 /* Native Lab parity: while the front board is closed, the page-edge drag
@@ -92,7 +118,7 @@ const next = () => engine.value?.next()
 }
 
 .notebook-status {
-  margin: 1rem 0 0;
+  margin: .5rem 0 0;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: .8rem;
   opacity: .7;
@@ -106,13 +132,14 @@ const next = () => engine.value?.next()
 .notebook-controls {
   display: flex;
   gap: .5rem;
-  margin-top: .75rem;
+  margin-top: .35rem;
+  flex: none;
 }
 
 .notebook-controls button {
   border: 1px solid rgba(224, 203, 166, .2);
   border-radius: 5px;
-  padding: .55rem .8rem;
+  padding: .45rem .7rem;
   background: rgba(66, 48, 30, .72);
   color: #e8e0d2;
   font: 13px/1.2 Georgia, serif;
