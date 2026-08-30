@@ -9,6 +9,20 @@ const route = useRoute()
  * Archive, search, research and other conventional UI routes always keep it.
  */
 const inFocusedExhibit = computed(() => route.path.startsWith('/museum/'))
+
+onMounted(() => {
+  if (!import.meta.dev) return
+  if (route.query.__mayimbe === MAYIMBE_WORK_VERSION) return
+
+  void navigateTo({
+    path: route.path,
+    query: {
+      ...route.query,
+      __mayimbe: MAYIMBE_WORK_VERSION,
+    },
+    hash: route.hash,
+  }, { replace: true })
+})
 </script>
 
 <template>
