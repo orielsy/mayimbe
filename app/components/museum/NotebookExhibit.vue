@@ -327,12 +327,13 @@ const next = async () => {
 }
 
 @media (max-width: 640px) and (orientation: portrait) {
-  /* Oversized block-level stages stop honoring auto centering once wider than
-     their container. Establish an explicit host-relative origin so both
-     experiments move around the physical spread rather than a min-content
-     expanded grid item. */
+  /*
+   * The .nbn wrapper already centers its stage as a flex item. Once its grid
+   * containing block is constrained to the phone width, the oversized spread
+   * has the correct baseline automatically. A quarter-stage translation then
+   * centers either physical face in the portrait viewport.
+   */
   .notebook-engine-host[data-mobile-portrait='true'] :deep(.nbn .stage) {
-    left: 50%;
     margin-inline: 0;
     transform-origin: 50% 50%;
   }
@@ -349,11 +350,11 @@ const next = async () => {
   }
 
   .notebook-engine-host[data-mobile-presentation='focus'][data-mobile-focus='left'] :deep(.nbn .stage) {
-    transform: translateX(-25%);
+    transform: translateX(25%);
   }
 
   .notebook-engine-host[data-mobile-presentation='focus'][data-mobile-focus='right'] :deep(.nbn .stage) {
-    transform: translateX(-75%);
+    transform: translateX(-25%);
   }
 
   /*
@@ -365,7 +366,7 @@ const next = async () => {
    */
   .notebook-engine-host[data-mobile-presentation='inspect'] :deep(.nbn .stage) {
     width: min(98cqw, calc(96cqh * 1.5));
-    transform: translateX(-50%);
+    transform: translateX(0);
     transition:
       width 360ms cubic-bezier(.22, .74, .22, 1),
       transform 360ms cubic-bezier(.22, .74, .22, 1);
@@ -373,12 +374,12 @@ const next = async () => {
 
   .notebook-engine-host[data-mobile-presentation='inspect'][data-mobile-inspect='left'] :deep(.nbn .stage) {
     width: min(184cqw, calc(96cqh * 1.5));
-    transform: translateX(-25%);
+    transform: translateX(25%);
   }
 
   .notebook-engine-host[data-mobile-presentation='inspect'][data-mobile-inspect='right'] :deep(.nbn .stage) {
     width: min(184cqw, calc(96cqh * 1.5));
-    transform: translateX(-75%);
+    transform: translateX(-25%);
   }
 
   /* The production edge strips still mean "turn a sheet" while Experiment A
