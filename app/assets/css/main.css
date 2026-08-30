@@ -195,8 +195,11 @@ h1 {
 }
 
 /* Once an object has focus, the shell stops presenting itself as a webpage.
-   It becomes the room/desk surface the exhibit lives inside. */
+   It becomes the room/desk surface the exhibit lives inside. The focus block
+   is a presentation default, not a permanent requirement for every exhibit. */
 .museum-stage--focused {
+  --museum-focus-block: 80dvh;
+
   position: relative;
   flex: 1;
   min-height: 0;
