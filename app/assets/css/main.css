@@ -54,6 +54,11 @@ button {
   flex-direction: column;
 }
 
+.site-shell--museum {
+  height: 100dvh;
+  overflow: hidden;
+}
+
 .site-shell > main {
   flex: 1;
   min-height: 0;
@@ -107,7 +112,7 @@ button {
   flex: 1;
   min-height: 0;
   margin: 0;
-  padding: .65rem .85rem .75rem;
+  padding: 0;
   overflow: hidden;
 }
 
@@ -189,14 +194,53 @@ h1 {
   background: rgba(48, 34, 24, 0.38);
 }
 
+/* Once an object has focus, the shell stops presenting itself as a webpage.
+   It becomes the room/desk surface the exhibit lives inside. */
 .museum-stage--focused {
+  position: relative;
   flex: 1;
   min-height: 0;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  padding: .55rem;
-  border-radius: .9rem;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
   overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 44%, rgba(103, 70, 43, .20), transparent 58%),
+    linear-gradient(180deg, #17110d 0%, #120e0b 100%);
+}
+
+.museum-stage--focused > .notebook-exhibit,
+.museum-stage--focused > .exhibit-placeholder {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.museum-return {
+  position: absolute;
+  top: .75rem;
+  left: .75rem;
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  min-height: 2.3rem;
+  padding: .4rem .65rem;
+  border: 1px solid rgba(229, 210, 179, .14);
+  border-radius: 999px;
+  background: rgba(18, 13, 9, .46);
+  color: rgba(241, 234, 223, .72);
+  backdrop-filter: blur(8px);
+  cursor: pointer;
+  opacity: .72;
+  transition: opacity 140ms ease, background 140ms ease;
+}
+
+.museum-return:hover,
+.museum-return:focus-visible {
+  opacity: 1;
+  background: rgba(28, 20, 14, .78);
 }
 
 .museum-desk {
@@ -204,12 +248,6 @@ h1 {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 0.75rem;
   margin-bottom: 1rem;
-}
-
-.museum-desk--compact {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: .45rem;
-  margin-bottom: .45rem;
 }
 
 .museum-object {
@@ -228,24 +266,9 @@ h1 {
   margin-top: .5rem;
 }
 
-.museum-desk--compact .museum-object {
-  min-height: 3.2rem;
-  padding: .55rem .7rem;
-  border-radius: .65rem;
-}
-
-.museum-desk--compact .museum-object-status {
-  display: none;
-}
-
 .museum-object[aria-current='true'] {
   outline: 2px solid #c1a37f;
   outline-offset: 2px;
-}
-
-.museum-stage--focused > .notebook-exhibit,
-.museum-stage--focused > .exhibit-placeholder {
-  min-height: 0;
 }
 
 .exhibit-placeholder {
@@ -279,26 +302,14 @@ code {
 
   .museum-page--focused {
     width: 100%;
-    padding: .4rem;
+    padding: 0;
   }
 
-  .museum-stage--focused {
-    padding: .4rem;
-  }
-
-  .museum-desk--compact {
-    display: flex;
-    gap: .4rem;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scrollbar-width: thin;
-    padding: 2px;
-  }
-
-  .museum-desk--compact .museum-object {
-    flex: 0 0 auto;
-    min-width: 9.5rem;
-    min-height: 2.9rem;
-    white-space: nowrap;
+  .museum-return {
+    top: .45rem;
+    left: .45rem;
+    min-height: 2rem;
+    padding: .3rem .55rem;
+    font-size: .8rem;
   }
 }
