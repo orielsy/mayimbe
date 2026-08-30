@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { localizedTextSchema } from '../shared/localized-text'
+import { localizedTextSchema } from '../shared/localized-text.ts'
 
 const destinationSchema = z.union([
   z.object({

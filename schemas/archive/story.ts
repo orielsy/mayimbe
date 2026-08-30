@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { localizedTextSchema } from '../shared/localized-text'
+import { localizedTextSchema } from '../shared/localized-text.ts'
 
 export const storySchema = z.object({
   id: z.string().regex(/^story:[a-z0-9][a-z0-9-]*$/),
