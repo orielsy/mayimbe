@@ -85,6 +85,12 @@ const next = () => engine.value?.next()
   min-height: 1px;
 }
 
+/* Native Lab parity: while the front board is closed, the page-edge drag
+   zones must not sit above the cover. The cover itself owns the opening drag. */
+.notebook-engine-host :deep(.nbn .book.closed ~ .grab) {
+  display: none;
+}
+
 .notebook-status {
   margin: 1rem 0 0;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
