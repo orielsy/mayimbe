@@ -17,7 +17,7 @@
     "postinstall": "nuxt prepare",
     "archive:validate": "node scripts/validate-content.ts",
     "archive:build": "node scripts/build-archive.ts",
-    "test": "vitest run",
+    "test": "vitest run tests/unit tests/integration",
     "test:visual": "playwright test"
   },
   "dependencies": {
