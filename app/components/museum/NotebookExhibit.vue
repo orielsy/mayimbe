@@ -5,6 +5,7 @@ import { NOTEBOOK_NATIVE_SOURCE } from '~~/exhibits/notebook/engine/source'
 
 defineProps<{ target?: unknown }>()
 
+const route = useRoute()
 const host = useTemplateRef<HTMLElement>('host')
 const notebook = useNotebookRuntime()
 const engine = shallowRef<NotebookEngine | null>(null)
@@ -17,6 +18,12 @@ let resizeObserver: ResizeObserver | null = null
 let resizeTimer: number | undefined
 let mounting = false
 let queuedProfile: NotebookPhysicalProfile | null = null
+
+function resolveRequestedProfile(width: number, height: number): NotebookPhysicalProfile {
+  const requested = route.query.notebookProfile
+  if (requested === 'standard' || requested === 'pocket') return requested
+  return resolveNotebookProfile(width, height)
+}
 
 async function mountProfile(nextProfile: NotebookPhysicalProfile) {
   const container = host.value
@@ -80,7 +87,7 @@ async function mountProfile(nextProfile: NotebookPhysicalProfile) {
 }
 
 function scheduleProfile(width: number, height: number) {
-  const nextProfile = resolveNotebookProfile(width, height)
+  const nextProfile = resolveRequestedProfile(width, height)
   if (nextProfile === profile.value && engine.value) return
 
   if (resizeTimer !== undefined) window.clearTimeout(resizeTimer)
@@ -136,7 +143,7 @@ onMounted(async () => {
   window.addEventListener('keydown', onNotebookKeydown)
 
   const rect = host.value.getBoundingClientRect()
-  profile.value = resolveNotebookProfile(rect.width, rect.height)
+  profile.value = resolveRequestedProfile(rect.width, rect.height)
   await mountProfile(profile.value)
 
   if (abortController.signal.aborted || !host.value) return
@@ -148,6 +155,15 @@ onMounted(async () => {
   })
   resizeObserver.observe(host.value)
 })
+
+watch(
+  () => route.query.notebookProfile,
+  () => {
+    if (!host.value || abortController.signal.aborted) return
+    const rect = host.value.getBoundingClientRect()
+    scheduleProfile(rect.width, rect.height)
+  },
+)
 
 onBeforeUnmount(() => {
   abortController.abort()
