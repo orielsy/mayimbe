@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { mkdir } from 'node:fs/promises'
+import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
 const visualDir = path.resolve('visual-artifacts')
@@ -13,6 +13,41 @@ async function capture(page: Page, name: string) {
     path: path.join(visualDir, name),
     fullPage: false,
   })
+}
+
+async function captureGeometry(page: Page, name: string) {
+  await mkdir(visualDir, { recursive: true })
+  const geometry = await page.locator('.notebook-engine-host').evaluate(host => {
+    const stage = host.querySelector('.stage') as HTMLElement | null
+    const left = host.querySelector('.half.left .leaf:not(.absent)') as HTMLElement | null
+    const right = host.querySelector('.half.right .leaf:not(.absent)') as HTMLElement | null
+    const rect = (element: Element | null) => {
+      if (!element) return null
+      const value = element.getBoundingClientRect()
+      return { x: value.x, y: value.y, width: value.width, height: value.height }
+    }
+    const computed = stage ? getComputedStyle(stage) : null
+
+    return {
+      host: rect(host),
+      stage: rect(stage),
+      leftPage: rect(left),
+      rightPage: rect(right),
+      dataset: { ...(host as HTMLElement).dataset },
+      stageComputed: computed
+        ? {
+            left: computed.left,
+            width: computed.width,
+            marginLeft: computed.marginLeft,
+            marginRight: computed.marginRight,
+            transform: computed.transform,
+            translate: computed.translate,
+          }
+        : null,
+    }
+  })
+
+  await writeFile(path.join(visualDir, name), `${JSON.stringify(geometry, null, 2)}\n`, 'utf8')
 }
 
 function collectRuntimeErrors(page: Page) {
@@ -51,6 +86,7 @@ test('Cuaderno closed, opened, and semantic entry states', async ({ page }, test
     await forward.click()
     await page.waitForTimeout(1_800)
     await capture(page, `${testInfo.project.name}-experiment-a-page-2-focus.png`)
+    await captureGeometry(page, `${testInfo.project.name}-experiment-a-page-2-geometry.json`)
 
     // Experiment A: next continuation is deliberately only a framing move
     // across the already-open spread.
@@ -92,6 +128,7 @@ test('portrait Experiment B keeps the book whole until a page is inspected', asy
   await leftPage.click({ position: { x: 80, y: 90 } })
   await page.waitForTimeout(550)
   await capture(page, `${testInfo.project.name}-experiment-b-left-inspect.png`)
+  await captureGeometry(page, `${testInfo.project.name}-experiment-b-left-geometry.json`)
 
   await rightPage.click({ position: { x: 80, y: 90 } })
   await page.waitForTimeout(550)
