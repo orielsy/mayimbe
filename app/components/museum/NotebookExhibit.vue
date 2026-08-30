@@ -324,6 +324,15 @@ const next = async () => {
 }
 
 @media (max-width: 640px) and (orientation: portrait) {
+  /* Oversized block-level stages stop honoring auto centering once wider than
+     their container. Establish an explicit 50% origin so both experiments can
+     move relative to the actual center of the physical spread. */
+  .notebook-engine-host[data-mobile-portrait='true'] :deep(.nbn .stage) {
+    left: 50%;
+    margin-inline: 0;
+    transform-origin: 50% 50%;
+  }
+
   /*
    * EXPERIMENT A — persistent single-face focus.
    * Keep the native two-page notebook intact, enlarge it until one face is
@@ -332,16 +341,15 @@ const next = async () => {
    */
   .notebook-engine-host[data-mobile-presentation='focus'] :deep(.nbn .stage) {
     width: min(184cqw, calc(96cqh * 1.5));
-    transform-origin: 50% 50%;
     transition: transform 360ms cubic-bezier(.22, .74, .22, 1);
   }
 
   .notebook-engine-host[data-mobile-presentation='focus'][data-mobile-focus='left'] :deep(.nbn .stage) {
-    transform: translateX(25%);
+    transform: translateX(-25%);
   }
 
   .notebook-engine-host[data-mobile-presentation='focus'][data-mobile-focus='right'] :deep(.nbn .stage) {
-    transform: translateX(-25%);
+    transform: translateX(-75%);
   }
 
   /*
@@ -353,8 +361,7 @@ const next = async () => {
    */
   .notebook-engine-host[data-mobile-presentation='inspect'] :deep(.nbn .stage) {
     width: min(98cqw, calc(96cqh * 1.5));
-    transform: translateX(0);
-    transform-origin: 50% 50%;
+    transform: translateX(-50%);
     transition:
       width 360ms cubic-bezier(.22, .74, .22, 1),
       transform 360ms cubic-bezier(.22, .74, .22, 1);
@@ -362,12 +369,12 @@ const next = async () => {
 
   .notebook-engine-host[data-mobile-presentation='inspect'][data-mobile-inspect='left'] :deep(.nbn .stage) {
     width: min(184cqw, calc(96cqh * 1.5));
-    transform: translateX(25%);
+    transform: translateX(-25%);
   }
 
   .notebook-engine-host[data-mobile-presentation='inspect'][data-mobile-inspect='right'] :deep(.nbn .stage) {
     width: min(184cqw, calc(96cqh * 1.5));
-    transform: translateX(-25%);
+    transform: translateX(-75%);
   }
 
   /* The production edge strips still mean "turn a sheet" while Experiment A
