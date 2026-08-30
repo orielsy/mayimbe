@@ -225,6 +225,16 @@ onBeforeUnmount(() => {
   justify-content: center;
 }
 
+/* Resting content belongs to semantic DOM. Keep the WebGL sheet behind that DOM
+ * unless the native engine explicitly activates it for a physical turn. */
+.notebook-engine-host :deep(.nbn canvas.gl) {
+  z-index: 0;
+}
+
+.notebook-engine-host :deep(.nbn canvas.gl.active) {
+  z-index: 5;
+}
+
 /* Standard Cuaderno: canonical two-page, duplex spread. */
 .notebook-engine-host[data-notebook-profile='standard'] :deep(.nbn .stage) {
   width: min(94vw, calc(96dvh * 1.5), 1500px);
