@@ -7,6 +7,18 @@ export default defineNuxtConfig({
     strict: true,
   },
 
+  // Local device testing should never depend on a browser deciding whether a
+  // development module is fresh. Vite serves all dev assets with no-store.
+  vite: {
+    server: {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        Pragma: 'no-cache',
+        Expires: '0',
+      },
+    },
+  },
+
   nitro: {
     prerender: {
       crawlLinks: true,
