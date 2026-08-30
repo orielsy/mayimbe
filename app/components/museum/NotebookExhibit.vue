@@ -240,12 +240,15 @@ const next = async () => {
   min-width: 0;
   min-height: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   place-items: center;
   container-type: size;
 }
 
 .notebook-engine-host :deep(.nbn) {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   height: 100%;
   justify-content: center;
 }
@@ -325,8 +328,9 @@ const next = async () => {
 
 @media (max-width: 640px) and (orientation: portrait) {
   /* Oversized block-level stages stop honoring auto centering once wider than
-     their container. Establish an explicit 50% origin so both experiments can
-     move relative to the actual center of the physical spread. */
+     their container. Establish an explicit host-relative origin so both
+     experiments move around the physical spread rather than a min-content
+     expanded grid item. */
   .notebook-engine-host[data-mobile-portrait='true'] :deep(.nbn .stage) {
     left: 50%;
     margin-inline: 0;
