@@ -6,6 +6,7 @@ import { NOTEBOOK_NATIVE_SOURCE } from '~~/exhibits/notebook/engine/source'
 defineProps<{ target?: unknown }>()
 
 const route = useRoute()
+const presentationViewport = useTemplateRef<HTMLElement>('presentationViewport')
 const host = useTemplateRef<HTMLElement>('host')
 const notebook = useNotebookRuntime()
 const engine = shallowRef<NotebookEngine | null>(null)
@@ -187,30 +188,34 @@ function onNotebookKeydown(event: KeyboardEvent) {
 }
 
 onMounted(async () => {
-  if (!host.value) return
+  if (!host.value || !presentationViewport.value) return
 
   window.addEventListener('keydown', onNotebookKeydown)
   window.addEventListener('mayimbe:notebook-webgl', onWebGLDiagnostic)
 
-  const rect = host.value.getBoundingClientRect()
+  const rect = presentationViewport.value.getBoundingClientRect()
   profile.value = resolveRequestedProfile(rect.width, rect.height)
   await mountProfile(profile.value)
 
-  if (abortController.signal.aborted || !host.value) return
+  if (abortController.signal.aborted || !presentationViewport.value) return
 
   resizeObserver = new ResizeObserver(entries => {
     const entry = entries[0]
     if (!entry) return
     scheduleProfile(entry.contentRect.width, entry.contentRect.height)
   })
-  resizeObserver.observe(host.value)
+  // Profile selection must observe the stable museum viewport. Observing the
+  // framed engine host creates a feedback loop: Pocket widens that host to
+  // 200%, which appears roomy enough for Standard; Standard then shrinks it
+  // and resolves back to Pocket indefinitely.
+  resizeObserver.observe(presentationViewport.value)
 })
 
 watch(
   () => route.query.notebookProfile,
   () => {
-    if (!host.value || abortController.signal.aborted) return
-    const rect = host.value.getBoundingClientRect()
+    if (!presentationViewport.value || abortController.signal.aborted) return
+    const rect = presentationViewport.value.getBoundingClientRect()
     scheduleProfile(rect.width, rect.height)
   },
 )
@@ -235,7 +240,7 @@ onBeforeUnmount(() => {
 
 <template>
   <article class="notebook-exhibit">
-    <div class="notebook-presentation-viewport">
+    <div ref="presentationViewport" class="notebook-presentation-viewport">
       <div
         class="notebook-presentation-frame"
         :data-notebook-profile="profile"
