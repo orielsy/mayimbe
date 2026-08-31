@@ -68,9 +68,65 @@ function buildPhysicalPages(profile: NotebookPhysicalProfile): NativeNotebookPag
   ])
 }
 
+/**
+ * The native renderer historically reads getBoundingClientRect() as though it
+ * were its physical coordinate system. That couples its page/hinge/WebGL math to
+ * any responsive transform applied by the exhibit.
+ *
+ * Keep the frozen renderer intact, but virtualize geometry reads for the native
+ * stage subtree so they are expressed in stage-local CSS pixels. Uniform outer
+ * translate/scale presentation then disappears from the engine's measurements,
+ * while transforms that belong to the notebook itself remain represented.
+ */
+function installStageLocalMeasurementSpace(root: HTMLElement) {
+  const stage = root.querySelector<HTMLElement>('.stage')
+  if (!stage) return () => undefined
+
+  const nativeGetBoundingClientRect = Element.prototype.getBoundingClientRect
+  const patched = new Set<Element>()
+
+  const localRect = (element: Element) => {
+    const stageVisual = nativeGetBoundingClientRect.call(stage)
+    const elementVisual = nativeGetBoundingClientRect.call(element)
+
+    const stageWidth = stage.offsetWidth || stageVisual.width || 1
+    const stageHeight = stage.offsetHeight || stageVisual.height || 1
+    const scaleX = stageVisual.width > 0 ? stageVisual.width / stageWidth : 1
+    const scaleY = stageVisual.height > 0 ? stageVisual.height / stageHeight : 1
+
+    return new DOMRect(
+      (elementVisual.left - stageVisual.left) / scaleX,
+      (elementVisual.top - stageVisual.top) / scaleY,
+      elementVisual.width / scaleX,
+      elementVisual.height / scaleY,
+    )
+  }
+
+  const patch = (element: Element) => {
+    if (patched.has(element)) return
+    patched.add(element)
+    Object.defineProperty(element, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => localRect(element),
+    })
+  }
+
+  patch(stage)
+  for (const element of stage.querySelectorAll('*')) patch(element)
+
+  return () => {
+    for (const element of patched) {
+      delete (element as Element & { getBoundingClientRect?: () => DOMRect }).getBoundingClientRect
+    }
+    patched.clear()
+  }
+}
+
 function adaptNativeEngine(
   native: NativeNotebookEngine,
   profile: NotebookPhysicalProfile,
+  releaseMeasurementSpace: () => void,
+  host: HTMLElement,
 ): NotebookEngine {
   const pageCount = NOTEBOOK_PARITY_PAGES.length
   let authoredPage = 1
@@ -143,7 +199,11 @@ function adaptNativeEngine(
       }
       await native.restore(nativeState)
     },
-    dispose: () => native.dispose(),
+    dispose() {
+      native.dispose()
+      releaseMeasurementSpace()
+      delete host.dataset.notebookMeasurementSpace
+    },
   }
 }
 
@@ -160,5 +220,12 @@ export const mountNotebookEngine: MountNotebookEngine = async (host, options = {
     signal: options.signal,
   })
 
-  return adaptNativeEngine(native, profile)
+  const releaseMeasurementSpace = installStageLocalMeasurementSpace(native.root)
+  host.dataset.notebookMeasurementSpace = 'stage-local'
+
+  // Re-solve native geometry immediately in its new local coordinate space
+  // before the exhibit is allowed to activate responsive framing.
+  window.dispatchEvent(new Event('resize'))
+
+  return adaptNativeEngine(native, profile, releaseMeasurementSpace, host)
 }
