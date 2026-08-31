@@ -295,14 +295,16 @@ onBeforeUnmount(() => {
   clip-path: inset(-40px -40px -40px calc((1 - var(--openx)) * 100%));
 }
 
+/* Keep a zero-width left half in layout because the native engine measures its
+ * right edge to resolve the physical hinge. It is invisible, not display:none. */
 .notebook-engine-host[data-notebook-geometry='pocket'] :deep(.nbn .half.left) {
   width: 0;
   min-width: 0;
+  overflow: hidden;
+  visibility: hidden;
 }
 
-.notebook-engine-host[data-notebook-geometry='pocket'] :deep(.nbn .half.left::before),
-.notebook-engine-host[data-notebook-geometry='pocket'] :deep(.nbn .half.left .leaf),
-.notebook-engine-host[data-notebook-geometry='pocket'] :deep(.nbn .half.left .stack) {
+.notebook-engine-host[data-notebook-geometry='pocket'] :deep(.nbn .half.left::before) {
   display: none;
 }
 
