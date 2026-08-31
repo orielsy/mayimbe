@@ -25,9 +25,12 @@ function resolveRequestedProfile(width: number, height: number): NotebookPhysica
   return resolveNotebookProfile(width, height)
 }
 
-/* Keep the diagnostic geometry override while Pocket settles. It lets us pair
- * Pocket's simplex sheet semantics with Standard geometry without changing the
- * engine or content model. */
+/*
+ * Diagnostic-only separation of physical sheet semantics from presentation
+ * geometry. This lets us run Pocket's simplex 24-sheet model inside the known-
+ * good Standard stage and determine whether failures originate in Pocket's
+ * content/state model or in its constrained-space geometry/compositing.
+ */
 const geometryProfile = computed<NotebookPhysicalProfile>(() => {
   const requested = route.query.notebookGeometry
   if (requested === 'standard' || requested === 'pocket') return requested
@@ -59,6 +62,9 @@ async function mountProfile(nextProfile: NotebookPhysicalProfile) {
   profile.value = nextProfile
 
   try {
+    // The profile attribute must reach the host before the native renderer is
+    // created: it controls the initial physical dimensions used for DOM→WebGL
+    // texture capture as well as the resting DOM composition.
     await nextTick()
 
     const { mountNotebookEngine } = await import('~~/exhibits/notebook/engine/mount')
@@ -218,9 +224,15 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
-/* The viewport owns the focused exhibit. Pointer input stays disabled while we
- * finish Pocket's physical composition; buttons and keyboard remain the stable
- * troubleshooting/navigation path. */
+/*
+ * In focused exhibit mode the viewport is the museum surface. This host is
+ * merely the clipping/measurement window for the physical renderer; it should
+ * never create a smaller visible panel inside that surface.
+ *
+ * Pointer input is intentionally disabled for this troubleshooting checkpoint.
+ * Buttons and keyboard are the only notebook navigation paths until resting
+ * DOM/WebGL handoff is proven stable on the real Android device.
+ */
 .notebook-engine-host {
   width: 100%;
   height: 100%;
@@ -242,8 +254,8 @@ onBeforeUnmount(() => {
   justify-content: center;
 }
 
-/* Resting content belongs to semantic DOM. WebGL only rises above it while an
- * actual physical turn is active. */
+/* Resting content belongs to semantic DOM. Keep the WebGL sheet behind that DOM
+ * unless the native engine explicitly activates it for a physical turn. */
 .notebook-engine-host :deep(.nbn canvas.gl) {
   z-index: 0;
 }
@@ -252,7 +264,8 @@ onBeforeUnmount(() => {
   z-index: 5;
 }
 
-/* Standard: canonical two-page spread. */
+/* Standard geometry: canonical two-page stage dimensions. This can be paired
+ * with either Standard/duplex or Pocket/simplex sheet semantics for diagnosis. */
 .notebook-engine-host[data-notebook-geometry='standard'] :deep(.nbn .stage) {
   width: min(94vw, calc(96dvh * 1.5), 1500px);
   aspect-ratio: 3 / 2;
@@ -262,16 +275,15 @@ onBeforeUnmount(() => {
   transform: none;
 }
 
-/* Pocket is a genuinely different physical notebook, not an oversized Standard
- * spread. The complete stage stays inside the exhibit host and represents one
- * tall page footprint. The native renderer still measures the active leaf and
- * hinge from the DOM, so the same Three page mesh can turn around the left edge. */
+/* Pocket base dimensions are overridden by the Pocket camera presentation
+ * stylesheet. Keep this historical rule here so the geometry override remains
+ * useful while the profile is being tuned. */
 .notebook-engine-host[data-notebook-geometry='pocket'] :deep(.nbn .stage) {
-  width: min(92vw, calc(82dvh * .666667), 520px);
-  aspect-ratio: 2 / 3;
+  width: min(188vw, 122.67dvh, 1100px);
+  aspect-ratio: 4 / 3;
   position: relative;
   left: 0;
-  margin-inline: auto;
+  margin-inline: 0;
   transform: none;
 }
 
@@ -281,75 +293,22 @@ onBeforeUnmount(() => {
   }
 
   .notebook-engine-host[data-notebook-geometry='pocket'] :deep(.nbn .stage) {
-    width: min(92cqw, calc(82cqh * .666667), 520px);
+    width: min(188cqw, 122.67cqh, 1100px);
   }
 }
 
-/* One-page Pocket mechanics. The authored sheet is the full visible footprint;
- * turned sheets leave through the binding at the left rather than requiring a
- * second resting page to remain laid out offscreen. */
-.notebook-engine-host[data-notebook-geometry='pocket'] :deep(.nbn .spread) {
-  grid-template-columns: 0 minmax(0, 1fr);
-  gap: 0;
-  padding: 8px;
-  clip-path: inset(-40px -40px -40px calc((1 - var(--openx)) * 100%));
-}
-
-/* Keep a zero-width left half in layout because the native engine measures its
- * right edge to resolve the physical hinge. It is invisible, not display:none. */
-.notebook-engine-host[data-notebook-geometry='pocket'] :deep(.nbn .half.left) {
-  width: 0;
-  min-width: 0;
-  overflow: hidden;
-  visibility: hidden;
-}
-
-.notebook-engine-host[data-notebook-geometry='pocket'] :deep(.nbn .half.left::before) {
-  display: none;
-}
-
-.notebook-engine-host[data-notebook-geometry='pocket'] :deep(.nbn .half.right) {
-  min-width: 0;
-}
-
-/* In Pocket the front/back boards occupy the same single-page footprint. */
-.notebook-engine-host[data-notebook-geometry='pocket'] :deep(.nbn .backcover),
-.notebook-engine-host[data-notebook-geometry='pocket'] :deep(.nbn .frontboard) {
-  left: calc(-1 * var(--boardout));
-  right: calc(-1 * var(--boardout));
-  border-radius: 9px;
-}
-
-/* The old desk-shadow scaling assumes a two-page spread. Pocket's shadow stays
- * attached to its one-page footprint instead. */
-.notebook-engine-host[data-notebook-geometry='pocket'] :deep(.nbn .deskshadow) {
-  transform: none;
-  transform-origin: 50% 50%;
-}
-
-/* Binding cues move from the center gutter to the Pocket notebook's left edge. */
-.notebook-engine-host[data-notebook-geometry='pocket'] :deep(.nbn .hingeshade) {
-  left: 8px;
-  right: auto;
-  width: clamp(20px, 10%, 46px);
-  background: linear-gradient(90deg, rgba(20,12,5,.46), rgba(20,12,5,.20) 22%, rgba(20,12,5,.06) 58%, rgba(20,12,5,0) 100%);
-}
-
-.notebook-engine-host[data-notebook-geometry='pocket'] :deep(.nbn .crease) {
-  left: 8px;
-}
-
-/* Pocket reverse faces are intentionally blank. */
+/* Pocket reverse faces are intentionally blank. Hide physical face numbers so
+   the temporary native p.1/p.3 indexing does not leak into the authored model. */
 .notebook-engine-host[data-notebook-profile='pocket'] :deep(.nbn .pagenum) {
   display: none;
 }
 
 .notebook-engine-host[data-notebook-profile='pocket'] :deep(.nbn .page-content h2) {
-  font-size: clamp(19px, 5.4vw, 28px);
+  font-size: clamp(18px, 5.2vw, 26px);
 }
 
 .notebook-engine-host[data-notebook-profile='pocket'] :deep(.nbn .page-content p) {
-  font-size: clamp(13px, 3.7vw, 16px);
+  font-size: clamp(13px, 3.6vw, 16px);
   line-height: 1.55;
 }
 
@@ -369,7 +328,8 @@ onBeforeUnmount(() => {
   opacity: 1;
 }
 
-/* Temporary deterministic controls while pointer navigation is disabled. */
+/* Diagnostic controls: intentionally obvious/reliable while pointer navigation
+   is disabled. They remain outside the notebook's sizing and renderer layers. */
 .notebook-controls {
   position: absolute;
   left: 50%;
