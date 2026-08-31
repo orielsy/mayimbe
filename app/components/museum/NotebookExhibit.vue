@@ -13,6 +13,7 @@ const profile = ref<NotebookPhysicalProfile>('standard')
 const frameReady = ref(false)
 const webglDebug = computed(() => route.query.notebookDebug === 'webgl')
 const webglDiagnostics = ref<Record<string, unknown>[]>([])
+const debugCopyStatus = ref('Copy diagnostics')
 const loading = ref(true)
 const error = ref<string | null>(null)
 const abortController = new AbortController()
@@ -30,7 +31,24 @@ function onWebGLDiagnostic(event: Event) {
 }
 
 async function copyWebGLDiagnostics() {
-  await navigator.clipboard.writeText(JSON.stringify(webglDiagnostics.value, null, 2))
+  const text = JSON.stringify(webglDiagnostics.value, null, 2)
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text)
+    } else {
+      const textarea = document.createElement('textarea')
+      textarea.value = text
+      textarea.style.position = 'fixed'
+      textarea.style.opacity = '0'
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      textarea.remove()
+    }
+    debugCopyStatus.value = 'Copied'
+  } catch {
+    debugCopyStatus.value = 'Copy blocked — screenshot panel'
+  }
 }
 
 function resolveRequestedProfile(width: number, height: number): NotebookPhysicalProfile {
@@ -242,7 +260,7 @@ onBeforeUnmount(() => {
     </nav>
 
     <aside v-if="webglDebug" class="notebook-debug">
-      <button type="button" @click="copyWebGLDiagnostics">Copy diagnostics</button>
+      <button type="button" @click="copyWebGLDiagnostics">{{ debugCopyStatus }}</button>
       <pre>{{ JSON.stringify(webglDiagnostics, null, 2) }}</pre>
     </aside>
   </article>
