@@ -116,7 +116,7 @@ function installStageLocalMeasurementSpace(root: HTMLElement) {
 
   return () => {
     for (const element of patched) {
-      delete (element as Element & { getBoundingClientRect?: () => DOMRect }).getBoundingClientRect
+      delete (element as any).getBoundingClientRect
     }
     patched.clear()
   }
