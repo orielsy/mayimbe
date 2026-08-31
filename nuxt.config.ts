@@ -1,7 +1,10 @@
 export default defineNuxtConfig({
   devtools: { enabled: true },
 
-  css: ['~/assets/css/main.css'],
+  css: [
+    '~/assets/css/main.css',
+    '~/assets/css/notebook-pocket-camera.css',
+  ],
 
   typescript: {
     strict: true,
