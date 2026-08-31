@@ -25,6 +25,18 @@ function resolveRequestedProfile(width: number, height: number): NotebookPhysica
   return resolveNotebookProfile(width, height)
 }
 
+/*
+ * Diagnostic-only separation of physical sheet semantics from presentation
+ * geometry. This lets us run Pocket's simplex 24-sheet model inside the known-
+ * good Standard stage and determine whether failures originate in Pocket's
+ * content/state model or in its constrained-space geometry/compositing.
+ */
+const geometryProfile = computed<NotebookPhysicalProfile>(() => {
+  const requested = route.query.notebookGeometry
+  if (requested === 'standard' || requested === 'pocket') return requested
+  return profile.value
+})
+
 async function mountProfile(nextProfile: NotebookPhysicalProfile) {
   const container = host.value
   if (!container || abortController.signal.aborted) return
@@ -187,6 +199,7 @@ onBeforeUnmount(() => {
       class="notebook-engine-host"
       :data-native-source="NOTEBOOK_NATIVE_SOURCE.route"
       :data-notebook-profile="profile"
+      :data-notebook-geometry="geometryProfile"
       aria-label="Cuaderno exhibit"
     />
 
@@ -251,21 +264,20 @@ onBeforeUnmount(() => {
   z-index: 5;
 }
 
-/* Standard Cuaderno: canonical two-page, duplex spread. */
-.notebook-engine-host[data-notebook-profile='standard'] :deep(.nbn .stage) {
+/* Standard geometry: canonical two-page stage dimensions. This can be paired
+ * with either Standard/duplex or Pocket/simplex sheet semantics for diagnosis. */
+.notebook-engine-host[data-notebook-geometry='standard'] :deep(.nbn .stage) {
   width: min(94vw, calc(96dvh * 1.5), 1500px);
   aspect-ratio: 3 / 2;
+  position: relative;
+  left: 0;
+  margin-inline: auto;
+  transform: none;
 }
 
-/*
- * Pocket Cuaderno: same complete side-bound physical object and same turn
- * mechanics, but each authored page owns one sheet. The right working face is
- * positioned into the constrained viewport using layout coordinates rather
- * than a CSS transform. Keeping the stage untransformed is intentional: Android
- * Chrome can otherwise composite the entire DOM/clip-path/WebGL subtree as one
- * transformed layer and lose resting cover/text content after an animation.
- */
-.notebook-engine-host[data-notebook-profile='pocket'] :deep(.nbn .stage) {
+/* Pocket geometry: taller/narrower full physical stage with only its right
+ * working face composed into the constrained viewport. */
+.notebook-engine-host[data-notebook-geometry='pocket'] :deep(.nbn .stage) {
   --pocket-stage-shift: min(47vw, 30.667dvh, 275px);
   width: min(188vw, 122.67dvh, 1100px);
   aspect-ratio: 4 / 3;
@@ -276,11 +288,11 @@ onBeforeUnmount(() => {
 }
 
 @supports (width: 1cqw) {
-  .notebook-engine-host[data-notebook-profile='standard'] :deep(.nbn .stage) {
+  .notebook-engine-host[data-notebook-geometry='standard'] :deep(.nbn .stage) {
     width: min(96cqw, calc(96cqh * 1.5), 1500px);
   }
 
-  .notebook-engine-host[data-notebook-profile='pocket'] :deep(.nbn .stage) {
+  .notebook-engine-host[data-notebook-geometry='pocket'] :deep(.nbn .stage) {
     --pocket-stage-shift: min(47cqw, 30.667cqh, 275px);
     width: min(188cqw, 122.67cqh, 1100px);
   }
