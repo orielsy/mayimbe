@@ -17,9 +17,9 @@ export const NOTEBOOK_PROFILE_DEFINITIONS: Record<NotebookPhysicalProfile, Noteb
   pocket: {
     id: 'pocket',
     sheetMode: 'simplex',
-    // Keep the native renderer's proven full-stage proportions. Pocket changes
-    // sheet semantics and viewport composition, not the underlying turn plane.
-    stageAspect: 3 / 2,
+    // Pocket is a one-page physical footprint. The renderer still measures the
+    // live leaf/hinge from DOM geometry, so this does not require a second engine.
+    stageAspect: 2 / 3,
   },
 }
 
