@@ -10,6 +10,7 @@ const host = useTemplateRef<HTMLElement>('host')
 const notebook = useNotebookRuntime()
 const engine = shallowRef<NotebookEngine | null>(null)
 const profile = ref<NotebookPhysicalProfile>('standard')
+const frameReady = ref(false)
 const loading = ref(true)
 const error = ref<string | null>(null)
 const abortController = new AbortController()
@@ -18,6 +19,7 @@ let resizeObserver: ResizeObserver | null = null
 let resizeTimer: number | undefined
 let mounting = false
 let queuedProfile: NotebookPhysicalProfile | null = null
+let framingRaf = 0
 
 function resolveRequestedProfile(width: number, height: number): NotebookPhysicalProfile {
   const requested = route.query.notebookProfile
@@ -25,17 +27,15 @@ function resolveRequestedProfile(width: number, height: number): NotebookPhysica
   return resolveNotebookProfile(width, height)
 }
 
-/*
- * Diagnostic-only separation of physical sheet semantics from presentation
- * geometry. This lets us run Pocket's simplex 24-sheet model inside the known-
- * good Standard stage and determine whether failures originate in Pocket's
- * content/state model or in its constrained-space geometry/compositing.
- */
-const geometryProfile = computed<NotebookPhysicalProfile>(() => {
-  const requested = route.query.notebookGeometry
-  if (requested === 'standard' || requested === 'pocket') return requested
-  return profile.value
-})
+function refreshNativeGeometryAfterFraming() {
+  if (framingRaf) window.cancelAnimationFrame(framingRaf)
+  framingRaf = window.requestAnimationFrame(() => {
+    framingRaf = window.requestAnimationFrame(() => {
+      framingRaf = 0
+      if (!abortController.signal.aborted) window.dispatchEvent(new Event('resize'))
+    })
+  })
+}
 
 async function mountProfile(nextProfile: NotebookPhysicalProfile) {
   const container = host.value
@@ -49,22 +49,22 @@ async function mountProfile(nextProfile: NotebookPhysicalProfile) {
   if (engine.value && profile.value === nextProfile) return
 
   mounting = true
+  frameReady.value = false
   loading.value = true
   error.value = null
 
-  const previous = engine.value
-  if (previous) {
-    notebook.detachEngine(previous)
-    previous.dispose()
+  const previousEngine = engine.value
+  if (previousEngine) {
+    notebook.detachEngine(previousEngine)
+    previousEngine.dispose()
     engine.value = null
   }
 
   profile.value = nextProfile
 
   try {
-    // The profile attribute must reach the host before the native renderer is
-    // created: it controls the initial physical dimensions used for DOM→WebGL
-    // texture capture as well as the resting DOM composition.
+    // The native renderer always mounts unframed. mountNotebookEngine installs
+    // its stage-local measurement boundary before returning to the exhibit.
     await nextTick()
 
     const { mountNotebookEngine } = await import('~~/exhibits/notebook/engine/mount')
@@ -82,6 +82,13 @@ async function mountProfile(nextProfile: NotebookPhysicalProfile) {
 
     engine.value = mounted
     await notebook.attachEngine(mounted)
+
+    // Responsive framing belongs to the exhibit, not the physical renderer.
+    // Activate it only after the native engine is fully mounted and measuring
+    // itself in canonical stage-local coordinates.
+    frameReady.value = true
+    await nextTick()
+    refreshNativeGeometryAfterFraming()
   } catch (cause) {
     if (!abortController.signal.aborted) {
       error.value = cause instanceof Error ? cause.message : String(cause)
@@ -183,6 +190,8 @@ onBeforeUnmount(() => {
   resizeObserver?.disconnect()
   resizeObserver = null
   if (resizeTimer !== undefined) window.clearTimeout(resizeTimer)
+  if (framingRaf) window.cancelAnimationFrame(framingRaf)
+  framingRaf = 0
 
   if (engine.value) {
     notebook.detachEngine(engine.value)
@@ -194,14 +203,21 @@ onBeforeUnmount(() => {
 
 <template>
   <article class="notebook-exhibit">
-    <div
-      ref="host"
-      class="notebook-engine-host"
-      :data-native-source="NOTEBOOK_NATIVE_SOURCE.route"
-      :data-notebook-profile="profile"
-      :data-notebook-geometry="geometryProfile"
-      aria-label="Cuaderno exhibit"
-    />
+    <div class="notebook-presentation-viewport">
+      <div
+        class="notebook-presentation-frame"
+        :data-notebook-profile="profile"
+        :data-frame-ready="frameReady ? 'true' : 'false'"
+      >
+        <div
+          ref="host"
+          class="notebook-engine-host"
+          :data-native-source="NOTEBOOK_NATIVE_SOURCE.route"
+          :data-notebook-profile="profile"
+          aria-label="Cuaderno exhibit"
+        />
+      </div>
+    </div>
 
     <p v-if="loading" class="notebook-status">Preparing the Cuaderno…</p>
     <p v-else-if="error" class="notebook-status notebook-error">{{ error }}</p>
@@ -219,20 +235,49 @@ onBeforeUnmount(() => {
   width: 100%;
   height: 100%;
   min-height: 0;
-  display: grid;
-  place-items: center;
   overflow: hidden;
 }
 
 /*
- * In focused exhibit mode the viewport is the museum surface. This host is
- * merely the clipping/measurement window for the physical renderer; it should
- * never create a smaller visible panel inside that surface.
- *
- * Pointer input is intentionally disabled for this troubleshooting checkpoint.
- * Buttons and keyboard are the only notebook navigation paths until resting
- * DOM/WebGL handoff is proven stable on the real Android device.
+ * Presentation/camera boundary. The viewport clips museum presentation; the
+ * frame may move the completed canonical notebook without changing its native
+ * coordinate system.
  */
+.notebook-presentation-viewport {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.notebook-presentation-frame {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  transform: none;
+  transform-origin: 100% 50%;
+}
+
+/* Pocket focuses the right working face of the same canonical 3:2 notebook.
+ * Crucially this transform is outside .nbn/.stage and is activated only after
+ * mountNotebookEngine has virtualized native geometry into stage-local pixels. */
+.notebook-presentation-frame[data-notebook-profile='pocket'][data-frame-ready='true'] {
+  transform: scale(2);
+  will-change: transform;
+}
+
+/* In a forced Pocket test on a landscape/desktop-shaped Android viewport, keep
+ * the camera useful without vertically magnifying the notebook by a full 2x. */
+@media (orientation: landscape) {
+  .notebook-presentation-frame[data-notebook-profile='pocket'][data-frame-ready='true'] {
+    transform: scale(1.25);
+  }
+}
+
+/* Pointer input is intentionally disabled for this troubleshooting phase.
+ * Buttons and keyboard are the only navigation paths until framing stability is
+ * proven on the real Android device. */
 .notebook-engine-host {
   width: 100%;
   height: 100%;
@@ -241,7 +286,7 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   place-items: center;
-  overflow: hidden;
+  overflow: visible;
   container-type: size;
   pointer-events: none;
 }
@@ -254,19 +299,9 @@ onBeforeUnmount(() => {
   justify-content: center;
 }
 
-/* Resting content belongs to semantic DOM. Keep the WebGL sheet behind that DOM
- * unless the native engine explicitly activates it for a physical turn. */
-.notebook-engine-host :deep(.nbn canvas.gl) {
-  z-index: 0;
-}
-
-.notebook-engine-host :deep(.nbn canvas.gl.active) {
-  z-index: 5;
-}
-
-/* Standard geometry: canonical two-page stage dimensions. This can be paired
- * with either Standard/duplex or Pocket/simplex sheet semantics for diagnosis. */
-.notebook-engine-host[data-notebook-geometry='standard'] :deep(.nbn .stage) {
+/* The native engine owns exactly one physical stage geometry. Standard and
+ * Pocket both mount this same 3:2 coordinate system. */
+.notebook-engine-host :deep(.nbn .stage) {
   width: min(94vw, calc(96dvh * 1.5), 1500px);
   aspect-ratio: 3 / 2;
   position: relative;
@@ -275,41 +310,26 @@ onBeforeUnmount(() => {
   transform: none;
 }
 
-/* Pocket base dimensions are overridden by the Pocket camera presentation
- * stylesheet. Keep this historical rule here so the geometry override remains
- * useful while the profile is being tuned. */
-.notebook-engine-host[data-notebook-geometry='pocket'] :deep(.nbn .stage) {
-  width: min(188vw, 122.67dvh, 1100px);
-  aspect-ratio: 4 / 3;
-  position: relative;
-  left: 0;
-  margin-inline: 0;
-  transform: none;
-}
-
 @supports (width: 1cqw) {
-  .notebook-engine-host[data-notebook-geometry='standard'] :deep(.nbn .stage) {
+  .notebook-engine-host :deep(.nbn .stage) {
     width: min(96cqw, calc(96cqh * 1.5), 1500px);
   }
-
-  .notebook-engine-host[data-notebook-geometry='pocket'] :deep(.nbn .stage) {
-    width: min(188cqw, 122.67cqh, 1100px);
-  }
 }
 
-/* Pocket reverse faces are intentionally blank. Hide physical face numbers so
-   the temporary native p.1/p.3 indexing does not leak into the authored model. */
+/* Resting content belongs to semantic DOM. WebGL only rises above it while an
+ * actual physical turn is active. */
+.notebook-engine-host :deep(.nbn canvas.gl) {
+  z-index: 0;
+}
+
+.notebook-engine-host :deep(.nbn canvas.gl.active) {
+  z-index: 5;
+}
+
+/* Pocket changes pagination semantics, not native geometry. Reverse faces are
+ * intentionally blank; suppress temporary physical face numbering. */
 .notebook-engine-host[data-notebook-profile='pocket'] :deep(.nbn .pagenum) {
   display: none;
-}
-
-.notebook-engine-host[data-notebook-profile='pocket'] :deep(.nbn .page-content h2) {
-  font-size: clamp(18px, 5.2vw, 26px);
-}
-
-.notebook-engine-host[data-notebook-profile='pocket'] :deep(.nbn .page-content p) {
-  font-size: clamp(13px, 3.6vw, 16px);
-  line-height: 1.55;
 }
 
 .notebook-status {
@@ -328,8 +348,7 @@ onBeforeUnmount(() => {
   opacity: 1;
 }
 
-/* Diagnostic controls: intentionally obvious/reliable while pointer navigation
-   is disabled. They remain outside the notebook's sizing and renderer layers. */
+/* Temporary deterministic controls while pointer navigation is disabled. */
 .notebook-controls {
   position: absolute;
   left: 50%;
