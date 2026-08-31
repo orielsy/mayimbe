@@ -779,6 +779,81 @@ export async function mountNativeNotebook(
   scene.add(mesh)
   const world = { cx: 0, cy: 0, hingeX: 0 }
   const geometryCache = new Map<string, THREE.PlaneGeometry>()
+  const webglDebug = new URLSearchParams(window.location.search).get('notebookDebug') === 'webgl'
+  const nativeRect = Element.prototype.getBoundingClientRect
+  const debugViewport = new THREE.Vector4()
+
+  const compactRect = (rect: DOMRect) => ({
+    x: +rect.x.toFixed(1),
+    y: +rect.y.toFixed(1),
+    w: +rect.width.toFixed(1),
+    h: +rect.height.toFixed(1),
+  })
+
+  function emitWebGLDiagnostic(phase: string) {
+    if (!webglDebug) return
+    mesh.updateMatrixWorld(true)
+    camera.updateMatrixWorld(true)
+    renderer.getViewport(debugViewport)
+    const box = new THREE.Box3().setFromObject(mesh)
+    const projected = box.isEmpty()
+      ? null
+      : [
+          new THREE.Vector3(box.min.x, box.min.y, box.min.z),
+          new THREE.Vector3(box.max.x, box.max.y, box.max.z),
+        ].map(point => point.project(camera)).map(point => ({
+          x: +point.x.toFixed(3),
+          y: +point.y.toFixed(3),
+          z: +point.z.toFixed(3),
+        }))
+    const gl = renderer.getContext()
+    window.dispatchEvent(new CustomEvent('mayimbe:notebook-webgl', {
+      detail: {
+        phase,
+        time: +performance.now().toFixed(0),
+        contextLost: gl.isContextLost(),
+        glError: gl.getError(),
+        active: canvas.classList.contains('active'),
+        meshVisible: mesh.visible,
+        stageLocal: compactRect(stage.getBoundingClientRect()),
+        stageVisual: compactRect(nativeRect.call(stage)),
+        canvasLocal: compactRect(canvas.getBoundingClientRect()),
+        canvasVisual: compactRect(nativeRect.call(canvas)),
+        leafLocal: compactRect(leafR.getBoundingClientRect()),
+        coverLocal: compactRect(cover.getBoundingClientRect()),
+        drawingBuffer: { w: canvas.width, h: canvas.height },
+        viewport: {
+          x: debugViewport.x,
+          y: debugViewport.y,
+          w: debugViewport.z,
+          h: debugViewport.w,
+        },
+        camera: {
+          aspect: +camera.aspect.toFixed(4),
+          fov: +camera.fov.toFixed(3),
+          z: +camera.position.z.toFixed(1),
+        },
+        world: {
+          cx: +world.cx.toFixed(1),
+          cy: +world.cy.toFixed(1),
+          hingeX: +world.hingeX.toFixed(1),
+        },
+        mesh: {
+          x: +mesh.position.x.toFixed(1),
+          y: +mesh.position.y.toFixed(1),
+          projected,
+        },
+      },
+    }))
+  }
+
+  const onContextLost = (event: Event) => {
+    event.preventDefault()
+    emitWebGLDiagnostic('context-lost')
+  }
+  const onContextRestored = () => emitWebGLDiagnostic('context-restored')
+  canvas.addEventListener('webglcontextlost', onContextLost)
+  canvas.addEventListener('webglcontextrestored', onContextRestored)
 
   function planeFor(width: number, height: number, gap: number) {
     const key = `${width.toFixed(2)}x${height.toFixed(2)}@${gap.toFixed(2)}`
@@ -829,6 +904,7 @@ export async function mountNativeNotebook(
     const coverRect = cover.getBoundingClientRect()
     planeFor(coverRect.width, coverRect.height, coverRect.left - world.hingeX)
     measureLayout(coverRect, canvasRect)
+    emitWebGLDiagnostic('resize')
     if (rasterise) void buildTextures()
   }
 
@@ -896,6 +972,7 @@ export async function mountNativeNotebook(
     applyPose()
     renderer.render(scene, camera)
     if (turn.kind !== 'cover') canvas.classList.add('active')
+    emitWebGLDiagnostic(`${turn.kind}-reveal`)
     return turn
   }
 
@@ -1023,6 +1100,7 @@ export async function mountNativeNotebook(
           applyPose()
           renderer.render(scene, camera)
           canvas.classList.add('active')
+          emitWebGLDiagnostic('cover-first-frame')
           turn.phase = turn.dragging ? 'dragging' : 'moving'
         } else if (turn.phase === 'dragging') {
           applyPose()
@@ -1242,6 +1320,8 @@ export async function mountNativeNotebook(
       rafId = warmPending = 0
       flushSettleWaiters()
       window.removeEventListener('resize', onResize)
+      canvas.removeEventListener('webglcontextlost', onContextLost)
+      canvas.removeEventListener('webglcontextrestored', onContextRestored)
       stage.removeEventListener('pointermove', onPointerMove)
       stage.removeEventListener('pointerup', onPointerUp)
       stage.removeEventListener('pointercancel', onPointerUp)

@@ -11,6 +11,8 @@ const notebook = useNotebookRuntime()
 const engine = shallowRef<NotebookEngine | null>(null)
 const profile = ref<NotebookPhysicalProfile>('standard')
 const frameReady = ref(false)
+const webglDebug = computed(() => route.query.notebookDebug === 'webgl')
+const webglDiagnostics = ref<Record<string, unknown>[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
 const abortController = new AbortController()
@@ -20,6 +22,16 @@ let resizeTimer: number | undefined
 let mounting = false
 let queuedProfile: NotebookPhysicalProfile | null = null
 let framingRaf = 0
+
+function onWebGLDiagnostic(event: Event) {
+  if (!webglDebug.value) return
+  const detail = (event as CustomEvent<Record<string, unknown>>).detail
+  webglDiagnostics.value = [...webglDiagnostics.value.slice(-3), detail]
+}
+
+async function copyWebGLDiagnostics() {
+  await navigator.clipboard.writeText(JSON.stringify(webglDiagnostics.value, null, 2))
+}
 
 function resolveRequestedProfile(width: number, height: number): NotebookPhysicalProfile {
   const requested = route.query.notebookProfile
@@ -160,6 +172,7 @@ onMounted(async () => {
   if (!host.value) return
 
   window.addEventListener('keydown', onNotebookKeydown)
+  window.addEventListener('mayimbe:notebook-webgl', onWebGLDiagnostic)
 
   const rect = host.value.getBoundingClientRect()
   profile.value = resolveRequestedProfile(rect.width, rect.height)
@@ -187,6 +200,7 @@ watch(
 onBeforeUnmount(() => {
   abortController.abort()
   window.removeEventListener('keydown', onNotebookKeydown)
+  window.removeEventListener('mayimbe:notebook-webgl', onWebGLDiagnostic)
   resizeObserver?.disconnect()
   resizeObserver = null
   if (resizeTimer !== undefined) window.clearTimeout(resizeTimer)
@@ -226,6 +240,11 @@ onBeforeUnmount(() => {
       <button type="button" aria-keyshortcuts="ArrowLeft" @click="previous">◀ Back</button>
       <button type="button" aria-keyshortcuts="ArrowRight" @click="next">Forward ▶</button>
     </nav>
+
+    <aside v-if="webglDebug" class="notebook-debug">
+      <button type="button" @click="copyWebGLDiagnostics">Copy diagnostics</button>
+      <pre>{{ JSON.stringify(webglDiagnostics, null, 2) }}</pre>
+    </aside>
   </article>
 </template>
 
@@ -376,6 +395,30 @@ onBeforeUnmount(() => {
   cursor: pointer;
   touch-action: manipulation;
   user-select: none;
+}
+
+.notebook-debug {
+  position: absolute;
+  inset: .5rem .5rem auto;
+  z-index: 100;
+  max-height: 42dvh;
+  overflow: auto;
+  padding: .5rem;
+  border: 1px solid rgba(255, 210, 140, .45);
+  background: rgba(10, 8, 7, .92);
+  color: #f2d5a4;
+  font: 10px/1.3 ui-monospace, monospace;
+}
+
+.notebook-debug button {
+  position: sticky;
+  top: 0;
+  min-height: 2.5rem;
+}
+
+.notebook-debug pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .notebook-controls button:hover,
