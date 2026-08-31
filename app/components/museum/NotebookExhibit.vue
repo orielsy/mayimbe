@@ -288,6 +288,7 @@ onBeforeUnmount(() => {
 .notebook-presentation-viewport {
   position: absolute;
   inset: 0;
+  z-index: 0;
   overflow: hidden;
   pointer-events: none;
 }
@@ -295,6 +296,7 @@ onBeforeUnmount(() => {
 .notebook-presentation-frame {
   position: absolute;
   inset: 0;
+  isolation: isolate;
   display: grid;
   place-items: center;
 }

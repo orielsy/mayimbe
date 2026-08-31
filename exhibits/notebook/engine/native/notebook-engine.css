@@ -143,9 +143,10 @@
 .nbn .edgeband.l { right: 0; transform-origin: 100% 50%; background: linear-gradient(270deg, #2b160e 0 33.333%, #55362a 33.333% 66.666%, #23120c 66.666% 100%); }
 .nbn .coverseam { position: absolute; z-index: 3; pointer-events: none; background: #55372a; will-change: opacity; }
 .nbn canvas.gl {
-  position: absolute; inset: -24%; width: 148%; height: 148%; z-index: 5; pointer-events: none; opacity: 0; will-change: opacity; transform: translateZ(0);
+  position: absolute; inset: -24%; width: 148%; height: 148%; z-index: 5; pointer-events: none;
+  opacity: 0; visibility: hidden;
 }
-.nbn canvas.gl.active { opacity: 1; }
+.nbn canvas.gl.active { opacity: 1; visibility: visible; }
 .nbn .grab { position: absolute; top: 0; height: 100%; width: 12%; cursor: grab; z-index: 6; }
 .nbn .grab.next { right: 0; }
 .nbn .grab.prev { left: 0; }

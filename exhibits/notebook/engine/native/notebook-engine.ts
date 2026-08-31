@@ -941,13 +941,11 @@ export async function mountNativeNotebook(
     uniforms.uBack.value = back
     mesh.visible = false
     renderer.render(scene, camera)
-    canvas.classList.add('active')
     warmPending = requestAnimationFrame(() => {
       warmPending = requestAnimationFrame(() => {
         warmPending = 0
         mesh.visible = true
         if (turning) return
-        canvas.classList.remove('active')
         renderer.render(scene, camera)
       })
     })
@@ -978,8 +976,8 @@ export async function mountNativeNotebook(
     }
     bindFaces(turn)
     applyPose()
-    renderer.render(scene, camera)
     if (turn.kind !== 'cover') canvas.classList.add('active')
+    renderer.render(scene, camera)
     emitWebGLDiagnostic(`${turn.kind}-reveal`)
     return turn
   }
@@ -1117,8 +1115,8 @@ export async function mountNativeNotebook(
           turn.p = turn.acquireP
           turn.t0 = now
           applyPose()
-          renderer.render(scene, camera)
           canvas.classList.add('active')
+          renderer.render(scene, camera)
           emitWebGLDiagnostic('cover-first-frame')
           turn.phase = turn.dragging ? 'dragging' : 'moving'
         } else if (turn.phase === 'dragging') {
