@@ -3,7 +3,7 @@ export default defineNuxtConfig({
 
   css: [
     '~/assets/css/main.css',
-    '~/assets/css/notebook-pocket-camera.css',
+    '~/assets/css/notebook-pocket-diagnostic.css',
   ],
 
   typescript: {
