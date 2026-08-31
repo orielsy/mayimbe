@@ -4,24 +4,26 @@ export type NotebookSheetMode = 'duplex' | 'simplex'
 export interface NotebookPhysicalProfileDefinition {
   id: NotebookPhysicalProfile
   sheetMode: NotebookSheetMode
-  /** Full physical notebook stage ratio, not the ratio of one page. */
-  stageAspect: number
 }
 
 export const NOTEBOOK_PROFILE_DEFINITIONS: Record<NotebookPhysicalProfile, NotebookPhysicalProfileDefinition> = {
   standard: {
     id: 'standard',
     sheetMode: 'duplex',
-    stageAspect: 3 / 2,
   },
   pocket: {
     id: 'pocket',
     sheetMode: 'simplex',
-    // Pocket is a one-page physical footprint. The renderer still measures the
-    // live leaf/hinge from DOM geometry, so this does not require a second engine.
-    stageAspect: 2 / 3,
   },
 }
+
+/**
+ * The native notebook engine currently owns one canonical physical geometry.
+ * Profiles change pagination semantics and exhibit presentation, not the engine's
+ * internal stage shape. Keeping this constant here prevents responsive framing
+ * from leaking back into the physical renderer.
+ */
+export const CANONICAL_NOTEBOOK_STAGE_ASPECT = 3 / 2
 
 const STANDARD_STAGE_WIDTH_RATIO = 0.96
 const STANDARD_STAGE_HEIGHT_RATIO = 0.96
@@ -40,7 +42,7 @@ export function estimateStandardPageWidth(width: number, height: number) {
 
   const stageWidth = Math.min(
     width * STANDARD_STAGE_WIDTH_RATIO,
-    height * STANDARD_STAGE_HEIGHT_RATIO * NOTEBOOK_PROFILE_DEFINITIONS.standard.stageAspect,
+    height * STANDARD_STAGE_HEIGHT_RATIO * CANONICAL_NOTEBOOK_STAGE_ASPECT,
     STANDARD_STAGE_MAX_WIDTH,
   )
 
