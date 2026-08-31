@@ -807,6 +807,13 @@ export async function mountNativeNotebook(
           z: +point.z.toFixed(3),
         }))
     const gl = renderer.getContext()
+    const samplePixel = new Uint8Array(4)
+    const framebufferSamples = [-0.5, 0, 0.25, 0.5, 0.75].map(ndcX => {
+      const x = Math.max(0, Math.min(canvas.width - 1, Math.round((ndcX + 1) * canvas.width / 2)))
+      const y = Math.max(0, Math.min(canvas.height - 1, Math.round(canvas.height / 2)))
+      gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, samplePixel)
+      return { ndcX, rgba: Array.from(samplePixel) }
+    })
     window.dispatchEvent(new CustomEvent('mayimbe:notebook-webgl', {
       detail: {
         phase,
@@ -822,6 +829,7 @@ export async function mountNativeNotebook(
         leafLocal: compactRect(leafR.getBoundingClientRect()),
         coverLocal: compactRect(cover.getBoundingClientRect()),
         drawingBuffer: { w: canvas.width, h: canvas.height },
+        framebufferSamples,
         viewport: {
           x: debugViewport.x,
           y: debugViewport.y,
@@ -1072,7 +1080,18 @@ export async function mountNativeNotebook(
     }
     root.classList.remove('turning')
     canvas.classList.remove('active')
+    emitWebGLDiagnostic(`${turn.kind}-settled`)
     flushSettleWaiters()
+  }
+
+  function emitTurnMilestones(turn: any, progress: number) {
+    if (!webglDebug) return
+    const emitted = turn.debugMilestones || (turn.debugMilestones = new Set<number>())
+    for (const milestone of [0.25, 0.5, 0.75, 1]) {
+      if (progress < milestone || emitted.has(milestone)) continue
+      emitted.add(milestone)
+      emitWebGLDiagnostic(`${turn.kind}-${milestone * 100}%`)
+    }
   }
 
   function applyPose() {
@@ -1120,6 +1139,7 @@ export async function mountNativeNotebook(
           }
           applyPose()
           renderer.render(scene, camera)
+          emitTurnMilestones(turn, k)
           if (k >= 1) turn.phase = 'endpoint'
         }
       } else if (turn.dragging) {
@@ -1138,6 +1158,7 @@ export async function mountNativeNotebook(
         turn.p = k >= 1 ? turn.target : turn.from + (turn.target - turn.from) * eased
         applyPose()
         renderer.render(scene, camera)
+        emitTurnMilestones(turn, k)
         if (k >= 1) turn.endpointPresented = true
       }
     }
