@@ -46,7 +46,10 @@ export interface NotebookEngine {
 export interface NotebookEngineMountOptions {
   /** Abort work if the owning exhibit is disposed while the heavy engine loads. */
   signal?: AbortSignal
-  /** Physical form selected from the exhibit's available space. */
+  /**
+   * Pagination/presentation profile selected from the exhibit's available space.
+   * It does not redefine the native renderer's canonical physical geometry.
+   */
   profile?: NotebookPhysicalProfile
 }
 
