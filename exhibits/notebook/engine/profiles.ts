@@ -17,7 +17,9 @@ export const NOTEBOOK_PROFILE_DEFINITIONS: Record<NotebookPhysicalProfile, Noteb
   pocket: {
     id: 'pocket',
     sheetMode: 'simplex',
-    stageAspect: 4 / 3,
+    // Keep the native renderer's proven full-stage proportions. Pocket changes
+    // sheet semantics and viewport composition, not the underlying turn plane.
+    stageAspect: 3 / 2,
   },
 }
 
