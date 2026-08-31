@@ -255,23 +255,26 @@ onBeforeUnmount(() => {
   inset: 0;
   display: grid;
   place-items: center;
-  transform: none;
-  transform-origin: 100% 50%;
 }
 
 /* Pocket focuses the right working face of the same canonical 3:2 notebook.
- * Crucially this transform is outside .nbn/.stage and is activated only after
- * mountNotebookEngine has virtualized native geometry into stage-local pixels. */
+ * Use layout width/position rather than a transform: Android Chrome can corrupt
+ * the mixed DOM/WebGL layers when their shared ancestor is scaled. A frame that
+ * is twice the viewport width and right-aligned produces the same 2x camera
+ * composition without placing the notebook inside a transformed compositor
+ * layer. Activate it only after mountNotebookEngine has virtualized native
+ * geometry into stage-local pixels. */
 .notebook-presentation-frame[data-notebook-profile='pocket'][data-frame-ready='true'] {
-  transform: scale(2);
-  will-change: transform;
+  width: 200%;
+  right: 0;
+  left: auto;
 }
 
 /* In a forced Pocket test on a landscape/desktop-shaped Android viewport, keep
- * the camera useful without vertically magnifying the notebook by a full 2x. */
+ * the camera useful without enlarging the layout by a full 2x. */
 @media (orientation: landscape) {
   .notebook-presentation-frame[data-notebook-profile='pocket'][data-frame-ready='true'] {
-    transform: scale(1.25);
+    width: 125%;
   }
 }
 
