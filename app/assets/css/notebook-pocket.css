@@ -1,0 +1,25 @@
+/*
+ * Pocket Cuaderno geometry v2.
+ *
+ * Keep the native renderer's canonical 3:2 physical stage so its cover, page,
+ * clip-path and DOM/WebGL handoff geometry remain identical to the proven
+ * Standard implementation. Pocket still enlarges that complete notebook so one
+ * 3:4 working face nearly fills a constrained viewport, but it is composed by
+ * ordinary flex alignment rather than transforms or positioned offsets.
+ */
+.notebook-engine-host[data-notebook-geometry='pocket'] .nbn .stage {
+  width: min(188vw, calc(96dvh * 1.5), 1500px) !important;
+  aspect-ratio: 3 / 2 !important;
+  position: relative !important;
+  left: auto !important;
+  right: auto !important;
+  align-self: flex-end !important;
+  margin-inline: 0 !important;
+  transform: none !important;
+}
+
+@supports (width: 1cqw) {
+  .notebook-engine-host[data-notebook-geometry='pocket'] .nbn .stage {
+    width: min(188cqw, calc(96cqh * 1.5), 1500px) !important;
+  }
+}
