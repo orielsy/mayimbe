@@ -14,6 +14,7 @@ import type {
   NativeNotebookSnapshot,
   NativeNotebookStateName,
 } from './native/notebook-types'
+import type { BakedTextures } from './perf/baked'
 
 const toPosition = (state: NativeNotebookStateName): NotebookPosition => {
   if (state === 'CLOSED_FRONT') return 'closed-front'
@@ -122,12 +123,30 @@ function installStageLocalMeasurementSpace(root: HTMLElement) {
   }
 }
 
+interface NotebookEngineWithBake extends NotebookEngine {
+  /** Bake-only escape hatch — drives the underlying native engine's bake()
+   *  pipeline so the engine's measured leaf rectangles (post
+   *  installStageLocalMeasurementSpace) are exactly what gets rasterised.
+   *  Installed by mountNotebookEngine() in dev and bake contexts; never
+   *  present in production. */
+  __bakeNative?: (opts?: { type?: string; quality?: number; dpr?: number }) => Promise<BakedTextures>
+  /** Bake/test-only recompute — runs jumpTo(OPEN, 0) which fires
+   *  solveStacksOnce → buildStacks → layoutCanonicalFrame at the CURRENT
+   *  presentation layout. The exhibit mounts with frameReady='false', so
+   *  the initial buildStacks() runs while the host is at viewport width;
+   *  after the exhibit sets frameReady='true', the wrapper transitions to
+   *  200% (pocket) and the engine's static --papershrinkx is stale. The
+   *  bake path skips that gap because it sets frameReady='true' before
+   *  mounting. Both sides reach the same state by calling this once. */
+  __completeLayout?: () => Promise<void>
+}
+
 function adaptNativeEngine(
   native: NativeNotebookEngine,
   profile: NotebookPhysicalProfile,
   releaseMeasurementSpace: () => void,
   host: HTMLElement,
-): NotebookEngine {
+): NotebookEngineWithBake {
   const pageCount = NOTEBOOK_PARITY_PAGES.length
   let authoredPage = 1
 
@@ -218,6 +237,9 @@ export const mountNotebookEngine: MountNotebookEngine = async (host, options = {
     sectionToPage: NOTEBOOK_PARITY_SECTIONS,
     title: 'CUADERNO',
     signal: options.signal,
+    perf: options.perf,
+    baked: options.baked,
+    fallback: options.fallback,
   })
 
   const releaseMeasurementSpace = installStageLocalMeasurementSpace(native.root)
@@ -227,5 +249,57 @@ export const mountNotebookEngine: MountNotebookEngine = async (host, options = {
   // before the exhibit is allowed to activate responsive framing.
   window.dispatchEvent(new Event('resize'))
 
-  return adaptNativeEngine(native, profile, releaseMeasurementSpace, host)
+  /* ---------- DEV / BAKE VISUAL REGRESSION HOOK ----------------------------
+     Two related escapes from the production adapter:
+
+     1. `window.__bakeLive` — fired from tests/visual/notebook-bake-parity.spec.ts
+        to trigger a fresh bake from inside the LIVE dev-server page. Same
+        engine state, same measurement patch, baked-while-mounted. Gone in
+        production because the branch sits behind `import.meta.dev`, which
+        Vite tree-shakes when building for production.
+
+     2. `adapter.__bakeNative` — invoked from scripts/bake-notebook-textures.mjs,
+        which mounts the engine through THIS same function (so the exhibit
+        presentation layout and stage-local measurement are identical), then
+        asks the adapter to bake via the underlying native engine. The bake
+        tool is not driven through `window.__bakeLive` because it predates
+        Nuxt and runs against a Playwright-served bare HTML page that does
+        not import the dev runtime.
+
+     Both hooks are necessary for byte-exact parity between the offline bake
+     and the live render; neither leaks into a production bundle. */
+  if (import.meta.dev && typeof window !== 'undefined') {
+    ;(window as any).__bakeLive = () =>
+      native.bake({ type: 'image/png', quality: 0.9, dpr: 1.25 })
+    ;(window as any).__completeLayout = async () => {
+      // adapter.restore({position: 'open'}) calls native.restore which calls
+      // jumpTo(OPEN, 0) which fires solveStacksOnce → rAF → buildStacks →
+      // layoutCanonicalFrame at the CURRENT CSS state. Two rAF ticks cover
+      // the schedule callback inside solveStacksOnce.
+      await engine.restore({ position: 'open', turned: 0, page: 1 })
+      await new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())))
+    }
+  }
+  const engine = adaptNativeEngine(native, profile, releaseMeasurementSpace, host)
+  /* Bake-only delegate. The bake tooling sets globalThis.__MAYIMBE_BAKE__
+   * before importing the engine entry, and we honour that signal here so the
+   * adapter exposes a thin bridge to the native engine.bake() pipeline.
+   * Reading globalThis works in both Vite dev and the bake tool's bare
+   * Playwright HTML page; the prod bundle is free of every code path that
+   * mentions this property because Vite/tree-shake drops the entire branch
+   * when neither the dev flag nor the bake flag is set at build time. */
+  const isBakeContext =
+    typeof globalThis !== 'undefined'
+    && (globalThis as any).__MAYIMBE_BAKE__ === '1'
+  if (import.meta.env?.DEV || isBakeContext) {
+    engine.__bakeNative = (opts) => native.bake(opts)
+    engine.__completeLayout = async () => {
+      // adapter.restore({position: 'open'}) calls native.restore →
+      // jumpTo(OPEN, 0) → solveStacksOnce → rAF → buildStacks →
+      // layoutCanonicalFrame. Two rAF ticks cover the schedule callback.
+      await engine.restore({ position: 'open', turned: 0, page: 1 })
+      await new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())))
+    }
+  }
+  return engine
 }

@@ -112,7 +112,23 @@
   position: absolute; left: calc(-1 * var(--sx) / var(--sw) * 100%); top: calc(-1 * var(--sy) / var(--sh) * 100%);
   width: calc(100% / var(--sw)); height: calc(100% / var(--sh)); aspect-ratio: auto;
 }
-.nbn .m2stack > .m2sheet { will-change: opacity; }
+/*
+ * Strata promotion is scoped to an active turn, and is deliberately uniform.
+ *
+ * Leaving `will-change: opacity` on all 54 strata permanently exceeds Android
+ * Chrome's layer budget for the pocket stage (already 2x the viewport) and the
+ * compositor starts serving stale tiles — the resting cover/leaves never
+ * repaint after a turn settles. `.turning` is added by reveal() and removed by
+ * settle(), so the strata hold layers only while a turn is animating.
+ *
+ * Promoting only the one mid-fade stratum per half was measured and is far
+ * worse: promoting an element in the middle of 26 overlapping siblings makes
+ * Chrome promote or squash everything painted above it, and since that index
+ * advances during the turn the layer assignment is recomputed continuously.
+ * That stalls the compositor to ~2fps. Uniform promotion avoids the overlap
+ * churn entirely.
+ */
+.nbn.turning .m2stack > .m2sheet { will-change: opacity; }
 .nbn .m2stack { position: relative; aspect-ratio: 3/4; container-type: inline-size; --u: 1cqw; }
 .nbn .m2stack > .m2sheet { position: absolute; top: 7%; left: 6%; height: 86%; width: 86%; }
 .nbn .hingeshade {

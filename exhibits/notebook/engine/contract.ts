@@ -1,10 +1,16 @@
 import type { NotebookPhysicalProfile } from './profiles'
+import type { PerfProfileInput } from './perf/profile'
+import type { BakedTextures } from './perf/baked'
 
 export type { NotebookPhysicalProfile } from './profiles'
+export type { PerfProfileInput } from './perf/profile'
+export type { BakedTextures } from './perf/baked'
 
 export type NotebookPosition = 'closed-front' | 'open' | 'closed-back'
 
 export type NotebookCloseSide = 'front' | 'back'
+
+export type NotebookFallback = 'auto' | 'css'
 
 export type NotebookTarget =
   | string
@@ -51,6 +57,19 @@ export interface NotebookEngineMountOptions {
    * It does not redefine the native renderer's canonical physical geometry.
    */
   profile?: NotebookPhysicalProfile
+  /**
+   * Performance budget: 'auto' (default), a preset name, or overrides.
+   * Orthogonal to `profile`: a pocket notebook on a phone composes as
+   * `pocket` + `mobile`; the same pocket notebook on a desktop is
+   * `pocket` + `desktop`. 'desktop' reproduces the frozen lab values exactly.
+   */
+  perf?: PerfProfileInput
+  /** Pre-rendered textures produced offline by the bake tool. Missing entries
+   *  fall back to live rasterisation, so a partial/absent manifest is safe. */
+  baked?: BakedTextures
+  /** 'css' forces the WebGL-free flip; 'auto' (default) only uses it when a
+   *  WebGL context cannot be created at all. */
+  fallback?: NotebookFallback
 }
 
 export type MountNotebookEngine = (

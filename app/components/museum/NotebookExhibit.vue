@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { NotebookEngine, NotebookPhysicalProfile } from '~~/exhibits/notebook/engine/contract'
 import { resolveNotebookProfile } from '~~/exhibits/notebook/engine/profiles'
+import { resolveProfile as resolveNotebookPerf } from '~~/exhibits/notebook/engine/perf/profile'
 import { NOTEBOOK_NATIVE_SOURCE } from '~~/exhibits/notebook/engine/source'
 
 defineProps<{ target?: unknown }>()
@@ -104,6 +105,8 @@ async function mountProfile(nextProfile: NotebookPhysicalProfile) {
     const mounted = await mountNotebookEngine(host.value, {
       signal: abortController.signal,
       profile: nextProfile,
+      perf: resolveNotebookPerf('auto'),
+      fallback: 'css',
     })
 
     if (abortController.signal.aborted) {
@@ -377,6 +380,30 @@ onBeforeUnmount(() => {
  * intentionally blank; suppress temporary physical face numbering. */
 .notebook-engine-host[data-notebook-profile='pocket'] :deep(.nbn .pagenum) {
   display: none;
+}
+
+/* Pocket's 2x stage places the hinge at the viewport's left edge; the swinging
+ * page travels offscreen-left and never needs to be rasterised. The base canvas
+ * rule (inset: -24%; width: 148%; height: 148%) lets the canvas extend far past
+ * the viewport — a mostly-offscreen WebGL slab that Android Chrome's compositor
+ * corrupts once a turn starts (missing cover, missing text, half-pages).
+ *
+ * Clamp the canvas to the stage's visible right half. Set width: 50% explicitly:
+ * <canvas> is a replaced element, so width: auto does NOT stretch between left
+ * and right — it falls back to the intrinsic size (height * drawing-buffer
+ * aspect), which here yields a ~1753px canvas and a 2189x1093 buffer, worse than
+ * the base rule. width: 50% overrides the intrinsic and yields a 554x1093
+ * buffer. The camera math in resize() self-centres: world.cx becomes the
+ * stage-local canvas centre, and the hinge projects to NDC ~-0.98 (visual ~5),
+ * keeping the mesh pixel-aligned with the DOM leaf.
+ *
+ * Landscape pocket uses a 125% frame and is left to the base rule. */
+@media (orientation: portrait) {
+  .notebook-engine-host[data-notebook-profile='pocket'] :deep(.nbn canvas.gl) {
+    left: 50%;
+    right: 0;
+    width: 50%;
+  }
 }
 
 .notebook-status {

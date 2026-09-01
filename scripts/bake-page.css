@@ -1,0 +1,97 @@
+/* ======================================================================
+   BAKE-PAGE CSS — mirrors the layout-impacting styles from
+   app/components/museum/NotebookExhibit.vue, unscoped, so the bake tool
+   can serve them without Vue's `:deep()` machinery.
+
+   ONLY the rules that affect .nbn's measured layout (stage width, frame
+   width, .nbn canvas clamp for pocket) are mirrored. Cosmetic rules and
+   everything that lives behind the engine render canvas are deliberately
+   omitted — the bake only cares about the leaf and cover rectangles.
+
+   If the exhibit's presentation CSS changes, this file must be updated in
+   tandem. The two are kept structurally one-to-one (same selectors, same
+   declaration order) to make diff audits cheap.
+   ==================================================================== */
+
+.bake-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.bake-frame {
+  position: absolute;
+  inset: 0;
+  isolation: isolate;
+  display: grid;
+  place-items: center;
+}
+
+/* Pocket focuses the right working face of the same canonical 3:2 notebook.
+ * Use layout width/position rather than a transform: Android Chrome can corrupt
+ * the mixed DOM/WebGL layers when their shared ancestor is scaled. */
+.bake-frame[data-notebook-profile='pocket'][data-frame-ready='true'] {
+  width: 200%;
+  right: 0;
+  left: auto;
+}
+
+@media (orientation: landscape) {
+  .bake-frame[data-notebook-profile='pocket'][data-frame-ready='true'] {
+    width: 125%;
+  }
+}
+
+.bake-engine-host {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  place-items: center;
+  overflow: visible;
+  container-type: size;
+  pointer-events: none;
+}
+
+.bake-engine-host .nbn {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  height: 100%;
+  justify-content: center;
+}
+
+.bake-engine-host .nbn .stage {
+  width: min(94vw, calc(96dvh * 1.5), 1500px);
+  aspect-ratio: 3 / 2;
+  position: relative;
+  left: 0;
+  margin-inline: auto;
+  transform: none;
+}
+
+@supports (width: 1cqw) {
+  .bake-engine-host .nbn .stage {
+    width: min(96cqw, calc(96cqh * 1.5), 1500px);
+  }
+}
+
+.bake-engine-host .nbn canvas.gl { z-index: 0; }
+.bake-engine-host .nbn canvas.gl.active { z-index: 5; }
+
+.bake-engine-host[data-notebook-profile='pocket'] .nbn .pagenum { display: none; }
+
+/* Pocket's 2x stage places the hinge at the viewport's left edge; the
+ * swinging page travels offscreen-left. Clamp the canvas to the visible
+ * right half (width:50% overrides the intrinsic <canvas> aspect fallback). */
+@media (orientation: portrait) {
+  .bake-engine-host[data-notebook-profile='pocket'] .nbn canvas.gl {
+    left: 50%;
+    right: 0;
+    width: 50%;
+  }
+}

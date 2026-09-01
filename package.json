@@ -18,7 +18,9 @@
     "archive:validate": "node scripts/validate-content.ts",
     "archive:build": "node scripts/build-archive.ts",
     "test": "vitest run tests/unit tests/integration",
-    "test:visual": "playwright test"
+    "test:visual": "playwright test",
+    "bake:notebook": "node scripts/bake-notebook-textures.mjs",
+    "bake:notebook:parity": "node scripts/bake-notebook-textures.mjs --out tests/visual/.bake-png --type image/png --buckets 390x844,1440x900 --profile standard --profile pocket"
   },
   "dependencies": {
     "nuxt": "4.5.2",
@@ -31,6 +33,8 @@
   "devDependencies": {
     "@playwright/test": "1.55.0",
     "@types/node": "24.13.3",
+    "pixelmatch": "^7.2.0",
+    "pngjs": "^7.0.0",
     "typescript": "6.0.3",
     "vitest": "4.1.11"
   }

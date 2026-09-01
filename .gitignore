@@ -1,5 +1,6 @@
 node_modules
 .nuxt
+.nuxt-visual
 .output
 .dist
 dist
@@ -8,3 +9,28 @@ dist
 .env.*
 !.env.example
 coverage
+
+# Page Turner Lab is the Lovable source-of-truth project the notebook engine
+# was extracted from. It is kept locally as a read-only reference, never
+# committed to Mayimbe.
+Page Turner Lab
+Page Turner Lab.zip
+
+# Local-only debugging artifacts from the on-device notebook work.
+device-screen*.png
+device-tiny.png
+device-capture.mp4
+cdp-shot*.png
+canvas-debug-*.png
+frames/
+grid/
+test-results/
+visual-artifacts/
+
+# Build-time baked notebook textures (produced by scripts/bake-notebook-textures.mjs).
+public/notebook-baked
+# Same encoder, written in PNG for the bake-vs-live visual regression suite.
+tests/visual/.bake-png
+.nuxt-layout-diag
+.nuxt-*
+
