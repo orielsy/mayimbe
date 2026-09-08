@@ -25,12 +25,18 @@ describe('pocket notebook material history', () => {
     ])
   })
 
-  it('keeps page one as the strongest stain event and fades its trauma echo', () => {
+  it('keeps page one as the densest damage event and fades its trauma echo', () => {
     const opacity = (page: number, id: string) => (
       POCKET_NOTEBOOK_MATERIALS[page]?.layers.find(layer => layer.id === id)?.opacity ?? 0
     )
 
-    expect(opacity(0, 'wear-water-stain')).toBe(0.92)
+    expect(POCKET_NOTEBOOK_MATERIALS[0]?.layers).toHaveLength(9)
+    expect(opacity(0, 'wear-water-stain')).toBe(0.96)
+    expect(opacity(0, 'wear-humidity-bloom')).toBe(0.86)
+    expect(opacity(0, 'wear-foxing-heavy')).toBe(0.88)
+    expect(opacity(0, 'wear-foxing-light')).toBe(0.66)
+    expect(opacity(0, 'wear-crease')).toBe(0.42)
+
     expect(opacity(1, 'wear-water-stain')).toBeCloseTo(0.28)
     expect(opacity(2, 'wear-water-stain')).toBeCloseTo(0.14)
     expect(opacity(3, 'wear-water-stain')).toBe(0)

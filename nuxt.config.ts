@@ -10,7 +10,10 @@ export default defineNuxtConfig({
   // isolated server alongside a dev server already serving a real device.
   buildDir: process.env.NUXT_BUILD_DIR || '.nuxt',
 
-  css: ['~/assets/css/main.css'],
+  css: [
+    '~/assets/css/main.css',
+    '~/assets/css/pocket-notebook-stage2.css',
+  ],
 
   typescript: {
     strict: true,
@@ -40,6 +43,7 @@ export default defineNuxtConfig({
         '/museum/notebook',
         '/museum/notebook/early-years',
         '/labs/notebook-assets',
+        '/labs/pocket-notebook',
       ],
     },
   },
