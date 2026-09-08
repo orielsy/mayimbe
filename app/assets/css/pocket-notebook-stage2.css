@@ -1,0 +1,60 @@
+/* Stage 2 pocket-notebook-only visual refinements.
+   These selectors are intentionally scoped to the experiment route DOM. */
+
+/* Preserve the F3-03 physical corner silhouette continuously. The source asset
+   was baked at 5px / 20px on 840px width, which lands near 2px / 8px at the
+   pocket notebook's ~346px display width. */
+.pocket-lab .pocket-notebook .notebook-cover,
+.pocket-lab .pocket-notebook .turning-cover .turning-cover__face {
+  border-radius: 2px 8px 8px 2px;
+}
+
+/* Page-one PaperV2 trauma approximation using only reusable Stage-1 wear
+   exports. The mature concept contains multiple stain/tide events rather than
+   one generic mark, so duplicate the same static assets at different scales
+   and offsets instead of flattening a complete page. */
+.pocket-notebook[data-paper-history='page-one-trauma']
+  .paper-wear[data-wear-layer='wear-water-stain']::before,
+.pocket-notebook[data-paper-history='page-one-trauma']
+  .paper-wear[data-wear-layer='wear-water-stain']::after,
+.pocket-notebook[data-paper-history='page-one-trauma']
+  .paper-wear[data-wear-layer='wear-humidity-bloom']::before,
+.pocket-notebook[data-paper-history='page-one-trauma']
+  .paper-wear[data-wear-layer='wear-foxing-heavy']::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: inherit;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 100%;
+  pointer-events: none;
+}
+
+.pocket-notebook[data-paper-history='page-one-trauma']
+  .paper-wear[data-wear-layer='wear-water-stain']::before {
+  opacity: .62;
+  transform: translate(22%, 23%) scale(.58);
+  transform-origin: center;
+}
+
+.pocket-notebook[data-paper-history='page-one-trauma']
+  .paper-wear[data-wear-layer='wear-water-stain']::after {
+  opacity: .45;
+  transform: translate(-31%, 38%) scale(.38);
+  transform-origin: center;
+}
+
+.pocket-notebook[data-paper-history='page-one-trauma']
+  .paper-wear[data-wear-layer='wear-humidity-bloom']::before {
+  opacity: .62;
+  transform: translate(0, 18%) scale(1.06);
+  transform-origin: center bottom;
+}
+
+.pocket-notebook[data-paper-history='page-one-trauma']
+  .paper-wear[data-wear-layer='wear-foxing-heavy']::before {
+  opacity: .50;
+  transform: translate(20%, -16%) scale(.72);
+  transform-origin: center;
+}
