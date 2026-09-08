@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 1120" width="840" height="1120">
+  <defs>
+    <linearGradient id="washA" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#987440" stop-opacity=".019"/>
+      <stop offset="1" stop-color="#8a6634" stop-opacity=".010"/>
+    </linearGradient>
+    <linearGradient id="washB" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#987440" stop-opacity=".039"/>
+      <stop offset="1" stop-color="#8a6634" stop-opacity=".021"/>
+    </linearGradient>
+    <linearGradient id="washC" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#987440" stop-opacity=".028"/>
+      <stop offset="1" stop-color="#8a6634" stop-opacity=".015"/>
+    </linearGradient>
+    <radialGradient id="bloom">
+      <stop offset="0" stop-color="#926c38" stop-opacity=".012"/>
+      <stop offset=".62" stop-color="#96723e" stop-opacity=".006"/>
+      <stop offset="1" stop-color="#96723e" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- PaperV2 tide front 1: around 53% page depth. -->
+  <path d="M0 577 C78 563 142 568 210 592 C286 617 349 614 420 589 C494 563 567 561 635 581 C705 602 770 611 840 595 L840 1120 L0 1120 Z" fill="url(#washA)"/>
+  <path d="M0 573 C78 559 142 564 210 588 C286 613 349 610 420 585 C494 559 567 557 635 577 C705 598 770 607 840 591" fill="none" stroke="#f4e0b2" stroke-opacity=".028" stroke-width="4.4"/>
+  <path d="M0 577 C78 563 142 568 210 592 C286 617 349 614 420 589 C494 563 567 561 635 581 C705 602 770 611 840 595" fill="none" stroke="#68441c" stroke-opacity=".11" stroke-width="5.6"/>
+  <path d="M0 583 C78 569 142 574 210 598 C286 623 349 620 420 595 C494 569 567 567 635 587 C705 608 770 617 840 601" fill="none" stroke="#845a26" stroke-opacity=".040" stroke-width="14"/>
+
+  <!-- PaperV2 tide front 2: strongest deposit, around 70% page depth. -->
+  <path d="M0 815 C82 780 153 767 225 792 C303 820 361 829 430 792 C505 751 577 748 646 783 C714 817 777 830 840 810 L840 1120 L0 1120 Z" fill="url(#washB)"/>
+  <path d="M0 811 C82 776 153 763 225 788 C303 816 361 825 430 788 C505 747 577 744 646 779 C714 813 777 826 840 806" fill="none" stroke="#f4e0b2" stroke-opacity=".043" stroke-width="4.4"/>
+  <path d="M0 815 C82 780 153 767 225 792 C303 820 361 829 430 792 C505 751 577 748 646 783 C714 817 777 830 840 810" fill="none" stroke="#68441c" stroke-opacity=".17" stroke-width="5.6"/>
+  <path d="M0 821 C82 786 153 773 225 798 C303 826 361 835 430 798 C505 757 577 754 646 789 C714 823 777 836 840 816" fill="none" stroke="#845a26" stroke-opacity=".061" stroke-width="14"/>
+
+  <!-- PaperV2 tide front 3: lower edge residue, around 86% page depth. -->
+  <path d="M0 953 C84 938 147 943 217 970 C291 998 357 1001 430 975 C506 948 574 940 646 955 C719 970 781 985 840 974 L840 1120 L0 1120 Z" fill="url(#washC)"/>
+  <path d="M0 949 C84 934 147 939 217 966 C291 994 357 997 430 971 C506 944 574 936 646 951 C719 966 781 981 840 970" fill="none" stroke="#f4e0b2" stroke-opacity=".033" stroke-width="4.4"/>
+  <path d="M0 953 C84 938 147 943 217 970 C291 998 357 1001 430 975 C506 948 574 940 646 955 C719 970 781 985 840 974" fill="none" stroke="#68441c" stroke-opacity=".13" stroke-width="5.6"/>
+  <path d="M0 959 C84 944 147 949 217 976 C291 1004 357 1007 430 981 C506 954 574 946 646 961 C719 976 781 991 840 980" fill="none" stroke="#845a26" stroke-opacity=".047" stroke-width="14"/>
+
+  <ellipse cx="722" cy="874" rx="350" ry="350" fill="url(#bloom)"/>
+</svg>
