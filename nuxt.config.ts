@@ -13,6 +13,7 @@ export default defineNuxtConfig({
   css: [
     '~/assets/css/main.css',
     '~/assets/css/pocket-notebook-stage2.css',
+    '~/assets/css/pocket-notebook-continuity.css',
   ],
 
   typescript: {
