@@ -1,0 +1,21 @@
+/* Stage 2 hinge-axis continuity.
+   The transient cover and page both rotate around the notebook's left edge and
+   finish at rotateY(-178deg). Their settled left-side representations must use
+   that exact same box/origin/endpoint or they visibly snap after animationend. */
+
+/* The settled flipped page already uses the same 6px/9px/9px/9px box as the
+   transient turning page. Let the 3D rotation itself place/mirror the sheet on
+   the left instead of approximating that pose with translateX + scaleX. */
+.pocket-lab .pocket-notebook::before {
+  transform-origin: left center;
+  transform: rotateY(-178deg);
+}
+
+/* paper-stack::before expands back out to the full notebook bounds, matching
+   the transient cover's inset: 0 box. Use the same physical cover radii in its
+   original orientation and let rotateY mirror the silhouette naturally. */
+.pocket-lab .paper-stack::before {
+  border-radius: .595238095cqw 2.380952381cqw 2.380952381cqw .595238095cqw;
+  transform-origin: left center;
+  transform: rotateY(-178deg);
+}
