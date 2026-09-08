@@ -147,9 +147,18 @@ export const pocketNotebookCanBackward = (state: PocketNotebookState) => (
 )
 
 /**
- * The resting page is ordinary DOM. During a future transition the destination
- * page is prepared underneath the temporary turning sheet before animation.
+ * Settled content and transient animation do not have the same preparation
+ * rule in both directions:
+ *
+ * - opening/forward prepare the destination page underneath the outgoing sheet;
+ * - backward keeps the current page underneath while the destination sheet
+ *   flies back in, then swaps the resting DOM only when the transition settles;
+ * - closing keeps page one underneath the incoming cover.
  */
-export const pocketNotebookRestingPageIndex = (state: PocketNotebookState) => (
-  state.transition?.toPage ?? state.pageIndex
-)
+export const pocketNotebookRestingPageIndex = (state: PocketNotebookState) => {
+  const transition = state.transition
+  if (!transition) return state.pageIndex
+  if (transition.kind === 'backward') return transition.fromPage ?? state.pageIndex
+  if (transition.kind === 'close') return transition.fromPage ?? state.pageIndex
+  return transition.toPage ?? state.pageIndex
+}

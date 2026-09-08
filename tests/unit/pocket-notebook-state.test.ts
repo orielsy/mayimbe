@@ -40,14 +40,18 @@ describe('pocket notebook state model', () => {
 
     state = reducePocketNotebookState(state, { type: 'backward' })
     expect(state.phase).toBe('turning-backward')
-    expect(pocketNotebookRestingPageIndex(state)).toBe(0)
+    expect(pocketNotebookRestingPageIndex(state)).toBe(1)
 
     state = reducePocketNotebookState(state, {
       type: 'settle',
       transitionId: state.transition!.id,
     })
+    expect(state.pageIndex).toBe(0)
+    expect(pocketNotebookRestingPageIndex(state)).toBe(0)
+
     state = reducePocketNotebookState(state, { type: 'backward' })
     expect(state.phase).toBe('closing')
+    expect(pocketNotebookRestingPageIndex(state)).toBe(0)
 
     state = reducePocketNotebookState(state, {
       type: 'settle',
@@ -55,6 +59,26 @@ describe('pocket notebook state model', () => {
     })
     expect(state.phase).toBe('closed-front')
     expect(state.pageIndex).toBe(0)
+  })
+
+  it('keeps the current resting page during backward animation until settle', () => {
+    let state = createPocketNotebookState(3)
+    state = reducePocketNotebookState(state, { type: 'forward' })
+    state = reducePocketNotebookState(state, { type: 'settle', transitionId: state.transition!.id })
+    state = reducePocketNotebookState(state, { type: 'forward' })
+    state = reducePocketNotebookState(state, { type: 'settle', transitionId: state.transition!.id })
+    state = reducePocketNotebookState(state, { type: 'forward' })
+    state = reducePocketNotebookState(state, { type: 'settle', transitionId: state.transition!.id })
+
+    expect(state.pageIndex).toBe(2)
+
+    state = reducePocketNotebookState(state, { type: 'backward' })
+    expect(state.transition).toMatchObject({ kind: 'backward', fromPage: 2, toPage: 1 })
+    expect(pocketNotebookRestingPageIndex(state)).toBe(2)
+
+    state = reducePocketNotebookState(state, { type: 'settle', transitionId: state.transition!.id })
+    expect(state.pageIndex).toBe(1)
+    expect(pocketNotebookRestingPageIndex(state)).toBe(1)
   })
 
   it('ignores rapid input while a transition is active', () => {

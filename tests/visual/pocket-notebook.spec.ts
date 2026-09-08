@@ -71,13 +71,31 @@ test('pocket notebook opens, turns through all pages, reverses, and closes with 
 
   await expect(nextButton).toBeDisabled()
 
-  for (const index of ['4', '3', '2', '1', '0']) {
+  const backwardPages = [
+    ['5', '4', 'archivo-abierto', 'instrumento-y-memoria'],
+    ['4', '3', 'instrumento-y-memoria', 'fecha-abierta'],
+    ['3', '2', 'fecha-abierta', 'la-chupadera'],
+    ['2', '1', 'la-chupadera', 'aprendizaje'],
+    ['1', '0', 'aprendizaje', 'primeras-notas'],
+  ] as const
+
+  for (const [fromIndex, toIndex, fromId, toId] of backwardPages) {
     await previousButton.click()
     await expect(notebook).toHaveAttribute('data-notebook-state', 'turning-backward')
     await expect(page.getByTestId('turning-page')).toBeVisible()
+
+    // Backward is intentionally asymmetric with forward: the currently settled
+    // page must remain underneath until the returning destination sheet lands.
+    await expect(notebook).toHaveAttribute('data-page-index', fromIndex)
+    await expect(notebook).toHaveAttribute('data-resting-page-index', fromIndex)
+    await expect(notebook).toHaveAttribute('data-current-page', fromId)
+    await expect(page.getByTestId('turning-page')).toHaveAttribute('data-turn-page-index', toIndex)
+
     await expect(notebook).toHaveAttribute('data-notebook-state', 'open', { timeout: 3000 })
     await expect(page.getByTestId('turning-page')).toHaveCount(0)
-    await expect(notebook).toHaveAttribute('data-page-index', index)
+    await expect(notebook).toHaveAttribute('data-page-index', toIndex)
+    await expect(notebook).toHaveAttribute('data-resting-page-index', toIndex)
+    await expect(notebook).toHaveAttribute('data-current-page', toId)
   }
 
   await expect(notebook).toHaveAttribute('data-paper-history', 'page-one-trauma')
