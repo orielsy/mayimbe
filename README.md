@@ -2,17 +2,42 @@
 
 Mayimbe is the production platform behind AntonySantos.com: an interactive digital museum, cultural archive, and tribute to Antony Santos.
 
-The project is organized around a **desk-first museum experience**. The desk is the primary interface; physical objects on it become authored experiences. The notebook is the first real object. A conventional web/archive UI remains available underneath for structured data, sources, direct navigation, accessibility, and search-friendly pages.
+## Product model
 
-See:
+The primary interface is the **desk and the objects on it**. The notebook is the first real object; future objects may include a listening device/radio, photo album, records, and other memorabilia.
 
-- `docs/product-direction.md` for the active product hierarchy and repository boundaries.
-- `docs/notebook-integration.md` for the Page Turner integration contract.
+A conventional web application exists underneath that experience and owns the structured archive, semantic routes, sources, search-friendly pages, and accessibility fallback. Both interfaces consume the same content truth.
+
+```text
+Structured archive/content
+        |\
+        | \__ conventional UI (/archive, /people, /stories, ...)
+        |
+        \____ desk experience -> notebook / future objects
+```
+
+The desk is not a decorative homepage around a traditional site. It is the primary museum shell.
+
+## Current direction
+
+The previous WebGL notebook renderer has been retired from the active development line. Its history remains available in Git branches. The next notebook implementation will be extracted from the approved Lovable **Page Turner Lab** into `app/components/notebook/` and will remain independent from Lovable's application shell/router.
+
+The current repository preparation intentionally keeps:
+
+- Nuxt 4 application shell
+- framework-independent archive and museum contracts
+- YAML archive content pipeline and generated indexes
+- semantic museum deep links
+- conventional archive/person/story routes
+- persistent museum navigation state
+- Playwright/Vitest infrastructure
+
+See `docs/product-direction.md` and `docs/notebook-integration.md` for the active architecture decisions.
 
 ## Requirements
 
 - Node.js 24+
-- npm 11 (the repository currently records npm 11.17.0)
+- npm 11
 
 ## Development
 
@@ -21,28 +46,13 @@ npm install
 npm run dev
 ```
 
-The first `npm install` should generate `package-lock.json`; commit that lockfile before production deployment so installs remain reproducible.
-
 ## Validation and builds
 
 ```bash
 npm run archive:validate
 npm test
 npm run generate
+npm run test:visual
 ```
 
-`npm run generate` creates the static site in `.output/public`, suitable for static hosting.
-
-## Current foundation
-
-- Nuxt 4 application shell
-- framework-independent archive and museum contracts
-- YAML archive content pipeline
-- generated archive index
-- conventional archive/person/story routes
-- persistent semantic museum navigation
-- `/` as the canonical desk entry point
-- a renderer-neutral notebook integration boundary under `app/components/notebook/`
-- Playwright infrastructure ready for Page Turner regression coverage
-
-The previous native/WebGL notebook has been removed from this active development line. Historical implementations remain available through Git history and notebook-specific branches.
+`npm run generate` creates the static site in `.output/public`.
