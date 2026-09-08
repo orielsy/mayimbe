@@ -23,8 +23,6 @@ npm run dev
 
 The first `npm install` should generate `package-lock.json`; commit that lockfile before production deployment so installs remain reproducible.
 
-Nuxt DevTools are enabled in development and are initialized at the bottom-left corner so they stay away from the desk's primary lower-right interaction area. The toolbar remains draggable during a session.
-
 ## Validation and builds
 
 ```bash
