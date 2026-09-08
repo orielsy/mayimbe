@@ -2,12 +2,15 @@
 import manifestSource from '~~/public/notebook-assets/manifest.json'
 import {
   pocketNotebookMaterialAt,
+  type PocketNotebookMaterialProfile,
   type PocketNotebookRecipeId,
   type PocketNotebookWearLayer,
 } from '~/runtime/pocket-notebook-materials'
 import {
   createPocketNotebookState,
   isPocketNotebookTransitioning,
+  pocketNotebookCanBackward,
+  pocketNotebookCanForward,
   pocketNotebookRestingPageIndex,
   reducePocketNotebookState,
   type PocketNotebookPhase,
@@ -138,18 +141,38 @@ const notebookState = ref(createPocketNotebookState(pages.length))
 const prefersReducedMotion = ref(false)
 let settleTimer: ReturnType<typeof setTimeout> | undefined
 let motionQuery: MediaQueryList | undefined
+let touchStart: { x: number; y: number } | null = null
+
+const materialAt = (pageIndex: number) => pocketNotebookMaterialAt(pageIndex)
+const recipeForMaterial = (material: PocketNotebookMaterialProfile) => (
+  recipeMap.get(material.recipe) ?? manifest.recipes[0]!
+)
 
 const restingPageIndex = computed(() => pocketNotebookRestingPageIndex(notebookState.value))
 const currentPage = computed(() => pages[restingPageIndex.value] ?? pages[0]!)
-const currentMaterial = computed(() => pocketNotebookMaterialAt(restingPageIndex.value))
-const currentRecipe = computed(() => recipeMap.get(currentMaterial.value.recipe) ?? manifest.recipes[0]!)
+const currentMaterial = computed(() => materialAt(restingPageIndex.value))
+const currentRecipe = computed(() => recipeForMaterial(currentMaterial.value))
 const isClosed = computed(() => notebookState.value.phase === 'closed-front')
 const isOpening = computed(() => notebookState.value.phase === 'opening')
 const isClosing = computed(() => notebookState.value.phase === 'closing')
+const isTurningForward = computed(() => notebookState.value.phase === 'turning-forward')
+const isTurningBackward = computed(() => notebookState.value.phase === 'turning-backward')
 const hasTurningCover = computed(() => isOpening.value || isClosing.value)
+const hasTurningPage = computed(() => isTurningForward.value || isTurningBackward.value)
 const controlsLocked = computed(() => isPocketNotebookTransitioning(notebookState.value))
-const canOpen = computed(() => notebookState.value.phase === 'closed-front' && !controlsLocked.value)
-const canClose = computed(() => notebookState.value.phase === 'open' && notebookState.value.pageIndex === 0 && !controlsLocked.value)
+const canForward = computed(() => pocketNotebookCanForward(notebookState.value))
+const canBackward = computed(() => pocketNotebookCanBackward(notebookState.value))
+
+const turningPageIndex = computed(() => {
+  const transition = notebookState.value.transition
+  if (!transition) return restingPageIndex.value
+  if (transition.kind === 'forward') return transition.fromPage ?? notebookState.value.pageIndex
+  if (transition.kind === 'backward') return transition.toPage ?? notebookState.value.pageIndex
+  return restingPageIndex.value
+})
+const turningPage = computed(() => pages[turningPageIndex.value] ?? pages[0]!)
+const turningMaterial = computed(() => materialAt(turningPageIndex.value))
+const turningRecipe = computed(() => recipeForMaterial(turningMaterial.value))
 
 const stackSheets: StackSheet[] = [
   { x: 0.2, y: 0.6, r: -0.08 },
@@ -217,7 +240,7 @@ const settleTransition = (transitionId = notebookState.value.transition?.id) => 
   })
 }
 
-const beginCoverTransition = (direction: 'forward' | 'backward') => {
+const beginNavigation = (direction: 'forward' | 'backward') => {
   const nextState = reducePocketNotebookState(notebookState.value, { type: direction })
   if (nextState === notebookState.value) return
 
@@ -234,29 +257,63 @@ const beginCoverTransition = (direction: 'forward' | 'backward') => {
   settleTimer = setTimeout(() => settleTransition(transitionId), 900)
 }
 
-const openNotebook = () => {
-  if (canOpen.value) beginCoverTransition('forward')
+const requestForward = () => {
+  if (canForward.value) beginNavigation('forward')
 }
 
-const closeNotebook = () => {
-  if (canClose.value) beginCoverTransition('backward')
+const requestBackward = () => {
+  if (canBackward.value) beginNavigation('backward')
 }
 
-const onCoverAnimationEnd = (event: AnimationEvent) => {
+const onTransitionAnimationEnd = (event: AnimationEvent) => {
   if (event.target !== event.currentTarget) return
   settleTransition()
 }
 
+const isEditableTarget = (target: EventTarget | null) => {
+  const element = target instanceof HTMLElement ? target : null
+  return Boolean(element?.isContentEditable || element?.closest('input, textarea, select, [contenteditable="true"]'))
+}
+
 const onKeydown = (event: KeyboardEvent) => {
-  if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return
-  if (event.key === 'ArrowRight' && canOpen.value) {
+  if (
+    event.defaultPrevented
+    || event.repeat
+    || event.metaKey
+    || event.ctrlKey
+    || event.altKey
+    || event.shiftKey
+    || isEditableTarget(event.target)
+  ) return
+
+  if (event.key === 'ArrowRight' && canForward.value) {
     event.preventDefault()
-    openNotebook()
+    requestForward()
   }
-  if (event.key === 'ArrowLeft' && canClose.value) {
+  if (event.key === 'ArrowLeft' && canBackward.value) {
     event.preventDefault()
-    closeNotebook()
+    requestBackward()
   }
+}
+
+const onTouchStart = (event: TouchEvent) => {
+  const touch = event.touches[0]
+  touchStart = touch ? { x: touch.clientX, y: touch.clientY } : null
+}
+
+const onTouchEnd = (event: TouchEvent) => {
+  const start = touchStart
+  touchStart = null
+  if (!start || controlsLocked.value) return
+
+  const touch = event.changedTouches[0]
+  if (!touch) return
+  const dx = touch.clientX - start.x
+  const dy = touch.clientY - start.y
+  if (Math.abs(dx) < 44 || Math.abs(dx) <= Math.abs(dy) * 1.15) return
+
+  if (dx < 0) requestForward()
+  else requestBackward()
 }
 
 const updateMotionPreference = (event?: MediaQueryListEvent) => {
@@ -310,18 +367,18 @@ useSeoMeta({
         <h1>Pocket notebook</h1>
       </div>
       <p class="pocket-lab__intro">
-        A native-size single-page notebook built from the Stage 1 paper, wear, mask, cover, and board assets.
-        The cover animation is temporary; every settled state is ordinary DOM.
+        A native-size single-page notebook built from static material layers. Cover and page turns are temporary DOM;
+        every settled page is ordinary selectable content.
       </p>
     </header>
 
     <section class="pocket-exhibit" aria-labelledby="pocket-shell-title">
       <aside class="exhibit-note exhibit-note--context">
         <p class="exhibit-note__index">01</p>
-        <h2 id="pocket-shell-title">Open and settle</h2>
+        <h2 id="pocket-shell-title">Turn and settle</h2>
         <p>
-          The material sequence now follows the selected Lab-Native PaperV2 history: first-page trauma, fading echo,
-          humidity episode, then protected interior.
+          The paper history follows Lab-Native PaperV2: first-page trauma, fading echo, humidity episode,
+          then protected interior. Next and Previous now traverse all six logical pages.
         </p>
         <dl>
           <div><dt>Logical pages</dt><dd>{{ pages.length }}</dd></div>
@@ -340,6 +397,8 @@ useSeoMeta({
             :data-resting-page-index="restingPageIndex"
             :data-current-page="currentPage.id"
             :data-paper-history="currentMaterial.id"
+            @touchstart.passive="onTouchStart"
+            @touchend.passive="onTouchEnd"
           >
             <img class="notebook-board" :src="assetFor('cover-f3-03-board')?.path" alt="" aria-hidden="true">
 
@@ -421,7 +480,7 @@ useSeoMeta({
               }"
               data-testid="turning-cover"
               aria-hidden="true"
-              @animationend="onCoverAnimationEnd"
+              @animationend="onTransitionAnimationEnd"
             >
               <div class="turning-cover__face turning-cover__face--front" data-testid="turning-cover-front">
                 <img :src="assetFor('cover-f3-03-front')?.path" alt="">
@@ -435,6 +494,64 @@ useSeoMeta({
                 <img :src="assetFor('cover-f3-03-board')?.path" alt="">
               </div>
             </div>
+
+            <div
+              v-if="hasTurningPage"
+              class="turning-page"
+              :class="{
+                'turning-page--forward': isTurningForward,
+                'turning-page--backward': isTurningBackward,
+              }"
+              :data-turn-paper-history="turningMaterial.id"
+              :data-turn-page-index="turningPageIndex"
+              data-testid="turning-page"
+              aria-hidden="true"
+              @animationend="onTransitionAnimationEnd"
+            >
+              <div
+                class="turning-page__face turning-page__face--front"
+                :style="maskStyle(turningRecipe)"
+                data-testid="turning-page-front"
+              >
+                <img class="paper-base" :src="assetFor(turningRecipe.base)?.path" alt="">
+                <span
+                  v-for="layer in turningMaterial.layers"
+                  :key="`turn-${layer.id}`"
+                  class="paper-wear"
+                  :class="wearTier(layer.id)"
+                  :data-wear-layer="layer.id"
+                  :style="wearStyle(layer)"
+                />
+
+                <div class="page-content turning-page__content">
+                  <p class="page-eyebrow">{{ turningPage.eyebrow }}</p>
+                  <h2>{{ turningPage.title }}</h2>
+                  <p v-if="turningPage.dateMark" class="page-date-mark">{{ turningPage.dateMark }}</p>
+
+                  <figure v-if="turningPage.variant === 'sketch'" class="guira-sketch">
+                    <svg viewBox="0 0 180 150">
+                      <path d="M74 18c19-6 37 3 43 20 5 15 4 65-4 86-6 16-18 24-32 21-18-4-27-19-28-42-2-27 2-61 7-72 3-7 8-11 14-13Z" />
+                      <path d="M94 15c7 16 10 99 0 130M69 39l32-8M66 55l38-9M64 72l42-10M63 90l44-10M65 108l40-9M70 125l31-7" />
+                      <path d="M126 34l30-19M127 43l33-20" />
+                    </svg>
+                  </figure>
+
+                  <div class="page-copy">
+                    <p v-for="paragraph in turningPage.paragraphs" :key="`turn-${paragraph}`">{{ paragraph }}</p>
+                  </div>
+                  <p v-if="turningPage.annotation" class="page-annotation">{{ turningPage.annotation }}</p>
+                  <span class="page-number">{{ String(turningPageIndex + 1).padStart(2, '0') }}</span>
+                </div>
+              </div>
+
+              <div
+                class="turning-page__face turning-page__face--back"
+                :style="maskStyle(turningRecipe)"
+              >
+                <img class="paper-base" :src="assetFor(turningRecipe.base)?.path" alt="">
+                <span class="turning-page__reverse-shade" />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -443,8 +560,8 @@ useSeoMeta({
             type="button"
             class="notebook-control"
             aria-label="Previous"
-            :disabled="!canClose"
-            @click="closeNotebook"
+            :disabled="!canBackward"
+            @click="requestBackward"
           >
             <span aria-hidden="true">←</span>
             <span>Previous</span>
@@ -454,8 +571,8 @@ useSeoMeta({
             type="button"
             class="notebook-control notebook-control--primary"
             :aria-label="isClosed ? 'Open notebook' : 'Next page'"
-            :disabled="!canOpen"
-            @click="openNotebook"
+            :disabled="!canForward"
+            @click="requestForward"
           >
             <span>{{ isClosed ? 'Open' : 'Next' }}</span>
             <span aria-hidden="true">→</span>
@@ -474,7 +591,7 @@ useSeoMeta({
           <li>Pages 2–3 · fading trauma echo + humidity</li>
           <li>Deeper block · protected age, never clean paper</li>
         </ul>
-        <p class="exhibit-note__small">Arrow Right opens the notebook. Arrow Left closes it from page 1.</p>
+        <p class="exhibit-note__small">Buttons, arrow keys, or a horizontal swipe navigate the notebook.</p>
       </aside>
     </section>
   </main>
@@ -567,6 +684,7 @@ useSeoMeta({
   isolation: isolate;
   perspective: 1050px;
   filter: drop-shadow(0 28px 24px rgba(0, 0, 0, .5));
+  touch-action: pan-y;
 }
 
 .notebook-board,
@@ -601,10 +719,14 @@ useSeoMeta({
   transform-origin: left center;
 }
 
-.resting-page {
+.resting-page,
+.turning-page {
   position: absolute;
-  z-index: 8;
   inset: 6px 9px 9px 9px;
+}
+
+.resting-page {
+  z-index: 8;
   overflow: hidden;
   background: #e7dcc4;
   box-shadow:
@@ -732,7 +854,6 @@ useSeoMeta({
 .notebook-cover {
   z-index: 20;
   overflow: hidden;
-  border-radius: 3px 11px 11px 3px;
   background: #743e31;
   box-shadow:
     0 11px 18px rgba(0, 0, 0, .4),
@@ -783,45 +904,66 @@ useSeoMeta({
   text-transform: uppercase;
 }
 
-.turning-cover {
-  z-index: 30;
+.turning-cover,
+.turning-page {
   transform-style: preserve-3d;
   transform-origin: left center;
   will-change: transform;
 }
 
-.turning-cover--opening {
-  animation: pocket-cover-open 720ms cubic-bezier(.22, .72, .2, 1) forwards;
+.turning-cover { z-index: 30; }
+.turning-page { z-index: 26; }
+
+.turning-cover--opening,
+.turning-page--forward {
+  animation: pocket-turn-forward 720ms cubic-bezier(.22, .72, .2, 1) forwards;
 }
 
-.turning-cover--closing {
-  animation: pocket-cover-close 720ms cubic-bezier(.3, .02, .35, 1) forwards;
+.turning-cover--closing,
+.turning-page--backward {
+  animation: pocket-turn-backward 720ms cubic-bezier(.3, .02, .35, 1) forwards;
 }
 
-.turning-cover__face {
+.turning-cover__face,
+.turning-page__face {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  /* The F3 assets already contain their physical corner silhouette. Do not
-     impose the settled-cover radius again while the cover is in motion. */
-  border-radius: 0;
   backface-visibility: hidden;
-  box-shadow: 0 9px 18px rgba(0, 0, 0, .34);
 }
 
+.turning-cover__face { box-shadow: 0 9px 18px rgba(0, 0, 0, .34); }
 .turning-cover__face--front { background: #743e31; }
 .turning-cover__face--back {
   transform: rotateY(180deg);
   background: #5d4435;
 }
 
-@keyframes pocket-cover-open {
+.turning-page__face {
+  background: #e7dcc4;
+  box-shadow:
+    0 9px 14px rgba(45, 29, 15, .28),
+    0 0 0 1px rgba(100, 68, 37, .18);
+}
+
+.turning-page__face--back { transform: rotateY(180deg); }
+.turning-page__reverse-shade {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(58, 39, 20, .18), rgba(255, 250, 233, .08) 10%, transparent 34%),
+    rgba(128, 100, 64, .04);
+}
+.turning-page__content { user-select: none; }
+
+@keyframes pocket-turn-forward {
   0% { transform: rotateY(0deg); }
   35% { transform: rotateY(-72deg) translateZ(1px); }
   100% { transform: rotateY(-178deg); }
 }
 
-@keyframes pocket-cover-close {
+@keyframes pocket-turn-backward {
   0% { transform: rotateY(-178deg); }
   65% { transform: rotateY(-68deg) translateZ(1px); }
   100% { transform: rotateY(0deg); }
@@ -980,6 +1122,7 @@ useSeoMeta({
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .turning-cover { animation-duration: 1ms !important; }
+  .turning-cover,
+  .turning-page { animation-duration: 1ms !important; }
 }
 </style>

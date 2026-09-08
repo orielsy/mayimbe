@@ -1,25 +1,39 @@
 /* Stage 2 pocket-notebook-only visual refinements.
    These selectors are intentionally scoped to the experiment route DOM. */
 
-/* Preserve the F3-03 physical corner silhouette continuously. The source asset
-   was baked at 5px / 20px on 840px width, which lands near 2px / 8px at the
-   pocket notebook's ~346px display width. */
+/* The F3-03 assets were baked at 840px wide with 5px spine corners and 20px
+   outer corners. Use container-width units so settled and moving covers clip
+   to that exact physical ratio at every rendered pocket size. */
+.pocket-lab .pocket-notebook {
+  container-type: inline-size;
+}
+
 .pocket-lab .pocket-notebook .notebook-cover,
-.pocket-lab .pocket-notebook .turning-cover .turning-cover__face {
-  border-radius: 2px 8px 8px 2px;
+.pocket-lab .pocket-notebook .turning-cover .turning-cover__face,
+.pocket-lab .pocket-notebook .notebook-board {
+  border-radius: .595238095cqw 2.380952381cqw 2.380952381cqw .595238095cqw;
 }
 
 /* Page-one PaperV2 trauma approximation using only reusable Stage-1 wear
    exports. The mature concept contains multiple stain/tide events rather than
    one generic mark, so duplicate the same static assets at different scales
-   and offsets instead of flattening a complete page. */
+   and offsets instead of flattening a complete page. Apply the same marks to
+   the temporary outgoing page so its damage does not disappear mid-turn. */
 .pocket-notebook[data-paper-history='page-one-trauma']
+  .resting-page .paper-wear[data-wear-layer='wear-water-stain']::before,
+.pocket-notebook[data-paper-history='page-one-trauma']
+  .resting-page .paper-wear[data-wear-layer='wear-water-stain']::after,
+.pocket-notebook[data-paper-history='page-one-trauma']
+  .resting-page .paper-wear[data-wear-layer='wear-humidity-bloom']::before,
+.pocket-notebook[data-paper-history='page-one-trauma']
+  .resting-page .paper-wear[data-wear-layer='wear-foxing-heavy']::before,
+.turning-page[data-turn-paper-history='page-one-trauma']
   .paper-wear[data-wear-layer='wear-water-stain']::before,
-.pocket-notebook[data-paper-history='page-one-trauma']
+.turning-page[data-turn-paper-history='page-one-trauma']
   .paper-wear[data-wear-layer='wear-water-stain']::after,
-.pocket-notebook[data-paper-history='page-one-trauma']
+.turning-page[data-turn-paper-history='page-one-trauma']
   .paper-wear[data-wear-layer='wear-humidity-bloom']::before,
-.pocket-notebook[data-paper-history='page-one-trauma']
+.turning-page[data-turn-paper-history='page-one-trauma']
   .paper-wear[data-wear-layer='wear-foxing-heavy']::before {
   content: '';
   position: absolute;
@@ -32,6 +46,8 @@
 }
 
 .pocket-notebook[data-paper-history='page-one-trauma']
+  .resting-page .paper-wear[data-wear-layer='wear-water-stain']::before,
+.turning-page[data-turn-paper-history='page-one-trauma']
   .paper-wear[data-wear-layer='wear-water-stain']::before {
   opacity: .62;
   transform: translate(22%, 23%) scale(.58);
@@ -39,6 +55,8 @@
 }
 
 .pocket-notebook[data-paper-history='page-one-trauma']
+  .resting-page .paper-wear[data-wear-layer='wear-water-stain']::after,
+.turning-page[data-turn-paper-history='page-one-trauma']
   .paper-wear[data-wear-layer='wear-water-stain']::after {
   opacity: .45;
   transform: translate(-31%, 38%) scale(.38);
@@ -46,6 +64,8 @@
 }
 
 .pocket-notebook[data-paper-history='page-one-trauma']
+  .resting-page .paper-wear[data-wear-layer='wear-humidity-bloom']::before,
+.turning-page[data-turn-paper-history='page-one-trauma']
   .paper-wear[data-wear-layer='wear-humidity-bloom']::before {
   opacity: .62;
   transform: translate(0, 18%) scale(1.06);
@@ -53,6 +73,8 @@
 }
 
 .pocket-notebook[data-paper-history='page-one-trauma']
+  .resting-page .paper-wear[data-wear-layer='wear-foxing-heavy']::before,
+.turning-page[data-turn-paper-history='page-one-trauma']
   .paper-wear[data-wear-layer='wear-foxing-heavy']::before {
   opacity: .50;
   transform: translate(20%, -16%) scale(.72);
