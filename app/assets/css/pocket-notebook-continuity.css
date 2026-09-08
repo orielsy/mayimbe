@@ -1,0 +1,117 @@
+/* Stage 2 physical-continuity refinements.
+   Keep the physical cover and the most recently flipped sheet present after
+   their transient animations settle, without changing the notebook state model. */
+
+/* The open front cover remains physically present to the left. Most of it is
+   clipped by the exhibit stage at pocket widths; wider layouts naturally reveal
+   more of the same board. This is the inside face of the F3-03 cover, so its
+   large outside corners move to the left and its smaller spine corners sit at
+   the hinge on the right. */
+.pocket-lab .paper-stack::before {
+  content: '';
+  position: absolute;
+  inset: -7px -8px -8px -9px;
+  z-index: 0;
+  opacity: 0;
+  pointer-events: none;
+  background: url('/notebook-assets/cover/f3-03-board.webp') center / 100% 100% no-repeat;
+  border-radius: 2.380952381cqw .595238095cqw .595238095cqw 2.380952381cqw;
+  transform: translateX(calc(-100% + 12px)) rotate(.05deg);
+  transform-origin: right center;
+  box-shadow:
+    -5px 9px 18px rgba(0, 0, 0, .30),
+    inset 0 0 0 1px rgba(255, 226, 182, .07);
+}
+
+.pocket-lab .pocket-notebook[data-notebook-state='open'] .paper-stack::before,
+.pocket-lab .pocket-notebook[data-notebook-state='turning-forward'] .paper-stack::before,
+.pocket-lab .pocket-notebook[data-notebook-state='turning-backward'] .paper-stack::before {
+  opacity: 1;
+}
+
+/* The animated page already reads as its reverse face during the 3D turn. The
+   settled top-left sheet must therefore keep that same physical orientation.
+   Mirror the complete settled verso instead of swapping to a differently
+   oriented wear recipe after animationend. Text is not rendered on this
+   pseudo-surface, so only paper and damage remain. */
+.pocket-lab .pocket-notebook::before {
+  transform-origin: center;
+  transform: translateX(calc(-100% + 10px)) scaleX(-1) rotate(.12deg);
+}
+
+/* Current right page 2 => the top left verso is flipped page 1. Preserve the
+   exceptional PaperV2 event: tide lines, spill rings, water stain, humidity and
+   foxing all stay attached to that same physical sheet. A light paper wash
+   approximates the per-layer alpha while retaining the recognizable pattern. */
+.pocket-lab .pocket-notebook[data-page-index='1']::before {
+  background-image:
+    linear-gradient(rgba(237, 225, 199, .14), rgba(237, 225, 199, .14)),
+    url('/notebook-assets/wear/water-rings.svg'),
+    url('/notebook-assets/wear/tide-lines.svg'),
+    url('/notebook-assets/wear/water-stain.webp'),
+    url('/notebook-assets/wear/humidity-bloom.webp'),
+    url('/notebook-assets/wear/foxing-heavy.webp'),
+    url('/notebook-assets/wear/foxing-light.webp'),
+    url('/notebook-assets/wear/handling-grime.webp'),
+    url('/notebook-assets/wear/edge-oxidation.webp'),
+    url('/notebook-assets/wear/tonal-drift.webp'),
+    url('/notebook-assets/paper/base-carried.webp');
+}
+
+/* Page 2 verso: the same trauma exists but at the mature concept's much weaker
+   echo. The stronger wash keeps those event layers visibly subordinate to the
+   humidity/foxing family instead of looking like a second page-one event. */
+.pocket-lab .pocket-notebook[data-page-index='2']::before {
+  background-image:
+    linear-gradient(rgba(235, 226, 205, .40), rgba(235, 226, 205, .40)),
+    url('/notebook-assets/wear/water-rings.svg'),
+    url('/notebook-assets/wear/tide-lines.svg'),
+    url('/notebook-assets/wear/water-stain.webp'),
+    url('/notebook-assets/wear/humidity-bloom.webp'),
+    url('/notebook-assets/wear/foxing-heavy.webp'),
+    url('/notebook-assets/wear/handling-grime.webp'),
+    url('/notebook-assets/wear/edge-oxidation.webp'),
+    url('/notebook-assets/wear/tonal-drift.webp'),
+    url('/notebook-assets/paper/base-humidity.webp');
+}
+
+/* Page 3 verso: final faint trauma echo before the exceptional spill event
+   disappears from the chronology. */
+.pocket-lab .pocket-notebook[data-page-index='3']::before {
+  background-image:
+    linear-gradient(rgba(235, 226, 205, .52), rgba(235, 226, 205, .52)),
+    url('/notebook-assets/wear/water-rings.svg'),
+    url('/notebook-assets/wear/tide-lines.svg'),
+    url('/notebook-assets/wear/water-stain.webp'),
+    url('/notebook-assets/wear/humidity-bloom.webp'),
+    url('/notebook-assets/wear/foxing-heavy.webp'),
+    url('/notebook-assets/wear/handling-grime.webp'),
+    url('/notebook-assets/wear/edge-oxidation.webp'),
+    url('/notebook-assets/wear/tonal-drift.webp'),
+    url('/notebook-assets/paper/base-humidity.webp');
+}
+
+/* Page 4 verso: humidity recedes; no exceptional spill-event layers remain. */
+.pocket-lab .pocket-notebook[data-page-index='4']::before {
+  background-image:
+    linear-gradient(rgba(235, 226, 205, .34), rgba(235, 226, 205, .34)),
+    url('/notebook-assets/wear/humidity-bloom.webp'),
+    url('/notebook-assets/wear/foxing-light.webp'),
+    url('/notebook-assets/wear/handling-grime.webp'),
+    url('/notebook-assets/wear/edge-oxidation.webp'),
+    url('/notebook-assets/wear/tonal-drift.webp'),
+    url('/notebook-assets/paper/base-humidity.webp');
+}
+
+/* Page 5 verso: protected interior age. The sheet is quieter, but it remains
+   part of the same old notebook rather than becoming clean stock. */
+.pocket-lab .pocket-notebook[data-page-index='5']::before {
+  background-image:
+    linear-gradient(rgba(241, 233, 215, .46), rgba(241, 233, 215, .46)),
+    url('/notebook-assets/wear/smudge.webp'),
+    url('/notebook-assets/wear/foxing-light.webp'),
+    url('/notebook-assets/wear/handling-grime.webp'),
+    url('/notebook-assets/wear/edge-oxidation.webp'),
+    url('/notebook-assets/wear/tonal-drift.webp'),
+    url('/notebook-assets/paper/base-protected.webp');
+}
