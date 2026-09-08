@@ -14,6 +14,7 @@ export default defineNuxtConfig({
     '~/assets/css/main.css',
     '~/assets/css/pocket-notebook-stage2.css',
     '~/assets/css/pocket-notebook-continuity.css',
+    '~/assets/css/pocket-notebook-axis-fix.css',
   ],
 
   typescript: {
