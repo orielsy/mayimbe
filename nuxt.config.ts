@@ -39,6 +39,7 @@ export default defineNuxtConfig({
         '/museum',
         '/museum/notebook',
         '/museum/notebook/early-years',
+        '/labs/notebook-assets',
       ],
     },
   },
