@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 1120" width="840" height="1120">
+  <defs>
+    <radialGradient id="bodyLarge">
+      <stop offset="0" stop-color="#946e38" stop-opacity=".14"/>
+      <stop offset=".72" stop-color="#8c6632" stop-opacity=".20"/>
+      <stop offset=".93" stop-color="#785426" stop-opacity=".34"/>
+      <stop offset="1" stop-color="#785426" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="bodySmall">
+      <stop offset="0" stop-color="#946e38" stop-opacity=".10"/>
+      <stop offset=".72" stop-color="#8c6632" stop-opacity=".15"/>
+      <stop offset=".93" stop-color="#785426" stop-opacity=".26"/>
+      <stop offset="1" stop-color="#785426" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Primary spill ring, matching PaperV2's ~30% x 22% stain at 38% / 34%. -->
+  <ellipse cx="319" cy="381" rx="112" ry="106" fill="url(#bodyLarge)"/>
+  <path d="M417 381 C414 332 386 294 341 282 C300 271 252 286 226 319 C200 352 201 405 225 439 C251 475 299 490 342 479 C387 468 414 430 417 381 Z" fill="none" stroke="#704c20" stroke-opacity=".40" stroke-width="6.4"/>
+  <path d="M413 381 C410 335 383 300 340 289 C302 278 258 291 233 322 C209 352 210 402 232 433 C256 466 301 480 341 470 C382 460 410 425 413 381 Z" fill="none" stroke="#60401a" stroke-opacity=".26" stroke-width="2.4"/>
+  <path d="M402 371 C399 342 382 319 357 307" fill="none" stroke="#f0d9a4" stroke-opacity=".06" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- Smaller secondary spill ring near the lower outer corner, as in PaperV2. -->
+  <ellipse cx="655" cy="963" rx="62" ry="58" fill="url(#bodySmall)"/>
+  <path d="M711 963 C709 938 695 918 674 910 C651 901 624 907 608 925 C592 943 592 971 606 990 C622 1012 651 1020 676 1012 C697 1005 710 986 711 963 Z" fill="none" stroke="#704c20" stroke-opacity=".34" stroke-width="4.2"/>
+  <path d="M707 963 C705 941 693 923 673 916 C652 908 628 913 613 929 C599 945 599 969 612 986 C627 1005 651 1012 674 1005 C694 999 706 982 707 963 Z" fill="none" stroke="#60401a" stroke-opacity=".22" stroke-width="1.8"/>
+</svg>
