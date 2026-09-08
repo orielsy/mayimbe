@@ -2,7 +2,9 @@
 import manifestSource from '~~/public/notebook-assets/manifest.json'
 import {
   createPocketNotebookState,
+  isPocketNotebookTransitioning,
   pocketNotebookRestingPageIndex,
+  reducePocketNotebookState,
   type PocketNotebookPhase,
 } from '~/runtime/pocket-notebook-state'
 
@@ -130,10 +132,20 @@ const pages: PocketNotebookPage[] = [
 ]
 
 const notebookState = ref(createPocketNotebookState(pages.length))
+const prefersReducedMotion = ref(false)
+let settleTimer: ReturnType<typeof setTimeout> | undefined
+let motionQuery: MediaQueryList | undefined
+
 const restingPageIndex = computed(() => pocketNotebookRestingPageIndex(notebookState.value))
 const currentPage = computed(() => pages[restingPageIndex.value] ?? pages[0]!)
 const currentRecipe = computed(() => recipeMap.get(currentPage.value.recipe) ?? manifest.recipes[0]!)
 const isClosed = computed(() => notebookState.value.phase === 'closed-front')
+const isOpening = computed(() => notebookState.value.phase === 'opening')
+const isClosing = computed(() => notebookState.value.phase === 'closing')
+const hasTurningCover = computed(() => isOpening.value || isClosing.value)
+const controlsLocked = computed(() => isPocketNotebookTransitioning(notebookState.value))
+const canOpen = computed(() => notebookState.value.phase === 'closed-front' && !controlsLocked.value)
+const canClose = computed(() => notebookState.value.phase === 'open' && notebookState.value.pageIndex === 0 && !controlsLocked.value)
 
 const stackSheets = [
   { x: 0.2, y: 0.6, r: -0.08 },
@@ -184,6 +196,81 @@ const wearTier = (layerId: string) => (
     : 'paper-wear--under'
 )
 
+const clearSettleTimer = () => {
+  if (settleTimer !== undefined) {
+    clearTimeout(settleTimer)
+    settleTimer = undefined
+  }
+}
+
+const settleTransition = (transitionId = notebookState.value.transition?.id) => {
+  if (transitionId === undefined) return
+  clearSettleTimer()
+  notebookState.value = reducePocketNotebookState(notebookState.value, {
+    type: 'settle',
+    transitionId,
+  })
+}
+
+const beginCoverTransition = (direction: 'forward' | 'backward') => {
+  const nextState = reducePocketNotebookState(notebookState.value, { type: direction })
+  if (nextState === notebookState.value) return
+
+  notebookState.value = nextState
+  const transitionId = nextState.transition?.id
+  if (transitionId === undefined) return
+
+  if (prefersReducedMotion.value) {
+    settleTransition(transitionId)
+    return
+  }
+
+  clearSettleTimer()
+  settleTimer = setTimeout(() => settleTransition(transitionId), 900)
+}
+
+const openNotebook = () => {
+  if (canOpen.value) beginCoverTransition('forward')
+}
+
+const closeNotebook = () => {
+  if (canClose.value) beginCoverTransition('backward')
+}
+
+const onCoverAnimationEnd = (event: AnimationEvent) => {
+  if (event.target !== event.currentTarget) return
+  settleTransition()
+}
+
+const onKeydown = (event: KeyboardEvent) => {
+  if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return
+  if (event.key === 'ArrowRight' && canOpen.value) {
+    event.preventDefault()
+    openNotebook()
+  }
+  if (event.key === 'ArrowLeft' && canClose.value) {
+    event.preventDefault()
+    closeNotebook()
+  }
+}
+
+const updateMotionPreference = (event?: MediaQueryListEvent) => {
+  prefersReducedMotion.value = event?.matches ?? motionQuery?.matches ?? false
+}
+
+onMounted(() => {
+  motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+  updateMotionPreference()
+  motionQuery.addEventListener('change', updateMotionPreference)
+  window.addEventListener('keydown', onKeydown)
+})
+
+onBeforeUnmount(() => {
+  clearSettleTimer()
+  motionQuery?.removeEventListener('change', updateMotionPreference)
+  window.removeEventListener('keydown', onKeydown)
+})
+
 const stateLabel = (phase: PocketNotebookPhase) => {
   const labels: Record<PocketNotebookPhase, string> = {
     'closed-front': 'Closed front cover',
@@ -200,7 +287,6 @@ const statusText = computed(() => {
   if (notebookState.value.phase === 'closed-front') {
     return 'Closed front cover · page 1 is prepared beneath the cover'
   }
-
   return `${stateLabel(notebookState.value.phase)} · page ${restingPageIndex.value + 1} of ${pages.length}`
 })
 
@@ -220,30 +306,21 @@ useSeoMeta({
       </div>
       <p class="pocket-lab__intro">
         A native-size single-page notebook built from the Stage 1 paper, wear, mask, cover, and board assets.
-        The resting object is ordinary DOM; animation layers will remain temporary.
+        The cover animation is temporary; every settled state is ordinary DOM.
       </p>
     </header>
 
     <section class="pocket-exhibit" aria-labelledby="pocket-shell-title">
       <aside class="exhibit-note exhibit-note--context">
         <p class="exhibit-note__index">01</p>
-        <h2 id="pocket-shell-title">Stable first</h2>
+        <h2 id="pocket-shell-title">Open and settle</h2>
         <p>
-          Checkpoint 1 establishes the physical shell and deterministic state contract before any page-turn choreography is added.
+          Checkpoint 2 makes the front cover reviewable. Page 1 is prepared underneath before the disposable cover layer moves.
         </p>
         <dl>
-          <div>
-            <dt>Logical pages</dt>
-            <dd>{{ pages.length }}</dd>
-          </div>
-          <div>
-            <dt>Runtime</dt>
-            <dd>DOM + CSS</dd>
-          </div>
-          <div>
-            <dt>Canvas / WebGL</dt>
-            <dd>0 / 0</dd>
-          </div>
+          <div><dt>Logical pages</dt><dd>{{ pages.length }}</dd></div>
+          <div><dt>Runtime</dt><dd>DOM + CSS</dd></div>
+          <div><dt>Canvas / WebGL</dt><dd>0 / 0</dd></div>
         </dl>
       </aside>
 
@@ -257,12 +334,7 @@ useSeoMeta({
             :data-resting-page-index="restingPageIndex"
             :data-current-page="currentPage.id"
           >
-            <img
-              class="notebook-board"
-              :src="assetFor('cover-f3-03-board')?.path"
-              alt=""
-              aria-hidden="true"
-            >
+            <img class="notebook-board" :src="assetFor('cover-f3-03-board')?.path" alt="" aria-hidden="true">
 
             <div class="paper-stack" aria-hidden="true">
               <span
@@ -284,13 +356,7 @@ useSeoMeta({
               :aria-hidden="isClosed ? 'true' : undefined"
               data-testid="resting-page"
             >
-              <img
-                class="paper-base"
-                :src="assetFor(currentRecipe.base)?.path"
-                alt=""
-                aria-hidden="true"
-              >
-
+              <img class="paper-base" :src="assetFor(currentRecipe.base)?.path" alt="" aria-hidden="true">
               <span
                 v-for="layerId in currentRecipe.layers"
                 :key="layerId"
@@ -303,7 +369,6 @@ useSeoMeta({
               <div class="page-content">
                 <p class="page-eyebrow">{{ currentPage.eyebrow }}</p>
                 <h2>{{ currentPage.title }}</h2>
-
                 <p v-if="currentPage.dateMark" class="page-date-mark">{{ currentPage.dateMark }}</p>
 
                 <figure
@@ -320,9 +385,7 @@ useSeoMeta({
                 </figure>
 
                 <div class="page-copy">
-                  <p v-for="paragraph in currentPage.paragraphs" :key="paragraph">
-                    {{ paragraph }}
-                  </p>
+                  <p v-for="paragraph in currentPage.paragraphs" :key="paragraph">{{ paragraph }}</p>
                 </div>
 
                 <p v-if="currentPage.annotation" class="page-annotation">{{ currentPage.annotation }}</p>
@@ -336,39 +399,79 @@ useSeoMeta({
               data-testid="settled-cover"
               aria-label="Closed F3-03 front cover, Antony Santos notebook"
             >
-              <img
-                :src="assetFor('cover-f3-03-front')?.path"
-                alt=""
-                aria-hidden="true"
-              >
+              <img :src="assetFor('cover-f3-03-front')?.path" alt="" aria-hidden="true">
               <div class="notebook-cover__title" aria-hidden="true">
                 <span>CUADERNO</span>
                 <strong>Antony Santos</strong>
                 <small>archivo de bolsillo</small>
               </div>
             </div>
+
+            <div
+              v-if="hasTurningCover"
+              class="turning-cover"
+              :class="{
+                'turning-cover--opening': isOpening,
+                'turning-cover--closing': isClosing,
+              }"
+              data-testid="turning-cover"
+              aria-hidden="true"
+              @animationend="onCoverAnimationEnd"
+            >
+              <div class="turning-cover__face turning-cover__face--front">
+                <img :src="assetFor('cover-f3-03-front')?.path" alt="">
+                <div class="notebook-cover__title">
+                  <span>CUADERNO</span>
+                  <strong>Antony Santos</strong>
+                  <small>archivo de bolsillo</small>
+                </div>
+              </div>
+              <div class="turning-cover__face turning-cover__face--back">
+                <img :src="assetFor('cover-f3-03-board')?.path" alt="">
+              </div>
+            </div>
           </div>
         </div>
 
-        <p class="notebook-status" aria-live="polite" data-testid="notebook-status">
-          {{ statusText }}
-        </p>
+        <nav class="notebook-controls" aria-label="Pocket notebook controls">
+          <button
+            type="button"
+            class="notebook-control"
+            aria-label="Previous"
+            :disabled="!canClose"
+            @click="closeNotebook"
+          >
+            <span aria-hidden="true">←</span>
+            <span>Previous</span>
+          </button>
+
+          <button
+            type="button"
+            class="notebook-control notebook-control--primary"
+            :aria-label="isClosed ? 'Open notebook' : 'Next page'"
+            :disabled="!canOpen"
+            @click="openNotebook"
+          >
+            <span>{{ isClosed ? 'Open' : 'Next' }}</span>
+            <span aria-hidden="true">→</span>
+          </button>
+        </nav>
+
+        <p class="notebook-status" aria-live="polite" data-testid="notebook-status">{{ statusText }}</p>
       </div>
 
       <aside class="exhibit-note exhibit-note--contract">
         <p class="exhibit-note__index">02</p>
-        <h2>Asset contract</h2>
+        <h2>Transient cover</h2>
         <p>
-          The cover and board are F3-03 exports. Each content page keeps its base stock, edge mask, and wear overlays independent.
+          The resting cover is never the animated element. Opening and closing create a temporary two-faced cover that is removed after settling.
         </p>
         <ul>
-          <li>Carried / handled</li>
-          <li>Humidity affected</li>
-          <li>Protected interior</li>
+          <li>Front face · F3-03 cover</li>
+          <li>Back face · F3-03 inside board</li>
+          <li>Page 1 · ordinary DOM underneath</li>
         </ul>
-        <p class="exhibit-note__small">
-          The current page is already mounted beneath the cover so future transitions can animate a disposable sheet instead of the settled content.
-        </p>
+        <p class="exhibit-note__small">Arrow Right opens the notebook. Arrow Left closes it from page 1.</p>
       </aside>
     </section>
   </main>
@@ -438,7 +541,7 @@ useSeoMeta({
   order: -1;
   display: grid;
   justify-items: center;
-  gap: .8rem;
+  gap: .75rem;
 }
 
 .notebook-stage {
@@ -456,18 +559,25 @@ useSeoMeta({
 
 .pocket-notebook {
   position: relative;
-  width: min(84vw, 346px, calc((100dvh - 190px) * .75));
+  width: min(84vw, 346px, calc((100dvh - 230px) * .75));
   aspect-ratio: 3 / 4;
   isolation: isolate;
+  perspective: 1050px;
   filter: drop-shadow(0 28px 24px rgba(0, 0, 0, .5));
 }
 
-.notebook-board {
+.notebook-board,
+.notebook-cover,
+.turning-cover {
   position: absolute;
+  inset: 0;
+}
+
+.notebook-board {
   z-index: 1;
-  inset: 1px;
   width: calc(100% - 2px);
   height: calc(100% - 2px);
+  margin: 1px;
   display: block;
   object-fit: cover;
   border-radius: 3px 11px 11px 3px;
@@ -620,9 +730,7 @@ useSeoMeta({
 .resting-page--margin-note .page-content h2 { transform: rotate(-1deg); }
 
 .notebook-cover {
-  position: absolute;
   z-index: 20;
-  inset: 0;
   overflow: hidden;
   border-radius: 3px 11px 11px 3px;
   background: #743e31;
@@ -631,7 +739,8 @@ useSeoMeta({
     inset 0 0 0 1px rgba(255, 226, 182, .1);
 }
 
-.notebook-cover img {
+.notebook-cover > img,
+.turning-cover__face > img {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -672,6 +781,90 @@ useSeoMeta({
   font-size: .58rem;
   letter-spacing: .14em;
   text-transform: uppercase;
+}
+
+.turning-cover {
+  z-index: 30;
+  transform-style: preserve-3d;
+  transform-origin: left center;
+  will-change: transform;
+}
+
+.turning-cover--opening {
+  animation: pocket-cover-open 720ms cubic-bezier(.22, .72, .2, 1) forwards;
+}
+
+.turning-cover--closing {
+  animation: pocket-cover-close 720ms cubic-bezier(.3, .02, .35, 1) forwards;
+}
+
+.turning-cover__face {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 3px 11px 11px 3px;
+  backface-visibility: hidden;
+  box-shadow: 0 9px 18px rgba(0, 0, 0, .34);
+}
+
+.turning-cover__face--front {
+  background: #743e31;
+}
+
+.turning-cover__face--back {
+  transform: rotateY(180deg);
+  background: #5d4435;
+}
+
+@keyframes pocket-cover-open {
+  0% { transform: rotateY(0deg); }
+  35% { transform: rotateY(-72deg) translateZ(1px); }
+  100% { transform: rotateY(-178deg); }
+}
+
+@keyframes pocket-cover-close {
+  0% { transform: rotateY(-178deg); }
+  65% { transform: rotateY(-68deg) translateZ(1px); }
+  100% { transform: rotateY(0deg); }
+}
+
+.notebook-controls {
+  width: min(100%, 346px);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .65rem;
+}
+
+.notebook-control {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .55rem;
+  padding: .75rem 1rem;
+  border: 1px solid rgba(224, 205, 174, .18);
+  border-radius: 2px;
+  background: rgba(255, 255, 255, .025);
+  color: #cdbcaa;
+  cursor: pointer;
+  font: 600 .75rem/1 system-ui, sans-serif;
+  letter-spacing: .04em;
+}
+
+.notebook-control--primary {
+  border-color: rgba(185, 119, 82, .45);
+  background: rgba(151, 86, 58, .12);
+  color: #ead9c5;
+}
+
+.notebook-control:disabled {
+  cursor: default;
+  opacity: .32;
+}
+
+.notebook-control:focus-visible {
+  outline: 2px solid #d59a75;
+  outline-offset: 3px;
 }
 
 .notebook-status {
@@ -751,9 +944,7 @@ useSeoMeta({
 }
 
 @media (min-width: 900px) {
-  .pocket-lab {
-    padding-top: max(2rem, env(safe-area-inset-top));
-  }
+  .pocket-lab { padding-top: max(2rem, env(safe-area-inset-top)); }
 
   .pocket-lab__header {
     grid-template-columns: minmax(0, 1fr) minmax(300px, .7fr);
@@ -790,13 +981,8 @@ useSeoMeta({
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pocket-notebook,
-  .resting-page,
-  .notebook-cover,
-  .paper-stack__sheet {
-    scroll-behavior: auto;
-    transition: none !important;
-    animation: none !important;
+  .turning-cover {
+    animation-duration: 1ms !important;
   }
 }
 </style>
