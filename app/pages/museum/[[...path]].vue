@@ -22,8 +22,6 @@ const destination = computed<MuseumDestination>(() => {
   }
 })
 
-const isFocusedExhibit = computed(() => destination.value.kind === 'exhibit')
-
 watch(
   destination,
   (next) => {
@@ -34,24 +32,13 @@ watch(
 
 useSeoMeta({
   title: 'Museum',
-  description: 'The persistent museum shell for AntonySantos.com.',
+  description: 'The persistent desk and object experience for AntonySantos.com.',
 })
 </script>
 
 <template>
-  <section
-    class="page museum-page"
-    :class="{ 'museum-page--focused': isFocusedExhibit }"
-  >
-    <header v-if="!isFocusedExhibit" class="museum-intro">
-      <p class="eyebrow">Museum runtime</p>
-      <h1>You discover Antony Santos through his things.</h1>
-      <p class="lede">
-        The Cuaderno is the first real museum exhibit running inside the persistent shell. The listening device, albums, and photo objects remain placeholders while their own exhibit engines are developed.
-      </p>
-    </header>
-    <h1 v-else class="visually-hidden">Antony Santos museum exhibit</h1>
-
+  <section class="museum-page" aria-label="Antony Santos museum experience">
+    <h1 class="visually-hidden">Antony Santos interactive museum</h1>
     <MuseumShell />
   </section>
 </template>

@@ -9,7 +9,7 @@ export type MuseumDestination =
 
 export function destinationToPath(destination: MuseumDestination): string {
   if (destination.kind === 'desk') {
-    return '/museum'
+    return '/'
   }
 
   const target = typeof destination.target === 'string' && destination.target.length

@@ -1,11 +1,13 @@
 import type { Ref } from 'vue'
-import { ExhibitRegistry, MuseumNavigator, type MuseumRuntimeState } from '~~/core/museum'
-import { NotebookAdapter } from '~~/exhibits/notebook/adapter'
-import { PlaceholderExhibit } from '~~/exhibits/placeholder'
+import {
+  ExhibitRegistry,
+  MuseumNavigator,
+  PlaceholderExhibit,
+  type MuseumRuntimeState,
+} from '~~/core/museum'
 
 export interface MuseumApplicationRuntime {
   navigator: MuseumNavigator
-  notebook: NotebookAdapter
 }
 
 const runtimes = new WeakMap<object, MuseumApplicationRuntime>()
@@ -20,12 +22,11 @@ export function getMuseumApplicationRuntime(
   }
 
   const registry = new ExhibitRegistry()
-  const notebook = new NotebookAdapter()
 
-  registry.register(notebook)
-  registry.register(new PlaceholderExhibit('listening'))
-  registry.register(new PlaceholderExhibit('albums'))
-  registry.register(new PlaceholderExhibit('photos'))
+  // The notebook destination remains live while the winning Page Turner Lab
+  // implementation is ported into app/components/notebook. The museum runtime
+  // intentionally does not depend on a renderer during that integration.
+  registry.register(new PlaceholderExhibit('notebook'))
 
   const navigator = new MuseumNavigator(registry, (settled) => {
     state.value = {
@@ -36,7 +37,7 @@ export function getMuseumApplicationRuntime(
     }
   })
 
-  const runtime = { navigator, notebook }
+  const runtime = { navigator }
   runtimes.set(app, runtime)
   return runtime
 }

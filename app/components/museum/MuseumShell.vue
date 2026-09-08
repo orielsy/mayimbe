@@ -1,9 +1,6 @@
 <script setup lang="ts">
-import AlbumExhibit from './AlbumExhibit.vue'
-import ListeningExhibit from './ListeningExhibit.vue'
 import MuseumDesk from './MuseumDesk.vue'
 import NotebookExhibit from './NotebookExhibit.vue'
-import PhotoExhibit from './PhotoExhibit.vue'
 
 const { state } = useMuseum()
 const { go } = useMuseumNavigator()
@@ -40,22 +37,10 @@ const isFocused = computed(() => Boolean(state.value.activeExhibit))
       v-if="state.activeExhibit === 'notebook'"
       :target="activeTarget"
     />
-    <ListeningExhibit
-      v-else-if="state.activeExhibit === 'listening'"
-      :target="activeTarget"
-    />
-    <AlbumExhibit
-      v-else-if="state.activeExhibit === 'albums'"
-      :target="activeTarget"
-    />
-    <PhotoExhibit
-      v-else-if="state.activeExhibit === 'photos'"
-      :target="activeTarget"
-    />
-    <div v-else class="exhibit-placeholder">
-      <p class="eyebrow">Desk overview</p>
-      <h2>The spatial museum shell is alive.</h2>
-      <p class="muted">Choose an object above. The final desk artwork comes later.</p>
+
+    <div v-else-if="isFocused" class="exhibit-placeholder">
+      <p class="eyebrow">Unavailable exhibit</p>
+      <h2>This object is not part of the active museum build yet.</h2>
     </div>
   </section>
 </template>

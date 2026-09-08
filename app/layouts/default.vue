@@ -2,19 +2,23 @@
 const route = useRoute()
 
 /*
- * /museum is still part of the Mayimbe interface and keeps normal site chrome.
- * Only a focused physical exhibit (/museum/<exhibit>/...) becomes immersive.
- * Archive, search, research and other conventional UI routes always keep it.
+ * The desk and focused exhibits are the primary museum UI, so they never sit
+ * inside conventional site chrome. Archive/research routes remain ordinary web
+ * pages and keep the traditional header/navigation.
  */
-const inFocusedExhibit = computed(() => route.path.startsWith('/museum/'))
+const inMuseumExperience = computed(() => (
+  route.path === '/'
+  || route.path === '/museum'
+  || route.path.startsWith('/museum/')
+))
 </script>
 
 <template>
-  <div class="site-shell" :class="{ 'site-shell--museum': inFocusedExhibit }">
-    <header v-if="!inFocusedExhibit" class="site-header">
+  <div class="site-shell" :class="{ 'site-shell--museum': inMuseumExperience }">
+    <header v-if="!inMuseumExperience" class="site-header">
       <NuxtLink class="site-brand" to="/">AntonySantos.com / Mayimbe</NuxtLink>
       <nav class="site-nav" aria-label="Primary">
-        <NuxtLink to="/museum">Museum</NuxtLink>
+        <NuxtLink to="/">Desk</NuxtLink>
         <NuxtLink to="/archive">Archive</NuxtLink>
       </nav>
     </header>

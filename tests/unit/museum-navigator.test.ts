@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { ExhibitRegistry, MuseumNavigator, type MuseumDestination } from '../../core/museum'
-import { NotebookAdapter } from '../../exhibits/notebook/adapter'
+import {
+  ExhibitRegistry,
+  MuseumNavigator,
+  PlaceholderExhibit,
+  destinationToPath,
+  type MuseumDestination,
+} from '../../core/museum'
 
 describe('MuseumNavigator', () => {
-  it('settles a semantic notebook destination through the exhibit contract', async () => {
+  it('settles a semantic notebook destination without depending on a renderer', async () => {
     const registry = new ExhibitRegistry()
-    registry.register(new NotebookAdapter())
+    registry.register(new PlaceholderExhibit('notebook'))
 
     let settled: MuseumDestination | null = null
     const navigator = new MuseumNavigator(registry, (destination) => {
@@ -23,6 +28,15 @@ describe('MuseumNavigator', () => {
       exhibit: 'notebook',
       target: 'early-years',
     })
+  })
+
+  it('uses the desk as the canonical root route', () => {
+    expect(destinationToPath({ kind: 'desk' })).toBe('/')
+    expect(destinationToPath({
+      kind: 'exhibit',
+      exhibit: 'notebook',
+      target: 'early-years',
+    })).toBe('/museum/notebook/early-years')
   })
 
   it('rejects an unregistered exhibit', async () => {

@@ -1,5 +1,10 @@
-import type { MuseumExhibit } from '../core/museum'
+import type { MuseumExhibit } from './exhibit'
 
+/**
+ * Lightweight lifecycle participant used while an exhibit renderer is not yet
+ * integrated. It keeps semantic museum navigation working without coupling the
+ * museum core to a placeholder UI or renderer implementation.
+ */
 export class PlaceholderExhibit implements MuseumExhibit<unknown, { target?: unknown }> {
   private target?: unknown
 

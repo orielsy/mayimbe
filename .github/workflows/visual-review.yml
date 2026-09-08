@@ -12,10 +12,10 @@ on:
     branches: [main]
     paths:
       - 'app/components/museum/**'
-      - 'app/pages/museum/**'
+      - 'app/components/notebook/**'
+      - 'app/pages/**'
       - 'app/layouts/**'
       - 'app/assets/css/**'
-      - 'exhibits/**'
       - 'core/museum/**'
       - 'content/**'
       - 'playwright.config.ts'
