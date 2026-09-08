@@ -78,6 +78,28 @@
       "format": "webp"
     },
     {
+      "id": "wear-tide-lines",
+      "file": "wear/tide-lines.svg",
+      "group": "wear",
+      "label": "PaperV2 tide lines",
+      "opaque": false,
+      "path": "/notebook-assets/wear/tide-lines.svg",
+      "width": 840,
+      "height": 1120,
+      "format": "svg"
+    },
+    {
+      "id": "wear-water-rings",
+      "file": "wear/water-rings.svg",
+      "group": "wear",
+      "label": "PaperV2 water spill rings",
+      "opaque": false,
+      "path": "/notebook-assets/wear/water-rings.svg",
+      "width": 840,
+      "height": 1120,
+      "format": "svg"
+    },
+    {
       "id": "wear-humidity-bloom",
       "file": "wear/humidity-bloom.webp",
       "group": "wear",

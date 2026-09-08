@@ -11,7 +11,7 @@ test('static notebook asset lab composes without a runtime renderer', async ({ p
 
   await expect(page.getByRole('heading', { name: 'Static material system' })).toBeVisible()
   await expect(page.locator('.paper-composition--primary')).toBeVisible()
-  await expect(page.locator('.asset-card')).toHaveCount(17)
+  await expect(page.locator('.asset-card')).toHaveCount(19)
 
   const humidity = page.getByRole('tab', { name: 'Humidity Affected' })
   await humidity.click()
