@@ -20,7 +20,8 @@
     "test": "vitest run tests/unit tests/integration",
     "test:visual": "playwright test",
     "bake:notebook": "node scripts/bake-notebook-textures.mjs",
-    "bake:notebook:parity": "node scripts/bake-notebook-textures.mjs --out tests/visual/.bake-png --type image/png --buckets 390x844,1440x900 --profile standard --profile pocket"
+    "bake:notebook:parity": "node scripts/bake-notebook-textures.mjs --out tests/visual/.bake-png --type image/png --buckets 390x844,1440x900 --profile standard --profile pocket",
+    "bake:notebook:surfaces": "node scripts/bake-surfaces.mjs --out public/notebook-textures"
   },
   "dependencies": {
     "nuxt": "4.5.2",

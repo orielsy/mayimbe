@@ -231,6 +231,15 @@ export const mountNotebookEngine: MountNotebookEngine = async (host, options = {
     throw new DOMException('Notebook mount aborted', 'AbortError')
   }
 
+  /* ---------- pre-baked paper textures -------------------------------------
+     These PNG/WebP tiles are baked offline (scripts/bake-surfaces.mjs)
+     from the SAME drawing algorithms used at runtime, so first paint pays one
+     HTTP-cache lookup per quantised step instead of decoding ~60 inline
+     base64 blobs per page. No-op when the manifest is missing — the engine
+     falls back to the live canvas path transparently. */
+  await import('./native/paper-surface').then(m => m.preloadPaperTextures('/notebook-textures/'))
+    .catch(() => { /* offline / unpruned vendor assets — keep going */ })
+
   const profile = options.profile || 'standard'
   const native = await mountNativeNotebook(host, {
     pages: buildPhysicalPages(profile),

@@ -282,13 +282,13 @@ export async function mountNativeNotebook(
     backClosedEl.style.background = boardSkin(false)
   }
 
-  function paintDOM() {
+  function paintDOM(skipStacks = false) {
     paintLeftLeaf(turned * 2 - 1)
     paintRightLeaf(turned * 2)
     book.classList.toggle('closed', state === CLOSED_FRONT)
     book.classList.toggle('closedback', state === CLOSED_BACK)
     updateNavDisabled()
-    updateStacks()
+    if (!skipStacks) updateStacks()
   }
 
   function updateNavDisabled() {
@@ -1573,50 +1573,118 @@ export async function mountNativeNotebook(
      26-stratum stack, chrome and semantics are unchanged, because they were
      always DOM. */
   const CSS_HALF = 190
-  function spin(el: HTMLElement | null, from: number, to: number, origin: string, easing: string): Promise<void> {
+  function spin(el: HTMLElement | null, from: number, to: number, origin: string, easing: string, delay = 0): Promise<void> {
     if (!el) return Promise.resolve()
     const prev = el.style.transformOrigin
     el.style.transformOrigin = origin
+    /* Drive the inline transform explicitly around the animation. With a bare
+     * `fill:'none'` the element reverts to whatever inline transform it had
+     * before the animation — usually rotateY(0) — the instant its phase ends,
+     * so the just-rotated-away face snaps flat for a frame and the previous
+     * page's background flashes. Locking the start and end angles into the
+     * inline style means `spin()` always holds the leaf edge-on across the
+     * commit boundary (and across any `delay` before its keyframes start). */
+    el.style.transform = `rotateY(${from}deg)`
     const anim = el.animate(
       [{ transform: `rotateY(${from}deg)` }, { transform: `rotateY(${to}deg)` }],
-      { duration: CSS_HALF, easing, fill: 'none' },
+      { duration: CSS_HALF, easing, delay, fill: 'none' },
     )
     return (anim.finished || new Promise<void>(r => { anim.onfinish = () => r() }))
       .catch(() => {})
-      .then(() => { el.style.transformOrigin = prev })
+      .then(() => {
+        el.style.transform = `rotateY(${to}deg)`
+        el.style.transformOrigin = prev
+      })
   }
+  /* Two rAF ticks: guarantees the browser has PAINTED the DOM changes queued
+   * above before the reveal animation starts. This is what lets the
+   * freshly-swapped page content re-rasterize while the leaf is still
+   * edge-on (invisible) instead of flashing its stale texture during the
+   * reveal. */
+  const nextPaint = (): Promise<void> => new Promise<void>(resolve =>
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
   async function cssFlip(kind: 'cover-open' | 'cover-close' | 'next' | 'prev' | 'back-close' | 'back-open'): Promise<void> {
     if (turning) return
     root.classList.add('turning')
-    const commit = () => { paintDOM(); updateChrome() }
+    /* paintDOM skips the paper-stack (strata) opacity update here. The stack's
+     * top stratum carries the full page-one surface, and updating it at the
+     * vertical — while both leaves are held edge-on — exposes it for a frame
+     * (the "first page background" flash on the left). updateStacks(true) at
+     * the end runs after the reveal, behind the now-flat layer, so nothing
+     * ever peeks through the seam. */
+    const commit = () => { paintDOM(true); updateChrome() }
     if (kind === 'next' || kind === 'prev') {
       const fwd = kind === 'next'
       const outEl = fwd ? leafR : leafL
       const inEl = fwd ? leafL : leafR
-      await spin(outEl, 0, fwd ? -90 : 90, fwd ? 'left center' : 'right center', 'ease-in')
-      turned += fwd ? 1 : -1
-      commit()
-      await spin(inEl, fwd ? 90 : -90, 0, fwd ? 'right center' : 'left center', 'ease-out')
+      /* Double-sided turn: CLONE the outgoing face so it keeps the old page
+       * while the real leaf underneath is swapped to the incoming page. The
+       * clone swings away while the revealed face swings in, so the page under
+       * the turn is visible from the very first frame (no blank gap). */
+      const turning = outEl.cloneNode(true) as HTMLElement
+      turning.classList.add('turning-face')
+      turning.style.opacity = '1'
+      outEl.parentElement!.appendChild(turning)
+      try {
+        // Swap content now — the resting leaves already show the new spread.
+        turned += fwd ? 1 : -1
+        commit()
+        outEl.offsetWidth
+        inEl.offsetWidth // flush layout of the swapped content
+        await nextPaint()
+        /* Sequential like a physical sheet — away (ease-in) then reveal
+         * (ease-out) — but BOTH animations are scheduled up front on the same
+         * timeline, the reveal with `delay: CSS_HALF`. Chaining them with
+         * `await` between phases stalled several frames at the vertical
+         * (promise resolution + style writes + a fresh animate() call); with a
+         * declarative delay the compositor hands over with zero gap. The
+         * incoming face holds edge-on through its delay via the inline
+         * transform spin() sets. */
+        await Promise.all([
+          spin(turning, 0, fwd ? -90 : 90, fwd ? 'left center' : 'right center', 'ease-in'),
+          spin(inEl, fwd ? 90 : -90, 0, fwd ? 'right center' : 'left center', 'ease-out', CSS_HALF),
+        ])
+      } finally {
+        turning.remove()
+      }
     } else if (kind === 'cover-open' || kind === 'cover-close') {
       const open = kind === 'cover-open'
       await spin(open ? cover : (openCoverEl || frontboardEl), 0, open ? -90 : 90,
                  open ? 'left center' : 'right center', 'ease-in')
+      const inEl = open ? (openCoverEl || frontboardEl) : cover
+      inEl.style.opacity = '0'
+      inEl.style.transform = 'rotateY(0deg)'
       state = open ? OPEN : CLOSED_FRONT
       if (open && !stacksSolvedOpen) { stacksSolvedOpen = true; buildStacks() }
       commit()
+      inEl.offsetWidth // flush layout of the new content
+      await nextPaint()
+      inEl.style.transform = `rotateY(${open ? 90 : -90}deg)`
+      inEl.style.opacity = ''
       setOpenX(open ? 1 : 0)
-      await spin(open ? (openCoverEl || frontboardEl) : cover, open ? 90 : -90, 0,
-                 open ? 'right center' : 'left center', 'ease-out')
+      await spin(inEl, open ? 90 : -90, 0, open ? 'right center' : 'left center', 'ease-out')
     } else {
       const closing = kind === 'back-close'
       await spin(closing ? leafR : (backClosedEl || backcover), 0, closing ? -90 : 90,
                  closing ? 'left center' : 'right center', 'ease-in')
+      const inEl = closing ? (backClosedEl || backcover) : leafR
+      inEl.style.opacity = '0'
+      inEl.style.transform = 'rotateY(0deg)'
       state = closing ? CLOSED_BACK : OPEN
       commit()
-      await spin(closing ? (backClosedEl || backcover) : leafR, closing ? 90 : -90, 0,
-                 closing ? 'right center' : 'left center', 'ease-out')
+      inEl.offsetWidth // flush layout of the new content
+      await nextPaint()
+      inEl.style.transform = `rotateY(${closing ? 90 : -90}deg)`
+      inEl.style.opacity = ''
+      await spin(inEl, closing ? 90 : -90, 0, closing ? 'right center' : 'left center', 'ease-out')
     }
     root.classList.remove('turning')
+    /* Clear any pre-positioned inline transform left by the edge-on set above
+     * so the resting faces return to flat / their stylesheet transform (e.g.
+     * .backclosed's scaleX(-1)) before the next turn. */
+    for (const el of [leafL, leafR, cover, openCoverEl, frontboardEl, backClosedEl, backcover]) {
+      if (el) { el.style.transform = ''; el.style.opacity = '' }
+    }
     updateStacks(true)
     updateNavDisabled()
   }

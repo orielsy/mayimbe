@@ -22,6 +22,7 @@ device-tiny.png
 device-capture.mp4
 cdp-shot*.png
 canvas-debug-*.png
+device-screenshots/
 frames/
 grid/
 test-results/

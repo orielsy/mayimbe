@@ -129,6 +129,8 @@
  * churn entirely.
  */
 .nbn.turning .m2stack > .m2sheet { will-change: opacity; }
+.nbn.turning .half .stack { visibility: hidden; }
+.nbn .turning-face { z-index: 5; }
 .nbn .m2stack { position: relative; aspect-ratio: 3/4; container-type: inline-size; --u: 1cqw; }
 .nbn .m2stack > .m2sheet { position: absolute; top: 7%; left: 6%; height: 86%; width: 86%; }
 .nbn .hingeshade {
