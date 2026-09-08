@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import PocketNotebook from './PocketNotebook.vue'
+
 defineProps<{ target?: unknown }>()
 </script>
 
@@ -6,39 +8,26 @@ defineProps<{ target?: unknown }>()
   <article
     class="notebook-experience"
     data-testid="notebook-integration-root"
-    aria-label="Notebook experience integration root"
+    aria-label="Notebook experience"
   >
-    <div class="notebook-experience__placeholder">
-      <p class="eyebrow">Notebook integration</p>
-      <h2>Page Turner foundation ready.</h2>
-      <p class="muted">
-        The previous renderer has been retired from this development line. The approved Lovable Page Turner Lab will be extracted into this component boundary next.
-      </p>
-    </div>
+    <PocketNotebook />
   </article>
 </template>
 
 <style scoped>
 .notebook-experience {
   width: 100%;
-  min-height: min(80dvh, 760px);
+  height: 100%;
+  min-height: 0;
   display: grid;
   place-items: center;
-}
-
-.notebook-experience__placeholder {
-  width: min(34rem, calc(100% - 2rem));
-  padding: 1.5rem;
-  border: 1px solid rgba(225, 204, 173, .12);
-  background: rgba(20, 15, 11, .72);
-}
-
-.notebook-experience__placeholder h2 {
-  margin: 0 0 .75rem;
-  font: 400 clamp(1.6rem, 6vw, 2.5rem)/1 Georgia, 'Times New Roman', serif;
-}
-
-.notebook-experience__placeholder p:last-child {
-  margin-bottom: 0;
+  overflow: auto;
+  padding:
+    max(1rem, env(safe-area-inset-top))
+    max(.75rem, env(safe-area-inset-right))
+    max(1.25rem, env(safe-area-inset-bottom))
+    max(.75rem, env(safe-area-inset-left));
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgba(56, 45, 36, .26) 0%, transparent 58%);
 }
 </style>
