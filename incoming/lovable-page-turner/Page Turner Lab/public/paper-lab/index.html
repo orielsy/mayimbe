@@ -1,0 +1,1557 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Paper Lab — families, culling &amp; geometric wear</title>
+<style>
+  :root{
+    --bg:#15120e; --panel:#1d1913; --line:#332b21; --ink:#e6dccb; --dim:#9d907c;
+    --accent:#c4713f;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  main{max-width:1500px;margin:0 auto;padding:36px 28px 140px}
+  h1{font-size:26px;margin:0 0 6px;letter-spacing:.2px}
+  .lede{color:var(--dim);max-width:74ch;margin:0 0 28px}
+  section{margin:52px 0 0;border-top:1px solid var(--line);padding-top:22px}
+  h2{font-size:17px;margin:0 0 4px;color:#f2e9d8}
+  h2 .k{color:var(--accent);font-weight:700;margin-right:8px}
+  .note{color:var(--dim);max-width:82ch;margin:0 0 18px}
+  h3.sub{font-size:13px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim);
+    margin:26px 0 10px}
+  .grid{display:grid;gap:22px}
+  .g3{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+  .g4{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}
+  figure{margin:0}
+  figcaption{margin-top:8px}
+  .cname{font-size:12.5px;color:#efe4d1}
+  .cnum{color:var(--accent);font-weight:700;margin-right:7px}
+  .traits{margin:5px 0 0;padding:0;list-style:none;color:var(--dim);font-size:11.5px}
+  .traits li{display:inline-block;margin:0 8px 2px 0}
+  .traits li::before{content:"· ";color:#5d5142}
+
+  /* sheet ---------------------------------------------------------- */
+  .sheetwrap{position:relative;aspect-ratio:3/4;background:#0f0d0a;border-radius:2px;
+    padding:0;overflow:visible}
+  .sheet{position:absolute;inset:0;overflow:hidden;
+    font:11px/1.5 "Iowan Old Style",Georgia,serif;color:#4a4034;padding:9% 9% 9% 11%;
+    filter:drop-shadow(0 5px 9px rgba(0,0,0,.45))}
+  .sheet h4{margin:0 0 5px;font-size:12.5px;font-weight:600;color:#3d3327;letter-spacing:.2px}
+  .sheet p{margin:0 0 6px;opacity:.86}
+  .sheet .hand{font-family:"Bradley Hand","Segoe Script",cursive;opacity:.6;font-size:11px}
+  .tag{position:absolute;left:8px;bottom:6px;font:10px/1 ui-monospace,monospace;
+    color:#8b7f6c;letter-spacing:.03em;z-index:5}
+
+  /* stack ---------------------------------------------------------- */
+  /* --u = 1% of the rendered stack width, resolved by the CSS container itself.
+     No JS measurement, no ResizeObserver: still scale-invariant. */
+  /* the Paper Lab's internal sheet coordinates, published as constants so
+     containers can map the wrapper canvas onto the real sheet region without
+     duplicating magic numbers. They MIRROR .stratum below; .stratum is fixed. */
+  :root{--sx:.06;--sy:.07;--sw:.86;--sh:.86}
+  .stackwrap{position:relative;aspect-ratio:3/4;container-type:inline-size;--u:1cqw}
+  .stratum{position:absolute;top:7%;left:6%;height:86%;width:86%;}
+  /* fore-edge crop: magnifies the outer band of a stack */
+  .forecrop{position:relative;overflow:hidden;aspect-ratio:3/2;background:#0d0b08;border-radius:2px}
+  .forecrop .stackwrap{position:absolute;top:50%;right:0;width:var(--zw);transform:translateY(-50%)}
+  .g2{grid-template-columns:repeat(auto-fill,minmax(330px,1fr))}
+  .stackpair{display:grid;gap:8px}
+  .diag{display:flex;gap:16px;align-items:center;color:var(--dim);font-size:12.5px;margin:0 0 16px}
+  .diag label{display:flex;gap:6px;align-items:center;cursor:pointer}
+
+
+  /* M — large-format edge inspection ---------------------------------- */
+  .mbanner{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 14px}
+  .pill{font:10.5px/1.35 ui-monospace,monospace;letter-spacing:.04em;border-radius:3px;
+    padding:5px 9px;border:1px solid var(--line);color:var(--dim);background:var(--panel)}
+  .pill.prod{border-color:#4b6b3f;color:#a6cf90}
+  .pill.exp{border-color:#7a4a2c;color:#e0a06e}
+  .pill.bad{border-color:#7a3128;color:#e08a7a}
+  .mfont{container-type:inline-size}
+  .mfont .sheet{font:2.1cqw/1.55 "Iowan Old Style",Georgia,serif}
+  .mfont .sheet h4{font-size:2.4cqw;margin:0 0 1.2cqw}
+  .mfont .sheet p{margin:0 0 1.4cqw}
+  .mfont .sheet .hand{font-size:2cqw}
+  .msize{height:var(--mh,74vh);width:auto;max-width:100%}
+  .mcrop{position:relative;overflow:hidden;background:#0d0b08;border-radius:2px;
+    border:1px solid var(--line)}
+  .mcrop .sheetwrap,.mcrop .stackwrap{position:absolute;top:0;left:0;height:auto}
+  .mrail{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:8px}
+  .mrail figure{cursor:pointer}
+  .mrail .sel{outline:2px solid var(--accent);outline-offset:3px}
+  .mcompare{display:grid;grid-template-columns:1fr 1fr;gap:26px;align-items:start}
+  .mpane{display:grid;gap:10px}
+  .mpane .head{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .mpane select{background:var(--panel);color:var(--ink);border:1px solid var(--line);
+    border-radius:4px;padding:5px 8px;font-size:12px}
+  .mcrops{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .mstrips{display:flex;gap:26px;align-items:flex-start;overflow-x:auto;padding-bottom:8px}
+  .mstack{display:grid;grid-template-columns:1.35fr 1fr 1fr;gap:14px;align-items:start;
+    margin:0 0 26px}
+  .mlabel{font:11px/1.4 ui-monospace,monospace;color:var(--dim);margin-top:6px}
+  @media (max-width:1080px){.mcompare,.mstack{grid-template-columns:1fr}
+    .mrail{grid-template-columns:repeat(2,1fr)}}
+
+  /* N — full-size native lab notebook -------------------------------- */
+  .nbstage{position:relative;width:min(94vw,calc((100vh - 210px)*1.52),1500px);
+    aspect-ratio:1.52;margin:26px auto 0}
+  .nbcovers{position:absolute;inset:0;border-radius:5px 11px 11px 5px;overflow:hidden;
+    box-shadow:0 34px 70px rgba(0,0,0,.62),0 12px 30px rgba(0,0,0,.45)}
+  .nbboard{position:absolute;top:0;bottom:0;width:50%}
+  .nbboard.l{left:0}.nbboard.r{left:50%}
+  .nbspine{position:absolute;top:0;bottom:0;left:calc(50% - 1.1%);width:2.2%;z-index:6;
+    pointer-events:none;background:linear-gradient(90deg,rgba(18,11,4,0),rgba(18,11,4,.40) 42%,
+      rgba(18,11,4,.46) 50%,rgba(18,11,4,.40) 58%,rgba(18,11,4,0))}
+  /* the paper envelope: strictly inside the boards. --covpad is the cover
+     overhang, and it is the ONLY dial used to make room — the stack itself is
+     never touched. */
+  .nbinner{position:absolute;inset:var(--covpad,3.4%);display:flex;z-index:2}
+  .nbhalf{position:relative;flex:1 1 50%;display:flex;align-items:center;justify-content:center;
+    min-width:0}
+  /* THE PAPER FRAME: the physical area the paper block should occupy inside
+     the cover. The Paper Lab draws its sheets inside .stackwrap at
+     top 7% / left 6% / 86% x 86%, so the wrapper is enlarged by 1/0.86 and
+     offset outward until that internal sheet region lands exactly on the
+     frame. The sculpture is never touched — only the canvas around it. */
+  .nbstackframe{position:relative;aspect-ratio:3/4;height:var(--paperh,97%);width:auto;
+    flex:0 0 auto}
+  .nbstackframe .stackwrap{position:absolute;
+    left:calc(-1 * var(--sx) / var(--sw) * 100%);
+    top:calc(-1 * var(--sy) / var(--sh) * 100%);
+    width:calc(100% / var(--sw));height:calc(100% / var(--sh));aspect-ratio:auto}
+  .nbpaste{position:absolute;inset:0;border-radius:2px 1px 1px 2px}
+  /* page content lives INSIDE the real top M2 stratum — no second sheet. */
+  .nbpagecontent{position:absolute;inset:0;overflow:hidden;padding:8% 9% 8% 10%;
+    font:2.35cqw/1.6 "Iowan Old Style",Georgia,serif;color:#4a4034}
+  .nbpagecontent h4{margin:0 0 1.3cqw;font-size:2.9cqw;font-weight:600;color:#3d3327;letter-spacing:.2px}
+  .nbpagecontent p{margin:0 0 1.5cqw;opacity:.87}
+  .nbpagecontent .hand{font-family:"Bradley Hand","Segoe Script",cursive;opacity:.6;font-size:2.2cqw}
+  /* bounds diagnostics (debug only) */
+  .nbdbg .nbstackframe .stackwrap{outline:1px dashed #4aa3ff}
+  .nbdbg .nbstackframe{outline:1px solid #ff9a3c}
+  .nbdbg .nbtop{outline:1px solid #57d76a}
+  .nbdbg .nbcovers{outline:1px solid #ff4d4d;outline-offset:-1px}
+  .nbdiag{display:flex;gap:16px;align-items:center;color:var(--dim);font-size:12.5px;margin:14px 0 0}
+  .nbgeo{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin:16px 0 0}
+  .nbgeo .stackwrap{width:100%;height:auto}
+  .nbprov{margin:16px 0 0;font:11.5px/1.7 ui-monospace,monospace;color:var(--dim);
+    background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 15px;
+    display:inline-block;white-space:pre}
+  .nbprov b{color:#efe4d1;font-weight:600}
+
+  .zoomable{cursor:zoom-in}
+  .zoomable:focus{outline:1px solid var(--accent);outline-offset:4px}
+
+
+  /* cull table ------------------------------------------------------ */
+  .cull{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px 15px}
+  .card h4{margin:0 0 4px;font-size:12px;letter-spacing:.09em;text-transform:uppercase}
+  .card.keep h4{color:#8fc07a}.card.event h4{color:#d7b25e}
+  .card.merge h4{color:#7fb3cc}.card.drop h4{color:#c9705f}
+  .card ul{margin:8px 0 0;padding-left:16px;color:var(--dim);font-size:12.5px}
+  .card ul b{color:var(--ink);font-weight:600}
+  .verdict{color:var(--dim);font-size:12.5px;margin:10px 0 0}
+
+  /* controls -------------------------------------------------------- */
+  .dials{background:var(--panel);border:1px solid var(--line);border-radius:6px;
+    padding:14px 16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+    gap:10px 22px;margin:0 0 18px}
+  .dial{display:grid;grid-template-columns:104px 1fr 38px;align-items:center;gap:8px;
+    font-size:11.5px;color:var(--dim)}
+  .dial input{width:100%}
+  .dial output{font:11px/1 ui-monospace,monospace;color:var(--ink);text-align:right}
+  .dials .dialhead{grid-column:1/-1;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;
+    color:var(--accent);border-top:1px solid var(--line);padding-top:10px;margin-top:4px}
+  .dials .dialhead:first-child{border-top:0;padding-top:0;margin-top:0}
+
+  /* zoom ------------------------------------------------------------ */
+  #zoom{position:fixed;inset:0;background:rgba(8,6,4,.93);display:none;z-index:60;
+    padding:34px;overflow:auto}
+  #zoom.on{display:block}
+  #zoom .inner{max-width:1180px;margin:0 auto;display:grid;
+    grid-template-columns:minmax(0,1fr) 290px;gap:28px;align-items:start}
+  #zoom .meta h3{margin:0 0 8px;font-size:16px}
+  #zoom .meta dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:12.5px;
+    color:var(--dim);margin:0}
+  #zoom .meta dt{color:#efe4d1}
+  #zoomclose{position:fixed;top:16px;right:20px;background:none;border:1px solid var(--line);
+    color:var(--ink);border-radius:4px;padding:6px 12px;cursor:pointer}
+  .hint{position:absolute;right:7px;bottom:6px;font-size:10px;color:#7d715f;z-index:5}
+</style>
+</head>
+<body>
+<main>
+  <h1>Paper Lab — one notebook, one history</h1>
+  <p class="lede">An isolated R&amp;D surface for replacing “a different paper preset on every page”
+  with a small system of related paper conditions. Every sheet here is built from
+  <b>global notebook age + family/neighborhood + optional rare event</b>, all seeded and
+  deterministic. The production notebook is untouched.</p>
+
+  <section id="A">
+    <h2><span class="k">A</span>Existing damage vocabulary — review &amp; cull</h2>
+    <p class="note">Classification of everything explored so far. Categories are decisions, not
+    an inventory: the point of this section is to shrink the vocabulary before combining anything.</p>
+    <div class="cull" id="cullGrid"></div>
+    <p class="verdict" id="cullVerdict"></p>
+  </section>
+
+  <section id="B">
+    <h2><span class="k">B</span>The two core families</h2>
+    <p class="note">Only two families remain: <b>Carried / Handled</b> and <b>Protected Interior</b>.
+    Page 1 is not a family — it is the most exposed handled sheet. Humidity is not a family — it is an
+    environmental episode with a radius (sections C and J). Same stock, same age, same notebook edge
+    condition in every tile; what changes is surface history.</p>
+    <div class="grid g4" id="famGrid"></div>
+    <h3 class="sub">Controlled comparison — identical notebook edge, same geometry seed, no humidity, no events</h3>
+    <div class="grid g2" id="famCompare"></div>
+    <h3 class="sub">Silhouette only — neutral paper, geometry alone</h3>
+    <p class="note">Surface history removed entirely. If these two read as substantially different
+    paper, family edge influence is too strong and should be pulled back toward zero.</p>
+    <div class="grid g2" id="famSilhouette"></div>
+  </section>
+
+
+  <section id="C">
+    <h2><span class="k">C</span>Damage radius</h2>
+    <p class="note">The same run of six sheets rendered three ways: notebook-wide only, then with a
+    neighbourhood event added, then with one individual-sheet event on top. Nothing else changes.</p>
+    <div id="radiusRows"></div>
+  </section>
+
+  <section id="D">
+    <h2><span class="k">D</span>Geometric edge wear</h2>
+    <p class="note">Identical paper material and colour in every tile — only the silhouette changes:
+    edge recession, corner erosion, cockling, notches. Single-sheet geometry should stay restrained;
+    the stack in section E is where it accumulates.</p>
+    <div class="grid g4" id="geoGrid"></div>
+  </section>
+
+  <section id="E">
+    <h2><span class="k">E</span>Fore-edge stack architecture</h2>
+    <p class="note">26 strata per study, anchored at the bound spine and accumulating at the
+    <b>fore edge</b>. Depth is not a lateral fan: each stratum is a slightly different physical
+    sheet — its own fore-edge and bottom extent (broad envelope + clustered deformation + small
+    per-sheet deviation) plus its own recession, fray, chipping and cockle. All geometry is
+    page-relative, so the thumbnail and the expanded view are the same object at two sizes.
+    The second frame in each card magnifies the outer 30% of the block.</p>
+    <div class="diag"><label><input type="checkbox" id="flatStacks" />
+      Silhouette diagnostic — flat controlled paper tones, no surface damage</label>
+      <span>If the block still reads as old with the surface off, the geometry is doing the work.</span></div>
+    <div class="grid g2" id="stackGrid"></div>
+  </section>
+
+
+  <section id="F">
+    <h2><span class="k">F</span>Family sequences, exposure &amp; the transition</h2>
+    <p class="note">Families are evaluated across neighbours, never on one page. Page 1 appears here as
+    an <b>exposure ramp</b> inside Carried / Handled, not as a family. The last row is a gradual
+    handled → protected transition; there should be no abrupt material switch.</p>
+    <div id="seqRows"></div>
+  </section>
+
+  <section id="J">
+    <h2><span class="k">J</span>Humidity progression — one family, one episode</h2>
+    <p class="note">Carried / Handled throughout, notebook edge held constant, no rare events. Only the
+    environmental neighbourhood rises, peaks and fades. The question this section exists to answer:
+    can humidity own a whole chapter of the notebook without becoming a second species of paper?</p>
+    <div id="humidRows"></div>
+  </section>
+
+  <section id="K">
+    <h2><span class="k">K</span>Full notebook flow</h2>
+    <p class="note">Fifteen neighbouring sheets moving from the front of the block inward: exposure
+    falls, one damp episode rises and fades across a radius, and Handled gives way to Protected with no
+    boundary. The edge language never changes. One notebook, one stack, one history.</p>
+    <div id="flowRows"></div>
+  </section>
+
+
+  <section id="G">
+    <h2><span class="k">G</span>Family + rare events</h2>
+    <p class="note">One family, six neighbours, two events. An event must read as something that
+    happened <i>to</i> this paper — never as a different paper.</p>
+    <div id="eventRows"></div>
+  </section>
+
+  <section id="H">
+    <h2><span class="k">H</span>Extreme reference study</h2>
+    <p class="note">Deliberately too much. Establishes the upper limit so the production target can
+    be described as a fraction of it.</p>
+    <div class="grid g3" id="extremeGrid"></div>
+  </section>
+
+  <section id="L">
+    <h2><span class="k">L</span>Notebook comparison — A vs B</h2>
+    <p class="note">Two complete notebooks, identical mechanics, identical cover, identical content.
+    The only variable is the paper system.
+    <b>A — Current Hybrid</b>: new stack / previous surface wear (window.LABPAPER concept recipes).
+    <b>B — Lab Native</b>: new stack / new family + surface system (two families, continuous exposure,
+    humidity as a neighbourhood episode, shared notebook edge). Neither is "old" or "better" here —
+    we are comparing design languages.</p>
+    <div class="diag" id="cmpLinks"></div>
+    <h3 class="sub">Matching static faces — same page indices, same scale</h3>
+    <div id="cmpRows"></div>
+    <h3 class="sub">Right-side block — same stack architecture, each system's surface</h3>
+    <div class="grid g2" id="cmpStacks"></div>
+    <h3 class="sub">Interactive — flip through both</h3>
+    <p class="note">The paper progression is part of the design, so the live notebooks are the real
+    comparison. Both frames below are the actual routes.</p>
+    <div class="grid g2" id="cmpFrames"></div>
+  </section>
+
+  <section id="M">
+    <h2><span class="k">M</span>Lab-Native edge inspection — large format</h2>
+    <p class="note">The <b>surface is frozen</b>. Every sheet below is the <i>actual</i> Lab-Native
+    Page&nbsp;1 face — same stock, family, exposure, page-1 surface override, humidity residue,
+    foxing, stain, smudge, grime and tonal aging, taken live from
+    <code>/notebook-lab-native</code>. The <b>only</b> variable in this section is the physical edge.
+    <b>M0</b> is the control and matches the shipped notebook exactly. M1–M4 are
+    <b>lab experiments</b> that may exceed the current production ceilings
+    (<code>fray 0.12</code> / <code>geo 0.55</code>); those ceilings are unchanged in production and
+    the notebook itself is untouched.</p>
+    <div class="mbanner" id="mBanner"></div>
+    <div class="diag" id="mModes"></div>
+
+    <h3 class="sub">Candidate rail — pick what to inspect</h3>
+    <div class="mrail" id="mRail"></div>
+
+    <h3 class="sub">Direct comparison — same sheet, increasing wear</h3>
+    <div class="mcompare" id="mCompare"></div>
+
+    <h3 class="sub">Full-height fore-edge strip — the rhythm of damage</h3>
+    <p class="note">The outer ~10% of each selected sheet, magnified top to bottom. Read this for
+    repetition, shredding and dead-smooth runs rather than for individual chips.</p>
+    <div class="mstrips" id="mStrips"></div>
+
+    <h3 class="sub">Edge coloration only — geometry held at M0</h3>
+    <p class="note">Answers a different question: does the edge just need to look <i>older</i>?
+    Identical M0 silhouette and identical page surface; only exposed-edge oxidation increases.</p>
+    <div class="grid g3" id="mColor"></div>
+
+    <h3 class="sub">Accumulated — the same candidates as a 26-sheet block</h3>
+    <p class="note">One recipe, multiple views: each block below uses the exact wear model of its
+    single-sheet candidate. A change that is subtle on one sheet is multiplied 26 times here.</p>
+    <div id="mStacks"></div>
+  </section>
+
+
+
+  <section id="N">
+    <h2><span class="k">N</span>Full-Size M2 Accumulated Notebook</h2>
+    <p class="note">Exact Section&nbsp;M &rarr; Accumulated &rarr; <b>M0 · Current Lab-Native
+    (promoted M2)</b> 26-stratum block — the same object, built by the same call, at notebook
+    scale. <b>No production stack approximation.</b> Resting page surfaces are Section&nbsp;L's
+    <b>B — Lab Native</b> system (<code>window.PAPERV2</code>); the boards are the approved
+    <b>F3-03 brick</b> cover from <code>cover-f3.js</code>. The notebook renders open so the
+    right-hand block is immediately inspectable. Where the block needed room the
+    <i>paper footprint</i> was shrunk inside a fixed cover — nothing in the stack was altered.</p>
+    <div class="nbdiag">
+      <label><input type="checkbox" id="nbDbg"> bounds diagnostics
+        (<span style="color:#4aa3ff">blue</span> wrapper canvas ·
+         <span style="color:#57d76a">green</span> top stratum ·
+         <span style="color:#ff9a3c">orange</span> paper frame ·
+         <span style="color:#ff4d4d">red</span> cover)</label>
+      <label><input type="checkbox" id="nbFlat"> neutral surfaces in geometry comparison</label>
+    </div>
+    <div class="nbstage" id="nbStage"></div>
+    <div class="nbprov" id="nbProv"></div>
+    <p class="mlabel" style="margin-top:22px">TEMPORARY DIAGNOSTIC — same-scale geometry
+      comparison. LEFT: Section M accumulated M0/M2 block. RIGHT: the block Section N renders.
+      They must be geometrically identical.</p>
+    <div class="nbgeo" id="nbGeo"></div>
+  </section>
+
+  <section id="S">
+
+    <h2><span class="k">S</span>Sandbox — sheetCondition</h2>
+    <p class="note">Drive the data model directly. These dials are exactly the fields the future
+    <code>sheetCondition</code> record would carry.</p>
+    <div class="dials" id="dials"></div>
+    <div class="grid g3" id="sandboxOut"></div>
+  </section>
+</main>
+
+<div id="zoom"><button id="zoomclose">close</button><div class="inner">
+  <div id="zoomStage"></div><div class="meta" id="zoomMeta"></div>
+</div></div>
+
+<script src="/shared/paper-stack.js"></script>
+<script src="/shared/paper-surface.js"></script>
+<script src="/shared/m2-accumulated-stack.js"></script>
+<script src="/notebook/paper-lab.js"></script>
+<script src="/notebook-lab-native/paper-system-v2.js"></script>
+<!-- F3-03 brick cover, the approved production material, read-only -->
+<script src="/notebook/cover-f3.js"></script>
+<script>
+/* ======================================================================
+   PAPER LAB
+   Deterministic. No Math.random anywhere. Textures are canvas-baked once
+   into cached data URLs and applied as plain background-image layers, so
+   the recipes stay compatible with the notebook's computed-style clone ->
+   SVG foreignObject rasterisation path if/when they are promoted.
+   ==================================================================== */
+
+/* ---------- deterministic primitives ---------- */
+/* deterministic primitives + STOCK come from /shared/paper-stack.js */
+const {rnd,hash1,h2,clamp01,lerp,STOCK,edgeProfile,NOTEBOOK_EDGE,FAMILIES,famLabel,
+  condition,buildStackModel}=window.PaperStack;
+/* The surface system (stock fibre, drift, foxing, grime, edge oxidation,
+   humidity bloom, stains, smudges, creases and surface()) now lives in
+   /shared/paper-surface.js, which the Lab-Native notebook loads too — one
+   surface language, no divergence between the lab and that notebook. */
+const {texURL,layer,tile,blot,fibreTile,drift,foxingTex,grimeLayers,edgeLayers,
+  humidLayers,stainLayers,smudgeLayers,creaseTex,surface}=window.PaperSurface;
+
+
+const COPY={
+  h:'Cabrera, 1967',
+  p:'A notebook kept the way bachata was kept in the campo: by hand, out of order, and louder than it looks. The requinto answers the vocal one bar late, on purpose.',
+  hand:'— verify pressing dates',
+};
+function sheetEl(c,opts={}){
+  const wrap=document.createElement('div');wrap.className='sheetwrap';
+  const sh=document.createElement('div');sh.className='sheet';
+  /* neutral = silhouette study: geometry only, no surface history at all */
+  sh.style.background=opts.neutral
+    ? 'linear-gradient(168deg, rgb(232,222,199), rgb(226,215,190))'
+    : surface(c);
+  sh.style.clipPath=edgeProfile(c);
+  if(!opts.bare){
+    const h=document.createElement('h4');h.textContent=COPY.h;
+    const p=document.createElement('p');p.textContent=COPY.p;
+    const a=document.createElement('div');a.className='hand';a.textContent=COPY.hand;
+    sh.append(h,p,a);
+  }
+  wrap.appendChild(sh);
+  if(opts.tag){const t=document.createElement('div');t.className='tag';t.textContent=opts.tag;wrap.appendChild(t);}
+  return wrap;
+}
+
+/* ---------- stack ----------
+   ANCHORED AT THE SPINE, ACCUMULATING AT THE FORE EDGE.
+
+   Depth does NOT come from translating whole sheets sideways. Every stratum is
+   registered at the bound left edge; what differs between strata is the physical
+   EXTENT of the sheet — where its fore edge and bottom edge actually end — plus
+   its own edge profile (recession, fray, chips, cockle, corner erosion).
+
+   Extent = broad block envelope + correlated cluster deformation + small
+   per-sheet deviation, so page lengths form groups instead of noise.
+
+   All geometry is expressed in page-relative units (% of the sheet, or var(--u)
+   = 1% of the rendered stack width), so a thumbnail and its expanded render are
+   the same physical object at two sizes. */
+const PERF=/[?&]debug/.test(location.search);
+const tmark=(label,t0)=>{if(PERF)console.log(label,(performance.now()-t0).toFixed(1)+' ms');};
+
+/* ---- the stack MODEL: every procedural decision, no DOM, fully deterministic.
+   Presentation (normal / flat silhouette / cheap crop) is applied at render
+   time, so toggling modes or opening a zoom never re-derives geometry. ---- */
+/* the stack MODEL lives in /shared/paper-stack.js (buildStackModel) */
+
+/* THE RENDERER LIVES IN /shared/m2-accumulated-stack.js.
+   It is this function, moved verbatim, so the Paper Lab and the notebook
+   cannot render the same model two different ways. Class names, DOM order,
+   z-index, seam and surface resolution are unchanged. */
+function stackEl(spec){
+  const t0=performance.now();
+  const el=window.M2Stack.render(spec);
+  tmark('stack DOM  ['+spec.seed+'/'+(spec.strata||24)+(spec.flat?' flat':spec.cheap?' cheap':'')+']',t0);
+  return el;
+}
+
+
+/* ---- resource ownership -------------------------------------------------
+   Anything that holds a live observer registers a __dispose() and joins LIVE.
+   Every path that discards DOM calls clearHost() first, so a detached node is
+   never kept alive by an observer. window.__paperLabLive reports the count. */
+const LIVE=new Set();
+function clearHost(host){
+  if(!host) return;
+  if(host.__dispose){host.__dispose();host.__dispose=null;}
+  for(const n of host.querySelectorAll('*')) if(n.__dispose){n.__dispose();n.__dispose=null;}
+  host.innerHTML='';
+}
+window.__paperLabLive=()=>LIVE.size;
+
+/* magnified crop of the outer fore-edge band of a stack.
+   Rendered lazily on first scroll into view: a magnified 26-stratum block is
+   expensive, and there is no reason to rasterise five of them off-screen. */
+function foreCropEl(spec,frac){
+  const f=frac||0.3;
+  const box=document.createElement('div');box.className='forecrop';
+  const build=()=>{const st=stackEl(spec);st.style.setProperty('--zw',(100/f).toFixed(1)+'%');
+    /* pull the block's own right margin off-frame so the crop is filled by the
+       fore edge itself, with a sliver of desk beyond it */
+    st.style.right=(-(8/f)+3).toFixed(1)+'%';
+    box.innerHTML='';box.appendChild(st);};
+  if(window.IntersectionObserver){
+    const io=new IntersectionObserver(es=>{if(es.some(e=>e.isIntersecting)){io.disconnect();
+      LIVE.delete(box);box.__dispose=null;build();}},{rootMargin:'200px'});
+    io.observe(box);
+    /* owned, not anonymous: if the crop is discarded before it ever intersects,
+       clearHost() disconnects the observer instead of retaining a detached node */
+    box.__dispose=()=>{io.disconnect();LIVE.delete(box);};
+    LIVE.add(box);
+  } else build();
+  return box;
+}
+
+
+
+/* ======================================================================
+   ZOOM
+   Expanded views render FRESH at large size from the same recipe/seed.
+   ==================================================================== */
+const ZG={};
+function zoomable(fig,group,item,hintHost){
+  (ZG[group]||=[]).push(item);const idx=ZG[group].length-1;
+  fig.classList.add('zoomable');fig.tabIndex=0;
+  const host=hintHost||fig.firstChild;
+  const hint=document.createElement('div');hint.className='hint';hint.textContent='view larger';
+  host.appendChild(hint);
+  fig.addEventListener('click',()=>openZoom(group,idx));
+  fig.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openZoom(group,idx);}});
+}
+/* zoom for bare cells (rows) — the cell itself is the click target */
+function zoomCell(el,group,item){zoomable(el,group,item,el);return el;}
+
+const zoomEl=document.getElementById('zoom');
+const zoomStage=document.getElementById('zoomStage');
+const zoomMeta=document.getElementById('zoomMeta');
+/* closing releases the expanded stack: a big stack held off-screen costs
+   compositor memory and its observers would outlive the view */
+const closeZoom=()=>{zoomEl.classList.remove('on');clearHost(zoomStage);};
+document.getElementById('zoomclose').onclick=closeZoom;
+addEventListener('keydown',e=>{if(e.key==='Escape'&&zoomEl.classList.contains('on'))closeZoom();});
+function openZoom(group,idx){
+  const item=ZG[group][idx];
+  clearHost(zoomStage);zoomMeta.innerHTML='';
+  const big=item.render();big.style.width='100%';
+  zoomStage.appendChild(big);
+  const dl=Object.entries(item.meta()).map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('');
+  zoomMeta.innerHTML=`<h3>${item.title}</h3><dl>${dl}</dl>`;
+  zoomEl.classList.add('on');zoomEl.scrollTop=0;
+}
+function figure(node,num,name,traits){
+  const f=document.createElement('figure');f.appendChild(node);
+  const cap=document.createElement('figcaption');
+  cap.innerHTML=`<div class="cname"><span class="cnum">${num}</span>${name}</div>`+
+    `<ul class="traits">${(traits||[]).map(t=>`<li>${t}</li>`).join('')}</ul>`;
+  f.appendChild(cap);return f;
+}
+
+/* ======================================================================
+   A — CULL
+   ==================================================================== */
+const CULL=[
+  {cls:'keep',h:'Keep — core family',items:[
+    ['Carried / handled','the main identity: thumb grime at the outer edge, softened corners, warm oxidation'],
+    ['Protected interior','the same stock, the same age and the same notebook edge — quieter surface, protected age, not clean paper'],
+  ]},
+  {cls:'event',h:'Keep — event only',items:[
+    ['Single crease','one soft valley in from the outer edge, near a corner'],
+    ['One faint stain','small, off-centre, low contrast'],
+    ['Pencil smudge','a hand rested here once'],
+    ['Small notch','tiny material loss on the outer edge; the strongest geometric event'],
+  ]},
+  {cls:'merge',h:'Merge — redundant',items:[
+    ['Yellowed edge + handled edge + dirty edge','one <b>exposure</b> system driven by depth into the block'],
+    ['First page → exposure extreme of Handled','page 1 is the most exposed handled sheet, never its own species'],
+    ['Humidity affected → environmental neighbourhood','a damp episode with a rise/fade radius that any family can sit inside'],
+    ['Corner wear + edge damage → the shared notebook edge','one global paper-block geometry every sheet inherits'],
+  ]},
+  {cls:'drop',h:'Drop',items:[
+    ['Dog ears','cliché, and it fights the eroded-corner geometry that reads better'],
+    ['Foxing as a page identity','foxing belongs to the damp neighbourhood, not to a family'],
+    ['Multiple stains per sheet','turns rare into wallpaper'],
+    ['Per-page preset variety','the sampler problem this lab exists to remove'],
+  ]},
+];
+/* ---- deferred section construction ------------------------------------
+   Sections below the fold are pure builders. Each runs once, when its
+   <section> comes within 600px of the viewport, so first paint no longer pays
+   for every study on the page. Determinism is unaffected: each builder is
+   seeded and order-independent. window.__paperLabBuild(id) forces one. */
+const DEFERRED=new Map();
+function defer(id,fn){
+  const host=document.getElementById(id);
+  if(!host||!window.IntersectionObserver){fn();return;}
+  let done=false;
+  const run=()=>{if(done)return;done=true;io.disconnect();LIVE.delete(host);host.__dispose=null;
+    DEFERRED.delete(id);fn();};
+  const io=new IntersectionObserver(es=>{if(es.some(e=>e.isIntersecting))run();},{rootMargin:'600px'});
+  io.observe(host);
+  host.__dispose=()=>{io.disconnect();LIVE.delete(host);};
+  LIVE.add(host);
+  DEFERRED.set(id,run);
+}
+window.__paperLabBuild=id=>{const r=DEFERRED.get(id);if(r)r();return !!r;};
+
+
+{
+  const g=document.getElementById('cullGrid');
+  for(const c of CULL){
+    const d=document.createElement('div');d.className='card '+c.cls;
+    d.innerHTML=`<h4>${c.h}</h4><ul>${c.items.map(i=>`<li><b>${i[0]}</b> — ${i[1]}</li>`).join('')}</ul>`;
+    g.appendChild(d);
+  }
+  document.getElementById('cullVerdict').innerHTML =
+    'Verdict: <b>two families</b> — Carried/Handled and Protected Interior — over <b>one shared notebook edge condition</b>. ' +
+    'Depth into the block is a continuous <b>exposure</b> value (page 1 is simply exposure 1.0 of Handled), and humidity is an ' +
+    '<b>environmental neighbourhood</b> that rises and fades across a run of sheets. Families differ mainly in <i>surface history</i>; ' +
+    'their geometric difference is a few percent, which is why section B shows a silhouette-only comparison.';
+}
+
+/* ======================================================================
+   B — FAMILY CANDIDATES
+   ==================================================================== */
+{
+  const g=document.getElementById('famGrid');
+  const defs=[
+    ['B-01','Carried / Handled — page 1 exposure',{family:'handled',exposure:1.0,seed:401,notebookAge:1},
+      ['most exposed sheet','not a family','thumb grime','strongest edge dirt']],
+    ['B-02','Carried / Handled — typical',{family:'handled',exposure:0.6,seed:401,notebookAge:1},
+      ['thumb grime','warm oxidation','softened corners','the main identity']],
+    ['B-03','Protected Interior',{family:'protected',exposure:0.28,seed:401,notebookAge:1},
+      ['same stock','same notebook edge','calmer surface','still visibly old']],
+    ['B-04','Handled + damp neighbourhood',{family:'handled',exposure:0.6,seed:401,notebookAge:1,
+      neighborhood:{humid:1,bloom:.7,compress:.5,cockle:.6,phase:1.4}},
+      ['environment, not family','cockling','clustered foxing','lower-edge tide']],
+  ];
+  for(const [num,name,o,traits] of defs){
+    const make=()=>sheetEl(condition(o));
+    const f=figure(make(),num,name,traits);
+    g.appendChild(f);
+    zoomable(f,'B',{title:num+' — '+name,render:make,
+      meta:()=>({Family:condition(o).familyLabel,Exposure:(o.exposure??0.55).toFixed(2),
+        Environment:o.neighborhood?('humidity '+o.neighborhood.humid):'none',
+        'Notebook edge':'shared baseline',Events:'none',Seed:'401'})});
+  }
+
+  /* --- controlled comparison: everything held except family ------------- */
+  const cg=document.getElementById('famCompare');
+  for(const fam of ['handled','protected']){
+    const o={family:fam,exposure:0.55,seed:404,notebookAge:1};
+    const make=()=>sheetEl(condition(o));
+    const f=figure(make(),fam==='handled'?'B-05':'B-06',FAMILIES[fam].name,
+      ['identical seed 404','identical exposure 0.55','identical notebook edge','surface history only']);
+    cg.appendChild(f);
+    zoomable(f,'B',{title:FAMILIES[fam].name+' — controlled',render:make,
+      meta:()=>({Family:FAMILIES[fam].name,Cause:FAMILIES[fam].cause,
+        Exposure:'0.55','Notebook edge':'baseline',Seed:'404'})});
+  }
+
+  /* --- silhouette only: geometry with no surface history ---------------- */
+  const sg=document.getElementById('famSilhouette');
+  for(const fam of ['handled','protected']){
+    const o={family:fam,exposure:0.55,seed:404,notebookAge:1};
+    const make=()=>sheetEl(condition(o),{neutral:true});
+    const f=figure(make(),fam==='handled'?'B-07':'B-08',FAMILIES[fam].name+' — silhouette',
+      ['neutral paper tone','no grime, no foxing','geometry only','differences should be slight']);
+    sg.appendChild(f);
+    zoomable(f,'B',{title:FAMILIES[fam].name+' — silhouette',render:make,
+      meta:()=>({Family:FAMILIES[fam].name,Surface:'neutral (removed)',
+        'Family edge influence':'1.0','Notebook edge':'baseline',Seed:'404'})});
+  }
+}
+
+/* ======================================================================
+   C — DAMAGE RADIUS
+   ==================================================================== */
+function row(host,label,cells){
+  const h=document.createElement('h3');h.className='sub';h.textContent=label;host.appendChild(h);
+  const g=document.createElement('div');g.className='grid g4';host.appendChild(g);
+  cells.forEach(c=>g.appendChild(c));
+  return g;
+}
+defer('C',()=>{
+  const host=document.getElementById('radiusRows');
+  const base=i=>({family:'handled',seed:900+i*31,notebookAge:1});
+  const mk=(o,tag)=>{
+    const make=()=>sheetEl(condition(o),{tag});
+    return zoomCell(make(),'C',{title:tag,render:make,
+      meta:()=>({Family:'Carried / handled',Neighbourhood:o.neighborhood&&Object.keys(o.neighborhood).length?JSON.stringify(o.neighborhood):'none',
+        Events:o.events&&Object.keys(o.events).length?Object.keys(o.events).join(', '):'none',Seed:o.seed})});
+  };
+  row(host,'Notebook-wide only — shared stock, age, oxidation',
+    [0,1,2,3,4,5].map(i=>mk(base(i),'sheet '+(i+1))));
+  row(host,'+ neighbourhood event — a damp episode reaching sheets 2–4',
+    [0,1,2,3,4,5].map(i=>{
+      const near=i>=1&&i<=3;
+      return mk({...base(i),neighborhood:near?{humid:0.8-Math.abs(i-2)*0.22,compress:0.35,foxing:0.35,phase:1.4}:{},},
+        'sheet '+(i+1)+(near?' · humid':''));
+    }));
+  row(host,'+ individual events — one crease on sheet 2, one stain on sheet 5',
+    [0,1,2,3,4,5].map(i=>{
+      const near=i>=1&&i<=3;
+      const ev=i===1?{crease:1}:i===4?{stain:1}:{};
+      return mk({...base(i),neighborhood:near?{humid:0.8-Math.abs(i-2)*0.22,compress:0.35,foxing:0.35,phase:1.4}:{},events:ev},
+        'sheet '+(i+1)+(i===1?' · crease':i===4?' · stain':''));
+    }));
+});
+
+/* ======================================================================
+   D — GEOMETRIC EDGE WEAR (same material, geometry only)
+   ==================================================================== */
+defer('D',()=>{
+  const g=document.getElementById('geoGrid');
+  const defs=[
+    ['D-01','True edge (reference)',{recession:0,cockle:0,cornerOuter:0,cornerSpine:0,notch:0,fray:0}],
+    ['D-02','Shallow recession',{recession:0.45,cockle:0,cornerOuter:0.1,cornerSpine:0.05,notch:0,fray:0}],
+    ['D-03','Corner erosion — outer',{recession:0.2,cockle:0,cornerOuter:0.9,cornerSpine:0.1,notch:0,fray:0}],
+    ['D-04','Corner compression — spine',{recession:0.2,cockle:0,cornerOuter:0.3,cornerSpine:0.5,notch:0,fray:0}],
+    ['D-05','Cockling only',{recession:0.15,cockle:1.3,cornerOuter:0.15,cornerSpine:0.08,notch:0,fray:0}],
+    ['D-06','Single notch',{recession:0.3,cockle:0.3,cornerOuter:0.3,cornerSpine:0.1,notch:1,fray:0}],
+    ['D-07','Likely production target',{recession:0.5,cockle:0.5,cornerOuter:0.55,cornerSpine:0.18,notch:0,fray:0.45}],
+    ['D-08','Fray only — chipped fore edge',{recession:0.1,cockle:0,cornerOuter:0.1,cornerSpine:0.05,notch:0,fray:0.7}],
+    ['D-09','Recession + fray',{recession:0.5,cockle:0.3,cornerOuter:0.55,cornerSpine:0.15,notch:0,fray:0.8}],
+    ['D-10','Too far (single sheet)',{recession:1,cockle:1.6,cornerOuter:1,cornerSpine:0.5,notch:1.4,fray:1.6}],
+  ];
+  for(const [num,name,geo] of defs){
+    const make=()=>{
+      const c=condition({family:'protected',seed:1201,notebookAge:1});
+      c.geo={...c.geo,...geo,seed:1201,neighborPhase:0.9};
+      return sheetEl(c,{bare:false});
+    };
+    const f=figure(make(),num,name,[
+      'recession '+geo.recession,'cockle '+geo.cockle,'outer corner '+geo.cornerOuter,
+      'fray '+geo.fray, geo.notch?'notch '+geo.notch:'no notch']);
+
+    g.appendChild(f);
+    zoomable(f,'D',{title:num+' — '+name,render:make,
+      meta:()=>({Family:'Protected (held constant)',Events:geo.notch?'notch':'none',
+        'Geometric wear':JSON.stringify(geo),Seed:'1201'})});
+  }
+});
+
+/* ======================================================================
+   E — STACK SILHOUETTE
+   ==================================================================== */
+defer('E',()=>{
+  const g=document.getElementById('stackGrid');
+  const defs=[
+    ['G1','Fresh / control',
+      {family:'protected',age:.55,geo:.3,humid:0,compress:.05,notchRate:0,correlated:true,phase:.3,phaseVar:.2,
+       foreDepth:1.8,bottomDepth:1.0,lift:2.4,registration:.12,clusterAmp:.16,indivAmp:.06}],
+    ['G2','Carried / handled — target',
+      {family:'handled',age:1,geo:.75,humid:.08,compress:.25,notchRate:.04,correlated:true,phase:1.1,phaseVar:.45,
+       foreDepth:5.2,bottomDepth:2.6,lift:3.2,registration:.22,clusterAmp:.32,indivAmp:.10}],
+    ['G3','Compressed / lived-in',
+      {family:'handled',age:1.05,geo:.85,humid:.3,compress:.6,notchRate:.06,correlated:true,phase:1.9,phaseVar:.7,
+       foreDepth:6.4,bottomDepth:4.2,lift:3.0,registration:.28,clusterAmp:.5,indivAmp:.09}],
+    ['G4','Heavily aged',
+      {family:'handled',age:1.2,geo:1.15,humid:.35,compress:.55,notchRate:.14,correlated:true,phase:2.4,phaseVar:.9,
+       foreDepth:6.8,bottomDepth:4.0,lift:3.8,registration:.3,clusterAmp:.45,indivAmp:.16}],
+    ['G5','Reference extreme (too far)',
+      {family:'handled',exposure:1,age:1.45,geo:2.0,humid:1,bloom:1,foxing:1,compress:1,notchRate:.4,correlated:true,phase:.4,phaseVar:1.5,
+       foreDepth:11,bottomDepth:6.5,lift:5.0,registration:.45,clusterAmp:.6,indivAmp:.3}],
+  ];
+  const built=[];
+  for(const [num,name,spec] of defs){
+    const s={strata:26,seed:2200,...spec};
+    const make=(o)=>stackEl({...s,...(o||{})});
+    const pair=document.createElement('div');pair.className='stackpair';
+    const stackHost=document.createElement('div');
+    const cropHost=document.createElement('div');
+    stackHost.appendChild(make());
+    cropHost.appendChild(foreCropEl({...s,cheap:true},0.3));
+    pair.append(stackHost,cropHost);
+    const f=figure(pair,num,name,[s.strata+' strata',
+      'fore depth '+s.foreDepth+'% w','bottom '+s.bottomDepth+'% h',
+      'spine registered','fore-edge crop 30%']);
+    g.appendChild(f);
+    built.push({s,stackHost,cropHost});
+    zoomable(f,'E',{title:num+' — '+name,render:()=>make({flat:FLAT}),
+      meta:()=>({Family:FAMILIES[s.family].name,Strata:s.strata,
+        'Fore-edge depth':s.foreDepth+'% of sheet width',
+        'Bottom depth':s.bottomDepth+'% of sheet height',
+        'Block lift':s.lift+'% of sheet height',
+        'Spine registration':'±'+s.registration+'%',
+        Extent:'envelope + cluster '+s.clusterAmp+' + per-sheet '+s.indivAmp,
+        'Geometric wear':s.geo+'×',Surface:FLAT?'silhouette diagnostic':'normal',
+        Seed:s.seed})},stackHost);
+  }
+  let FLAT=false;
+  const cb=document.getElementById('flatStacks');
+  cb.addEventListener('change',()=>{
+    FLAT=cb.checked;
+    for(const b of built){
+      clearHost(b.stackHost);b.stackHost.appendChild(stackEl({...b.s,flat:FLAT}));
+      clearHost(b.cropHost);b.cropHost.appendChild(foreCropEl({...b.s,flat:FLAT,cheap:true},0.3));
+    }
+  });
+});
+
+
+/* ======================================================================
+   F — FAMILY SEQUENCES & TRANSITIONS
+   ==================================================================== */
+defer('F',()=>{
+  const host=document.getElementById('seqRows');
+  const seq=(label,build,n=6)=>{
+    const cells=[];
+    for(let i=0;i<n;i++){
+      const o=build(i);
+      const make=()=>sheetEl(condition(o),{tag:o.tag});
+      cells.push(zoomCell(make(),'F',{title:label+' — '+o.tag,render:make,
+        meta:()=>({Family:condition(o).familyLabel,
+          Exposure:(o.exposure==null?0.55:o.exposure).toFixed(2),
+          'Notebook edge':'shared baseline',
+          Seed:o.seed})}));
+    }
+    row(host,label,cells);
+  };
+  seq('Carried / Handled — six neighbours',i=>({family:'handled',seed:3000+i*23,
+    exposure:.8-.06*i,notebookAge:1,geoIntensity:.85+.3*h2(3000,i),tag:'handled '+(i+1)}));
+  seq('Protected Interior — six neighbours',i=>({family:'protected',seed:3400+i*23,
+    exposure:.3-.03*i,notebookAge:1,geoIntensity:.8+.25*h2(3400,i),tag:'protected '+(i+1)}));
+  seq('Exposure ramp — page 1 is the most exposed HANDLED sheet, not a family',i=>{
+    const e=[1,.9,.82,.74,.66,.6][i];
+    return {family:'handled',exposure:e,seed:3800+i*23,notebookAge:1,
+      tag:(i===0?'page 1':'page '+(i+1))+' · exp '+e.toFixed(2)};
+  });
+  seq('Transition — handled → protected (no cliff)',i=>{
+    const m=[0,.15,.4,.65,.85,1][i];
+    return {family:'handled',familyMix:m,exposure:.62-.06*i,seed:4200+i*23,notebookAge:1,
+      tag:Math.round(m*100)+'% protected'};
+  });
+});
+
+/* ======================================================================
+   J — HUMIDITY PROGRESSION (environment, not family)
+   ==================================================================== */
+defer('J',()=>{
+  const host=document.getElementById('humidRows');
+  const curve=[0,.18,.45,.72,1,.82,.5,.18];
+  const mk=(h,i)=>{
+    const o={family:'handled',exposure:.62,seed:7000+i*23,notebookAge:1,
+      neighborhood:{humid:h,bloom:h*.65,compress:.15+.4*h,cockle:h*.55,phase:1.2+i*.18}};
+    const make=()=>sheetEl(condition(o),{tag:'humidity '+h.toFixed(2)});
+    return zoomCell(make(),'J',{title:'Humidity '+h.toFixed(2),render:make,
+      meta:()=>({Family:'Carried / Handled',Exposure:'0.62',Humidity:h.toFixed(2),
+        Foxing:'derived from humidity','Notebook edge':'baseline (constant)',Seed:o.seed})});
+  };
+  row(host,'One damp episode across eight handled neighbours — rise, peak, fade',curve.map(mk));
+  row(host,'The same episode inside Protected Interior — same environment, quieter surface',
+    curve.map((h,i)=>{
+      const o={family:'protected',exposure:.28,seed:7300+i*23,notebookAge:1,
+        neighborhood:{humid:h,bloom:h*.65,compress:.15+.4*h,cockle:h*.55,phase:1.2+i*.18}};
+      const make=()=>sheetEl(condition(o),{tag:'humidity '+h.toFixed(2)});
+      return zoomCell(make(),'J',{title:'Protected · humidity '+h.toFixed(2),render:make,
+        meta:()=>({Family:'Protected Interior',Exposure:'0.28',Humidity:h.toFixed(2),
+          'Notebook edge':'baseline (constant)',Seed:o.seed})});
+    }));
+});
+
+/* ======================================================================
+   K — FULL NOTEBOOK FLOW
+   ==================================================================== */
+defer('K',()=>{
+  const host=document.getElementById('flowRows');
+  const N=15, cells=[];
+  for(let i=0;i<N;i++){
+    const t=i/(N-1);
+    const exposure=clamp01(1-Math.pow(t,0.7)*0.82);              // page 1 = most exposed
+    const mix=clamp01((t-0.42)/0.46);                            // handled → protected, overlapping
+    const humid=clamp01(Math.exp(-Math.pow((t-0.34)/0.19,2)));   // one episode with a radius
+    const o={family:'handled',familyMix:mix,exposure,seed:7500+i*23,notebookAge:1,
+      neighborhood:{humid,bloom:humid*.7,compress:.12+.45*humid,cockle:humid*.5,phase:.8+i*.15},
+      events: i===2?{crease:1} : i===11?{smudge:.85} : i===7?{notch:.7} : {}};
+    const make=()=>sheetEl(condition(o),{tag:'sheet '+(i+1)});
+    cells.push(zoomCell(make(),'K',{title:'Sheet '+(i+1),render:make,
+      meta:()=>({Sheet:(i+1)+' of '+N,Family:condition(o).familyLabel,
+        Exposure:exposure.toFixed(2),Humidity:humid.toFixed(2),
+        Events:Object.keys(o.events).join(', ')||'none',
+        'Notebook edge':'shared baseline',Seed:o.seed})}));
+  }
+  row(host,'Front of the block → deep interior (15 sheets, one continuous history)',cells);
+  const stackHost=document.createElement('div');
+  const h=document.createElement('h3');h.className='sub';
+  h.textContent='The same notebook as a block — 26 strata, shared edge history';
+  const wrap=document.createElement('div');wrap.className='grid g2';
+  wrap.appendChild(stackHost);
+  host.appendChild(h);host.appendChild(wrap);
+  stackHost.appendChild(stackEl({strata:26,seed:7500,family:'handled',familyMix:.35,exposure:.6,
+    age:1,geo:1,humid:.45,compress:.35,notchRate:.08,correlated:true,phase:1.1,phaseVar:.8,
+    foreDepth:6.6,bottomDepth:4.1,lift:3.2,registration:.28,clusterAmp:.5,indivAmp:.12}));
+});
+
+/* ======================================================================
+   G — FAMILY + RARE EVENTS
+   ==================================================================== */
+defer('G',()=>{
+  const host=document.getElementById('eventRows');
+  const mkEv=(fam,base,ev,i)=>{
+    const tag=fam+(Object.keys(ev).length?' + '+Object.keys(ev)[0]:'');
+    const make=()=>sheetEl(condition({family:fam,seed:base+i*23,notebookAge:1,events:ev}),{tag});
+    return zoomCell(make(),'G',{title:tag,render:make,
+      meta:()=>({Family:FAMILIES[fam].name,
+        Events:Object.keys(ev).join(', ')||'none',Seed:base+i*23})});
+  };
+  const evs=[{},{},{crease:1},{},{stain:.9},{}];
+  row(host,'Handled family, two events across six sheets',evs.map((ev,i)=>mkEv('handled',5000,ev,i)));
+  const evs2=[{},{smudge:1},{},{notch:.9},{},{}];
+  row(host,'Protected family, smudge and notch',evs2.map((ev,i)=>mkEv('protected',5400,ev,i)));
+});
+
+/* ======================================================================
+   H — EXTREME REFERENCE
+   ==================================================================== */
+defer('H',()=>{
+  const g=document.getElementById('extremeGrid');
+  const defs=[
+    ['H-01','Surface pushed too far',{family:'handled',exposure:1,notebookAge:1.9,seed:6001,
+      events:{stain:1.6,smudge:1.3,crease:1},geoIntensity:1,
+      neighborhood:{humid:1,bloom:1,foxing:1,phase:1.1}}],
+    ['H-02','Geometry pushed too far',{family:'handled',notebookAge:1,seed:6002,
+      geoIntensity:2.4,events:{notch:1.6},neighborhood:{humid:1,compress:1,phase:.6}}],
+    ['H-03','Both — the ceiling',{family:'handled',exposure:1,notebookAge:2,seed:6003,
+      geoIntensity:2.6,events:{stain:1.5,crease:1,notch:1.5},
+      neighborhood:{humid:1,bloom:1,compress:1,foxing:1,cockle:1,phase:2.2}}],
+  ];
+  for(const [num,name,o] of defs){
+    const make=()=>sheetEl(condition(o));
+    const f=figure(make(),num,name,['reference only','not production','establishes the limit']);
+    g.appendChild(f);
+    zoomable(f,'H',{title:num+' — '+name,render:make,
+      meta:()=>({Family:condition(o).familyLabel,Events:Object.keys(o.events||{}).join(', ')||'none',
+        'Geometric wear':(o.geoIntensity||1)+'×',Seed:o.seed})});
+  }
+});
+
+/* ======================================================================
+   L — NOTEBOOK COMPARISON  (A: current hybrid  vs  B: lab native)
+   Both providers are loaded read-only; neither notebook is modified.
+   ==================================================================== */
+defer('L',()=>{
+  const links=document.getElementById('cmpLinks');
+  links.innerHTML='<span><b>A</b> <a href="/" target="_blank" style="color:var(--accent)">open /notebook (current hybrid)</a>'+
+    ' &nbsp;·&nbsp; <b>B</b> <a href="/notebook-lab-native" target="_blank" style="color:var(--accent)">open /notebook-lab-native (lab native)</a></span>';
+
+  const TOTAL=12;
+  const face=(bg,clip,tag)=>{
+    const wrap=document.createElement('div');wrap.className='sheetwrap';
+    const sh=document.createElement('div');sh.className='sheet';
+    sh.style.background=bg; if(clip)sh.style.clipPath=clip;
+    const h=document.createElement('h4');h.textContent=COPY.h;
+    const p=document.createElement('p');p.textContent=COPY.p;
+    const a=document.createElement('div');a.className='hand';a.textContent=COPY.hand;
+    sh.append(h,p,a);wrap.appendChild(sh);
+    const t=document.createElement('div');t.className='tag';t.textContent=tag;wrap.appendChild(t);
+    return wrap;
+  };
+  const A=window.LABPAPER, B=window.PAPERV2;
+  const REGIONS=[
+    [0,'p.1 — most exposed sheet'],
+    [4,'p.5 — damp episode'],
+    [8,'p.9 — episode fading'],
+    [11,'p.12 — protected interior'],
+  ];
+  const host=document.getElementById('cmpRows');
+  for(const [idx,label] of REGIONS){
+    const cells=[];
+    if(A){
+      const mk=()=>face(A.skin(idx,false,TOTAL),null,'A — '+label);
+      cells.push(zoomCell(mk(),'L',{title:'A — '+label,render:mk,
+        meta:()=>({System:'Current hybrid — LABPAPER concept recipes',Page:idx+1,
+          Sheet:Math.floor(idx/2)+1,Geometry:'rectangular leaf'})}));
+    }
+    if(B){
+      const c=B.sheet(Math.floor(idx/2),Math.ceil(TOTAL/2));
+      const mk=()=>face(B.skin(idx,false,TOTAL),edgeProfile(c),'B — '+label);
+      cells.push(zoomCell(mk(),'L',{title:'B — '+label,render:mk,
+        meta:()=>({System:'Lab native — shared family + surface system',Page:idx+1,
+          Sheet:Math.floor(idx/2)+1,Family:c.familyLabel,
+          Exposure:(c.exposure??0).toFixed(2),
+          Humidity:(c.neighborhood&&c.neighborhood.humid||0).toFixed(2),
+          Geometry:'fore-edge recession + fray (production limits)'})}));
+    }
+    row(host,label,cells);
+  }
+
+  /* shared stack — the architecture is identical in both notebooks */
+  const sg=document.getElementById('cmpStacks');
+  const spec=n=>({sheets:26,seed:5100,flat:n,
+    condition:condition({family:'handled',exposure:.6,notebookAge:1,
+      geoIntensity:1})});
+  [['A &amp; B — shared fore-edge block',false],['Silhouette — geometry only',true]].forEach(([t,flat])=>{
+    const mk=()=>stackEl(spec(flat));
+    const cell=zoomCell(mk(),'L',{title:t.replace('&amp;','&'),render:mk,
+      meta:()=>({Note:'Both notebooks consume /shared/paper-stack.js — the block is the same object',
+        Strata:26,'Fray ceiling':0.12,'Geometric ceiling':0.55})});
+    const f=document.createElement('figure');f.appendChild(cell);
+    const cap=document.createElement('figcaption');cap.innerHTML=t;f.appendChild(cap);
+    sg.appendChild(f);
+  });
+
+  /* live frames */
+  const fg=document.getElementById('cmpFrames');
+  [['A — current hybrid','/notebook/index.html'],['B — lab native','/notebook-lab-native/index.html']]
+    .forEach(([t,src])=>{
+      const f=document.createElement('figure');
+      const ifr=document.createElement('iframe');
+      ifr.src=src;ifr.loading='lazy';
+      ifr.style.cssText='width:100%;height:560px;border:1px solid var(--line);border-radius:6px;background:#1b1410';
+      const cap=document.createElement('figcaption');cap.textContent=t;
+      f.append(ifr,cap);fg.appendChild(f);
+    });
+});
+
+/* ======================================================================
+   M — LAB-NATIVE EDGE INSPECTION (large format)
+   ----------------------------------------------------------------------
+   The surface is FROZEN. Every sheet in this section paints the actual
+   Lab-Native Page-1 face (PAPERV2.skin(0,...)) — the same stain, smudge,
+   humidity residue, foxing, grime, fibre and tonal drift, at the same
+   coordinates. The ONLY thing that changes between candidates is the
+   physical edge: recession, fray/chipping, waviness, corner erosion,
+   notches and per-sheet extent.
+
+   PRODUCTION IS UNTOUCHED. PaperStack.PRODUCTION_LIMITS still reads
+   {0.12, 0.55} and /notebook-lab-native still consumes it. M1..M4 pass
+   their OWN elevated `limits` object into condition(), which is a per-call
+   argument — the lab is allowed to ask "what if the ceiling were higher",
+   production is not.
+   ==================================================================== */
+defer('M',()=>{
+  const B=window.PAPERV2;
+  const secM=document.getElementById('M');
+  if(!B){secM.style.display='none';return;}
+  const TOTAL=12, SHEETS=Math.ceil(TOTAL/2);
+  const PL=window.PaperStack.PRODUCTION_LIMITS, M2=window.PaperStack.M2_EDGE;
+
+  /* the frozen page-1 surface, verbatim from the notebook */
+  const SURFACE_P1=B.skin(0,false,TOTAL);
+  const NEUTRAL='linear-gradient(168deg, rgb(232,222,199), rgb(226,215,190))';
+  const BASE=B.sheet(0,SHEETS);            // the shipped control condition
+
+  /* ---- the Page-1 geometric spec, replicated so wear can be varied.
+     At the M0 identity values this re-solves to BASE bit-for-bit, which is
+     asserted below and reported in the banner. ---- */
+  const episode=t=>{const d=Math.abs(t-0.32)/0.34;if(d>=1)return 0;const x=1-d;return x*x*(3-2*x);};
+  function mCond(v){
+    const i=0, e=episode(0);
+    const jitter=(h2(i+3,91)-0.5)*0.12;
+    const humid=clamp01(e*0.9+jitter*e);
+    const foxing=clamp01(humid*0.8), bloom=clamp01(humid*0.55);
+    const roll=h2(i+11,47), events={};
+    if(roll>0.86) events.crease=0.7+h2(i,5)*0.3;
+    else if(roll>0.78) events.stain=0.5+h2(i,6)*0.35;
+    else if(roll>0.73) events.smudge=0.5+h2(i,7)*0.4;
+    if(v.notch) events.notch=v.notch;      // tiny localized material loss
+    return condition({
+      seed:300+i*17, familyMix:0, exposure:1, notebookAge:B.AGE,
+      familyEdgeInfluence:0.7,
+      /* the shared notebook edge, scaled per candidate. Recession does the
+         heavy lifting; fray is a separate, smaller dial. The spine terms
+         (cornerSpine, compression) are deliberately NOT scaled. */
+      notebookEdge:Object.assign({},NOTEBOOK_EDGE,{
+        recession:NOTEBOOK_EDGE.recession*v.rec,
+        cornerWear:NOTEBOOK_EDGE.cornerWear*v.corner,
+        cockle:NOTEBOOK_EDGE.cockle*v.cockle}),
+      geoIntensity:v.geo,          // sheet 0 is the maximum: variation moves down from here
+      limits:{frayChipping:v.fray, geometricIntensity:v.geo},
+      foreInset:v.inset||0,                 // uneven extent / localized shortening
+      neighborhood:{humid,foxing,bloom,compress:clamp01(0.18),cockle:e*0.5,
+        phase:(0.32*6.28)+(i*0.55)},
+      events,
+    });
+  }
+
+  /* a tight neighbourhood around the current notebook — never a new species */
+  const VAR=[
+    {id:'M0',name:'Current Lab-Native (promoted M2)', geo:M2.geo,fray:M2.fray,rec:M2.rec,corner:M2.corner,
+     cockle:M2.cockle,notch:M2.notch,inset:M2.inset,
+     note:'control — the SELECTED M2 treatment, exactly what /notebook-lab-native now ships'},
+    {id:'H0',name:'Historical — pre-M2 baseline', geo:0.55,fray:0.12,rec:1.00,corner:1.00,cockle:1.00,notch:0,inset:0,
+     note:'the superseded 0.12/0.55 edge, kept only as comparison context'},
+    {id:'M1',name:'Slightly more worn',   geo:0.60,fray:0.14,rec:1.08,corner:1.04,cockle:1.04,notch:0,   inset:0.30,
+     note:'between the historical baseline and M2'},
+    {id:'M3',name:'Strongest plausible',  geo:0.70,fray:0.18,rec:1.26,corner:1.15,cockle:1.13,notch:0.50,inset:0.95,
+     note:'upper bound that still reads as the same notebook'},
+    {id:'M4',name:'Just beyond acceptable',geo:0.76,fray:0.21,rec:1.40,corner:1.24,cockle:1.20,notch:0.75,inset:1.40,
+     note:'boundary marker only — not a candidate'},
+  ];
+  VAR.forEach(v=>{
+    v.cond=mCond(v); v.clip=edgeProfile(v.cond);
+    v.over=(v.geo>PL.geometricIntensity+1e-9)||(v.fray>PL.frayChipping+1e-9);
+  });
+  const M0_EXACT = VAR[0].clip===edgeProfile(BASE);
+
+  /* ---- banner: what is deployed vs what is an experiment ---- */
+  {
+    const b=document.getElementById('mBanner');
+    const pill=(cls,txt)=>{const s=document.createElement('span');s.className='pill '+cls;s.textContent=txt;return s;};
+    b.append(
+      pill('prod','CURRENT LAB-NATIVE = M0 = promoted M2'),
+      pill('prod','production geo ceiling '+PL.geometricIntensity.toFixed(2)),
+      pill('prod','production fray ceiling '+PL.frayChipping.toFixed(2)),
+      pill('exp','M3–M4 = LAB EXPERIMENT — exceeds the current production ceiling'),
+      pill(M0_EXACT?'prod':'bad', M0_EXACT
+        ? 'M0 silhouette verified identical to /notebook-lab-native page 1'
+        : 'WARNING — M0 does not match the notebook'),
+      pill('','surface frozen — page-1 face is identical in every candidate'));
+  }
+
+  const state={A:0,B:1,sil:false,edge:false};
+
+  /* ---- modes ---- */
+  {
+    const m=document.getElementById('mModes');
+    const mk=(key,label,hint)=>{
+      const l=document.createElement('label');
+      const c=document.createElement('input');c.type='checkbox';c.checked=state[key];
+      c.onchange=()=>{state[key]=c.checked;render();if(key==='sil')buildStacks();};
+      l.append(c,document.createTextNode(' '+label));l.title=hint||'';return l;
+    };
+    m.append(mk('sil','Silhouette mode (neutral tone — judge the boundary alone)'),
+             mk('edge','Edge-only mode (crop away the interior 80%)'));
+  }
+
+  /* ---- one face: frozen surface + candidate silhouette ---- */
+  function face(v,o){
+    o=o||{};
+    const wrap=document.createElement('div');
+    wrap.className='sheetwrap mfont'+(o.size?' msize':'');
+    if(o.mh) wrap.style.setProperty('--mh',o.mh);
+    const sh=document.createElement('div');sh.className='sheet';
+    sh.style.background=o.bg||(state.sil||o.neutral?NEUTRAL:SURFACE_P1);
+    sh.style.clipPath=v.clip;
+    if(!(state.sil||o.neutral)){
+      const h=document.createElement('h4');h.textContent=COPY.h;
+      const p=document.createElement('p');p.textContent=COPY.p;
+      const a=document.createElement('div');a.className='hand';a.textContent=COPY.hand;
+      sh.append(h,p,a);
+    }
+    wrap.appendChild(sh);return wrap;
+  }
+
+  /* ---- a genuinely re-rendered crop: the sheet is rebuilt at N× size and
+     the window shows the requested fraction. No raster upscaling. ---- */
+  function crop(mk,x0,y0,fw,fh,opt){
+    opt=opt||{};
+    const box=document.createElement('div');box.className='mcrop';
+    box.style.aspectRatio=(3*fw).toFixed(4)+' / '+(4*fh).toFixed(4);
+    if(opt.h){box.style.height=opt.h;box.style.width='auto';}
+    const s=mk();
+    s.classList.remove('msize');s.style.height='auto';s.style.removeProperty('--mh');
+    s.style.width=(100/fw).toFixed(3)+'%';
+    s.style.transform=`translate(${(-x0*100).toFixed(3)}%, ${(-y0*100).toFixed(3)}%)`;
+    box.appendChild(s);
+    if(opt.label){const t=document.createElement('div');t.className='tag';t.textContent=opt.label;box.appendChild(t);}
+    return box;
+  }
+
+  const badge=v=>{
+    const s=document.createElement('span');
+    s.className='pill '+(v.over?'exp':'prod');
+    s.textContent=v.over?`LAB EXPERIMENT · geo ${v.geo.toFixed(2)} · fray ${v.fray.toFixed(2)}`
+                        :`WITHIN PRODUCTION · geo ${v.geo.toFixed(2)} · fray ${v.fray.toFixed(2)}`;
+    return s;
+  };
+  const metaLine=v=>{
+    const d=document.createElement('div');d.className='mlabel';
+    d.textContent=`${v.id} · ${v.name} — recession ×${v.rec.toFixed(2)} · corner ×${v.corner.toFixed(2)}`
+      +` · waviness ×${v.cockle.toFixed(2)} · notch ${v.notch.toFixed(2)} · extent −${v.inset.toFixed(2)}%`
+      +(v.note?` · ${v.note}`:'');
+    return d;
+  };
+
+  /* ---- rail ---- */
+  const railHost=document.getElementById('mRail');
+  function buildRail(){
+    clearHost(railHost);
+    VAR.forEach((v,i)=>{
+      const f=document.createElement('figure');
+      if(i===state.A||i===state.B) f.classList.add('sel');
+      const n=face(v,{size:true,mh:'30vh'});
+      const cap=document.createElement('figcaption');
+      cap.innerHTML=`<div class="cname"><span class="cnum">${v.id}</span>${v.name}</div>`;
+      cap.appendChild(badge(v));
+      f.append(n,cap);
+      f.onclick=()=>{state.B=i;render();};
+      railHost.appendChild(f);
+    });
+  }
+
+  /* ---- compare panes + fore-edge strips ---- */
+  const cmpHost=document.getElementById('mCompare');
+  const stripHost=document.getElementById('mStrips');
+  function pane(slot){
+    const v=VAR[state[slot]];
+    const el=document.createElement('div');el.className='mpane';
+    const head=document.createElement('div');head.className='head';
+    const sel=document.createElement('select');
+    VAR.forEach((x,i)=>{const o=document.createElement('option');o.value=String(i);
+      o.textContent=x.id+' — '+x.name;if(i===state[slot])o.selected=true;sel.appendChild(o);});
+    sel.onchange=()=>{state[slot]=+sel.value;render();};
+    head.append(sel,badge(v));
+    const mk=()=>face(v,{size:true,mh:'76vh'});
+    el.appendChild(head);
+    el.appendChild(state.edge
+      ? crop(mk,0.80,0,0.20,1,{h:'76vh',label:'edge-only · outer 20%'})
+      : mk());
+    const cr=document.createElement('div');cr.className='mcrops';
+    cr.append(crop(mk,0.84,0.005,0.16,0.20,{label:'top-right corner'}),
+              crop(mk,0.84,0.400,0.16,0.20,{label:'mid fore-edge'}),
+              crop(mk,0.84,0.795,0.16,0.20,{label:'bottom-right corner'}));
+    el.appendChild(cr);
+    el.appendChild(metaLine(v));
+    return el;
+  }
+  function strip(slot){
+    const v=VAR[state[slot]];
+    const w=document.createElement('div');
+    w.appendChild(crop(()=>face(v,{size:true,mh:'88vh'}),0.895,0,0.105,1,
+      {h:'88vh',label:v.id+' · outer 10.5%'}));
+
+    w.appendChild(metaLine(v));
+    return w;
+  }
+
+  function render(){
+    clearHost(cmpHost);clearHost(stripHost);
+    cmpHost.append(pane('A'),pane('B'));
+    stripHost.append(strip('A'),strip('B'));
+    buildRail();
+  }
+
+  /* ---- edge coloration only: M0 geometry, M0 surface, warmer cut edge ---- */
+  {
+    const host=document.getElementById('mColor');
+    const {edgeLayers}=window.PaperSurface;
+    [['current edge oxidation',0],['slightly darker / warm',0.30],['moderately darker / warm',0.62]]
+      .forEach(([label,k],i)=>{
+        const bg=k? edgeLayers(k,STOCK.oxidation).join(', ')+', '+SURFACE_P1 : SURFACE_P1;
+        const f=document.createElement('figure');
+        f.appendChild(face(VAR[0],{size:true,mh:'42vh',bg}));
+        const cap=document.createElement('figcaption');
+        cap.innerHTML=`<div class="cname"><span class="cnum">MC${i}</span>${label}</div>`
+          +`<ul class="traits"><li>M0 silhouette, unchanged</li><li>page surface unchanged</li>`
+          +`<li>added edge oxidation ${k.toFixed(2)}</li></ul>`;
+        f.appendChild(cap);host.appendChild(f);
+      });
+  }
+
+  /* ---- accumulated: the same candidate as a 26-sheet block ---- */
+  const stackHost=document.getElementById('mStacks');
+  const stackSpec=v=>({strata:26,seed:5100,familyMix:0,exposure:1,fei:0.7,
+    notebookEdge:Object.assign({},NOTEBOOK_EDGE,{
+      recession:NOTEBOOK_EDGE.recession*v.rec,
+      cornerWear:NOTEBOOK_EDGE.cornerWear*v.corner,
+      cockle:NOTEBOOK_EDGE.cockle*v.cockle}),
+    age:B.AGE, geo:v.geo, humid:0.10, foxing:0.08, bloom:0.05, compress:0.28,
+    notchRate:v.notch?0.08+v.notch*0.20:0, correlated:true, phase:0.32*6.28, phaseVar:0.5,
+    limits:{frayChipping:v.fray, geometricIntensity:v.geo}});
+
+  /* ---- ONE SOURCE OF TRUTH for the M0 / promoted-M2 accumulated block ----
+     The canonical recipe now lives in /shared/m2-accumulated-stack.js, so
+     /paper-lab Section N and /notebook-lab-native consume the SAME object.
+     This helper is a thin adapter over it, and the assertion below proves the
+     shared spec is term-for-term Section M's own stackSpec(VAR[0]). */
+  window.M2_ACCUMULATED = {
+    candidate: VAR[0],
+    spec: o => window.M2Stack.spec(o),
+    make: o => stackEl(window.M2Stack.spec(o)),
+  };
+  {
+    const a=JSON.stringify(stackSpec(VAR[0])), b=JSON.stringify(window.M2Stack.spec());
+    if(a!==b) console.error('[M2] canonical spec drift\nlab :',a,'\nshared:',b);
+    else if(PERF) console.log('[M2] canonical spec verified identical to stackSpec(VAR[0])');
+  }
+
+
+  function buildStacks(){
+    clearHost(stackHost);
+    for(const v of VAR){
+      const row=document.createElement('div');row.className='mstack';
+      const full=Object.assign(stackSpec(v),{flat:state.sil});
+      const near=Object.assign(stackSpec(v),{flat:state.sil,cheap:!state.sil});
+      const a=document.createElement('div');
+      const st=stackEl(full);st.style.height='58vh';st.style.width='auto';
+      a.append(st,metaLine(v));
+      const b=crop(()=>stackEl(near),0.78,0.16,0.22,0.62,{label:v.id+' · fore-edge'});
+      const c=crop(()=>stackEl(near),0.72,0.60,0.28,0.34,{label:v.id+' · bottom-right'});
+      row.append(a,b,c);
+      const head=document.createElement('div');head.style.gridColumn='1/-1';
+      head.appendChild(badge(v));
+      stackHost.append(head,row);
+    }
+  }
+
+  render();
+  buildStacks();
+});
+
+
+
+/* ======================================================================
+   N — FULL-SIZE M2 ACCUMULATED NOTEBOOK
+   ----------------------------------------------------------------------
+   This section deliberately builds NOTHING of its own for the paper block.
+   It calls window.M2_ACCUMULATED.make(), which is Section M's own
+   stackEl(stackSpec(VAR[0])) — the promoted-M2, seed-5100, 26-stratum
+   accumulated block, with every sheet's individual width, height, clip,
+   recession, fray, cluster variation and local extent exactly as the lab
+   generates them. No shared clip, no ladder, no seam hacks, no strata
+   reduction, no cheap:true crop: the normal surface(s.cond) path.
+
+   The only thing this section owns is the CONTAINER: an F3-03 cover, and a
+   paper footprint small enough that the block fits inside it naturally.
+   Shrink the frame, never the sculpture.
+   ==================================================================== */
+defer('N',()=>{
+  const sec=document.getElementById('N');
+  /* force Section M to build if it has not scrolled into view yet, so the one
+     shared M0 definition exists before we consume it */
+  if(!window.M2_ACCUMULATED) window.__paperLabBuild('M');
+  const M2A=window.M2_ACCUMULATED, B=window.PAPERV2, F3=window.F3_COVER;
+  if(!M2A||!B){sec.style.display='none';return;}
+
+  const stage=document.getElementById('nbStage');
+  const TOTAL=12, SHEETS=Math.ceil(TOTAL/2);
+
+  /* ---- boards: the approved F3-03 material, used as the notebook uses it ---- */
+  const boardSkin=left=>{
+    const flat='linear-gradient(160deg, #6e4530, #523324 58%, #3d261a)';
+    if(!F3) return flat;
+    return [
+      `radial-gradient(60% 48% at ${left?70:30}% 70%, rgba(38,25,11,.16), transparent 78%)`,
+      `radial-gradient(124% 116% at 50% 50%, transparent 56%, rgba(24,15,6,.44) 100%)`,
+    ].join(', ')+', '+F3.boardSkin(left?.3:.5);
+  };
+  const pasteSkin=()=>{
+    const flat='linear-gradient(160deg, #6e4530, #523324 58%, #3d261a)';
+    if(!F3) return flat;
+    return 'radial-gradient(124% 116% at 50% 50%, transparent 58%, rgba(20,12,5,.40) 100%), '
+      +F3.boardSkin(.35);
+  };
+
+  const covers=document.createElement('div');covers.className='nbcovers';
+  const bl=document.createElement('div');bl.className='nbboard l';bl.style.background=boardSkin(true);
+  const br=document.createElement('div');br.className='nbboard r';br.style.background=boardSkin(false);
+  covers.append(bl,br);
+  stage.appendChild(covers);
+
+  const inner=document.createElement('div');inner.className='nbinner';
+
+  /* left: the front cover's pastedown — the notebook is open at turn 0, so
+     there is no left-hand paper yet and nothing competes with the block */
+  const hl=document.createElement('div');hl.className='nbhalf';
+  const paste=document.createElement('div');paste.className='nbpaste';
+  paste.style.background=pasteSkin();
+  hl.appendChild(paste);
+
+  /* right: THE object. Section M's block, verbatim, mapped into a paper frame
+     so the wrapper's internal 6% / 7% / 86% sheet region lands on the frame.
+
+     RIGHT-ONLY STACK DIRECTION: Section M's recipe is untouched, but this
+     instance zeroes every source of bottom-edge stepping so all 26 sheets
+     share one perfectly flush bottom line — the stack reads only at the
+     fore-edge:
+       bottomDepth 0  → no per-sheet bottom-extent variation (height inset)
+       lift        0  → no cumulative upward drift of deeper sheets
+       bottomSag   0  → no sag in the bottom-edge silhouette
+     fore-edge geometry (foreDepth, recession, clips, notches) is untouched. */
+  const FLUSH_BOTTOM=(()=>{const base=M2A.spec();return {
+    bottomDepth:0, lift:0,
+    notebookEdge:Object.assign({}, base.notebookEdge, {bottomSag:0})};})();
+  const hr=document.createElement('div');hr.className='nbhalf';
+  const frame=document.createElement('div');frame.className='nbstackframe';
+  const block=M2A.make(FLUSH_BOTTOM);
+  frame.appendChild(block);hr.appendChild(frame);
+
+  /* ---- surface ownership -------------------------------------------------
+     The M2 stack owns geometry (extent, clip, transform, order); the Lab-Native
+     paper system owns surface history. Re-resolve every stratum's background
+     from its PHYSICAL DEPTH in the block — geometry is never touched. */
+  const strata=[...block.querySelectorAll('.stratum[data-stratum]')]
+    .sort((a,b)=>(+b.dataset.stratum)-(+a.dataset.stratum)); // [0] = topmost sheet
+  const N=strata.length;                       // 26
+  const resolveSurface=(el,depth)=>{
+    /* PAPERV2 indexes page FACES; face 2*depth is the recto of physical sheet
+       `depth`, so sheet 0 keeps the approved stained Page-1 face. */
+    el.style.background=el.dataset.seam+', '+B.skin(depth*2,false,N*2);
+  };
+  strata.forEach((el,depth)=>resolveSurface(el,depth));
+
+  /* the top physical stratum IS the resting page: content goes inside it. */
+  const topSheet=strata[0];topSheet.classList.add('nbtop');
+  const content=document.createElement('div');content.className='nbpagecontent';
+  const h=document.createElement('h4');h.textContent=COPY.h;
+  const pp=document.createElement('p');pp.textContent=COPY.p;
+  const hd=document.createElement('div');hd.className='hand';hd.textContent=COPY.hand;
+  content.append(h,pp,hd);
+  topSheet.appendChild(content);
+
+  inner.append(hl,hr);
+  const spine=document.createElement('div');spine.className='nbspine';
+  stage.append(inner,spine);
+
+  /* ---- diagnostics ---- */
+  const geo=document.getElementById('nbGeo');
+  const dbg=document.getElementById('nbDbg'), flatBox=document.getElementById('nbFlat');
+  function buildGeo(){
+    clearHost(geo);
+    const flat=!!(flatBox&&flatBox.checked);
+    for(const tag of ['M · accumulated M0/M2','N · Section N block (flush bottom)']){
+      const pane=document.createElement('div');
+      /* M pane keeps the full recipe (bottom steps visible); N pane uses the
+         same flush-bottom override as the notebook, so the row documents the
+         right-only stack direction change side by side. */
+      pane.appendChild(M2A.make(tag[0]==='N' ? Object.assign({flat},FLUSH_BOTTOM) : {flat}));
+      const l=document.createElement('p');l.className='mlabel';l.textContent=tag;
+      pane.appendChild(l);geo.appendChild(pane);
+    }
+  }
+  if(dbg) dbg.onchange=()=>stage.classList.toggle('nbdbg',dbg.checked);
+  if(flatBox) flatBox.onchange=buildGeo;
+  buildGeo();
+
+  /* ---- provenance: existing values only, read back off the candidate ---- */
+  const v=M2A.candidate, sp=M2A.spec();
+  document.getElementById('nbProv').innerHTML=
+    '<b>STACK SOURCE</b>\n'+
+    'Section M \u2192 Accumulated \u2192 '+v.id+'\n'+
+    v.name+'\n\n'+
+    'strata:     '+sp.strata+'\n'+
+    'seed:       '+sp.seed+'\n'+
+    'recession:  \u00d7'+v.rec.toFixed(2)+'\n'+
+    'corner:     \u00d7'+v.corner.toFixed(2)+'\n'+
+    'waviness:   \u00d7'+v.cockle.toFixed(2)+'\n'+
+    'notch:      '+v.notch.toFixed(2)+'\n'+
+    'extent:     \u2212'+v.inset.toFixed(2)+'%\n\n'+
+    'page surface: Section L \u2014 B / Lab Native (window.PAPERV2)\n'+
+    'cover:        F3-03 '+(F3?F3.name:'\u2014')+' (cover-f3.js)';
+});
+
+
+/* ======================================================================
+   S — SANDBOX
+   ==================================================================== */
+defer('S',()=>{
+  const state={family:'handled',mix:0,fei:1,exposure:.62,notebookAge:1,geo:1,fray:1,
+    nRecession:NOTEBOOK_EDGE.recession,nFray:NOTEBOOK_EDGE.fray,nCorner:NOTEBOOK_EDGE.cornerWear,
+    nCockle:NOTEBOOK_EDGE.cockle,nCompression:NOTEBOOK_EDGE.compression,nBottomSag:NOTEBOOK_EDGE.bottomSag,
+    humid:0,foxing:0,bloom:0,compress:0,cockleNb:0,
+    crease:0,stain:0,smudge:0,notch:0,seed:777};
+  const dials=document.getElementById('dials');
+  const out=document.getElementById('sandboxOut');
+  const D=[
+    ['#','Family — surface history'],
+    ['family','Family',null],
+    ['mix','→ other family',[0,1,.01]],
+    ['fei','Family edge influence',[0,1,.05]],
+    ['#','Exposure — depth into the block'],
+    ['exposure','Exposure',[0,1,.02]],
+    ['notebookAge','Notebook age',[.4,1.6,.05]],
+    ['#','Environment — neighbourhood condition'],
+    ['humid','Humidity',[0,1,.05]],
+    ['foxing','Foxing',[0,1,.05]],
+    ['bloom','Moisture bloom',[0,1,.05]],
+    ['compress','Compression',[0,1,.05]],
+    ['cockleNb','Cockling influence',[0,1,.05]],
+    ['#','Notebook edge — shared by every sheet'],
+    ['nRecession','Recession',[0,1.2,.02]],
+    ['nFray','Fray / chipping',[0,1.2,.02]],
+    ['nCorner','Corner wear',[0,1.2,.02]],
+    ['nCockle','Base cockling',[0,1.2,.02]],
+    ['nCompression','Compression',[0,1,.02]],
+    ['nBottomSag','Bottom sag',[0,1,.02]],
+    ['geo','Geometric intensity',[0,2.5,.05]],
+    ['fray','Fray scale',[0,2.5,.05]],
+    ['#','Rare events — individual sheets only'],
+    ['crease','Crease',[0,1,.1]],
+    ['stain','Stain',[0,1.5,.05]],
+    ['smudge','Smudge',[0,1.5,.05]],
+    ['notch','Notch',[0,1.5,.05]],
+    ['#','Seed'],
+    ['seed','Seed',[1,4000,1]],
+  ];
+  for(const [key,label,rangeSpec] of D){
+    if(key==='#'){
+      const h=document.createElement('div');h.className='dialhead';h.textContent=label;
+      dials.appendChild(h);continue;
+    }
+    const d=document.createElement('div');d.className='dial';
+    const l=document.createElement('label');l.textContent=label;d.appendChild(l);
+    if(!rangeSpec){
+      const sel=document.createElement('select');
+      for(const k of Object.keys(FAMILIES)){
+        const op=document.createElement('option');op.value=k;op.textContent=FAMILIES[k].name;
+        if(state[key]===k)op.selected=true;sel.appendChild(op);}
+      sel.onchange=()=>{state[key]=sel.value;requestRender();};
+      d.appendChild(sel);d.appendChild(document.createElement('output'));
+    }else{
+      const inp=document.createElement('input');inp.type='range';
+      inp.min=rangeSpec[0];inp.max=rangeSpec[1];inp.step=rangeSpec[2];inp.value=state[key];
+      const o=document.createElement('output');o.textContent=state[key];
+      /* labels update on the raw event; the expensive rebuild happens at most
+         once per animation frame instead of once per input event */
+      inp.oninput=()=>{state[key]=parseFloat(inp.value);o.textContent=inp.value;requestRender();};
+      d.appendChild(inp);d.appendChild(o);
+    }
+    dials.appendChild(d);
+  }
+  let pending=false;
+  function requestRender(){
+    if(pending)return;
+    pending=true;
+    requestAnimationFrame(()=>{pending=false;render();});
+  }
+  const edge=()=>({recession:state.nRecession,fray:state.nFray,cockle:state.nCockle,
+    cornerWear:state.nCorner,cornerSpine:NOTEBOOK_EDGE.cornerSpine,
+    compression:state.nCompression,bottomSag:state.nBottomSag});
+  /* mix always blends toward the family the select is NOT on */
+  const famMix=()=> state.family==='handled' ? state.mix : 1-state.mix;
+  const nbh=()=>({humid:state.humid,foxing:state.foxing,bloom:state.bloom,
+    compress:state.compress,cockle:state.cockleNb,phase:h2(state.seed,3)*6.28});
+  function cond(i){
+    return condition({family:state.family,familyMix:famMix(),exposure:state.exposure,
+      familyEdgeInfluence:state.fei,notebookEdge:edge(),
+      notebookAge:state.notebookAge,seed:state.seed+i*23,geoIntensity:state.geo,frayScale:state.fray,
+      neighborhood:nbh(),
+      events:i===1?{crease:state.crease,stain:state.stain,smudge:state.smudge,notch:state.notch}:{}});
+  }
+  function render(){
+    const t0=performance.now();
+    clearHost(out);
+    ZG['S']=[];
+    const c=cond(1);
+    const meta=()=>({Family:c.familyLabel,Exposure:state.exposure,
+      'Family edge influence':state.fei,
+      'Notebook edge':`recession ${state.nRecession} · fray ${state.nFray} · corner ${state.nCorner} · cockle ${state.nCockle}`,
+      'Geometric intensity':state.geo+'×',
+      Environment:`humid ${state.humid} · foxing ${state.foxing} · bloom ${state.bloom} · compress ${state.compress}`,
+      Events:`crease ${state.crease} · stain ${state.stain} · smudge ${state.smudge} · notch ${state.notch}`,
+      Seed:state.seed});
+    const mkStack=()=>stackEl({strata:26,seed:state.seed,family:state.family,
+      familyMix:famMix(),exposure:state.exposure,fei:state.fei,notebookEdge:edge(),
+      age:state.notebookAge,geo:state.geo,humid:state.humid,foxing:state.foxing,
+      bloom:state.bloom,compress:state.compress,
+      foreDepth:4.2+state.compress*3,bottomDepth:2+state.compress*2,lift:3.2,
+      registration:.22,clusterAmp:.34,indivAmp:.11,
+      notchRate:state.notch>0?.12:0,correlated:true,
+      phase:h2(state.seed,3)*6.28,phaseVar:.6});
+    const items=[
+      [()=>sheetEl(cond(1)),'S-01','Sheet with events',[c.familyLabel]],
+      [()=>sheetEl(cond(2)),'S-02','Neighbour, no events',[c.familyLabel]],
+      [()=>sheetEl(cond(2),{neutral:true}),'S-03','Silhouette only',['geometry, no surface']],
+      [mkStack,'S-04','Stack of this condition',['26 strata']],
+    ];
+    for(const [make,num,name,traits] of items){
+      const f=figure(make(),num,name,traits);
+      out.appendChild(f);
+      zoomable(f,'S',{title:num+' — '+name,render:make,meta});
+    }
+    tmark('sandbox render',t0);
+  }
+  render();
+});
+</script>
+</body>
+</html>

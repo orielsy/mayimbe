@@ -1,0 +1,2879 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>G2 Stack Variant — Experimental Lab-Native notebook</title>
+<link rel="stylesheet" href="base.css" />
+
+<!-- FIRST-PAINT COVER MATERIAL.
+     cover-f3.js is a classic script in <head>: it runs before the notebook
+     markup exists, so the selected F3-03 brick surface is already resolved as
+     CSS custom properties by the time anything is paintable. The stylesheet
+     below consumes those properties, so the very first frame the visitor sees
+     is the fully worn F3-03 cover. No fade, no overlay, no delayed reveal —
+     the paint order itself. dressChrome() later recomputes identical skins. -->
+<script src="/shared/paper-stack.js"></script>
+<script src="./cover-f3.js"></script>
+<script>
+(function () {
+  var F3 = window.F3_COVER; if (!F3) return;   // literal gradients stay as no-JS fallback
+  var r = document.documentElement.style;
+  function inside(mirror) {
+    /* NO hinge gradient here. A % gradient baked into the material resolves
+       against whichever box owns it (the cover raster is .cover-sized, the
+       resting pastedown is .leaf-sized), so the same recipe painted two
+       different physical widths and the hinge shadow stepped on handoff.
+       Hinge/contact depth is now one DOM layer (.hingeshade). */
+    return 'radial-gradient(124% 116% at 50% 50%, transparent 58%, rgba(20,12,5,0.400) 100%), ' +
+      F3.boardSkin(.35);
+  }
+
+  function board(left) {
+    return 'radial-gradient(60% 48% at ' + (left ? 70 : 30) + '% 70%, rgba(38,25,11,0.160), transparent 78%), ' +
+      'radial-gradient(124% 116% at 50% 50%, transparent 56%, rgba(24,15,6,0.440) 100%), ' +
+      F3.boardSkin(left ? .3 : .5);
+  }
+  r.setProperty('--f3-cover',    F3.coverSkin(1));
+  r.setProperty('--f3-inside',   inside(false));
+  r.setProperty('--f3-inside-m', inside(true));
+  r.setProperty('--f3-board-l',  board(true));
+  r.setProperty('--f3-board-r',  board(false));
+})();
+</script>
+<style>
+  /* PRESENTATION MODE — chrome hidden, notebook as large as comfortably fits.
+     Geometry is untouched: the stage keeps its 3/2 box and every internal
+     measurement is relative to it, so stack, turns, cover and paper system
+     scale as one. */
+  header, .hud { display: none !important; }
+  body { justify-content: center; padding: 12px 12px 24px; }
+  .controls { margin-top: 96px; }
+  .stackctl {
+    display: flex; gap: 22px; margin-top: 14px;
+    font: 12px/1.6 ui-monospace, monospace; opacity: .8;
+    align-items: center;
+  }
+  .stackctl label { display: flex; align-items: center; gap: 8px; }
+  .stackctl input[type=range] { width: 140px; accent-color: #d9b98a; }
+  .stackctl span { min-width: 4ch; text-align: right; opacity: .7; }
+  .stage {
+    position: relative;
+    width: min(94vw, calc((100vh - 230px) * 1.5), 1500px);
+    aspect-ratio: 3/2;
+    touch-action: none;
+    margin-inline: auto;
+  }
+
+
+  /* ---------------- book body ---------------- */
+  /* --openx: 0 = shut, 1 = flat open. Driven per-frame from the cover turn
+     (updateChrome). Everything on the left half is *revealed* by it, spine
+     outward, so nothing can pop into existence ahead of the swinging board. */
+  .book { position: absolute; inset: 0; --openx: 0; }
+
+  /* TEMP DIAGNOSTIC: board overhang frozen at the closed value so the back
+     surface does NOT grow when the notebook opens. For comparison only. */
+  .book { --boardout: 1.5px; }
+
+  /* The cast shadow is its OWN element, never clipped. A clipped box-shadow
+     shows a hard cut where the clip edge is, which is what made the left side
+     look unblurred while the cover was swinging. Instead the shadow slab's
+     left edge is *moved* by --openx, so its 70px blur always feathers. */
+  .deskshadow {
+    position: absolute;
+    top: calc(-1 * var(--boardout)); bottom: calc(-1 * var(--boardout));
+    right: calc(-1 * var(--boardout));
+    left: calc(-1 * var(--boardout) + (1 - var(--openx)) * 50%);
+    border-radius: 10px; background: #2a1f12;
+    box-shadow: 0 34px 70px rgba(0,0,0,.62), 0 12px 30px rgba(0,0,0,.45);
+  }
+
+  /* THE BOARDS ARE RIGID OBJECTS.
+     Back cover: permanently under the page block on the right half — exactly
+     where it sits on a real desk, closed or open.
+     Front board: the same slab mirrored on the left. It does not exist on the
+     desk until the cover has been laid down onto it, so it is revealed by
+     --openx, tracking the leading edge of the swinging cover mesh. */
+  .backcover, .frontboard {
+    position: absolute;
+    top: calc(-1 * var(--boardout)); bottom: calc(-1 * var(--boardout));
+    background: var(--f3-board-r, linear-gradient(160deg, #6e4530, #523324 58%, #3d261a));
+    box-shadow: 0 2px 0 #1d100a inset;
+  }
+  .backcover  { left: calc(50% - 7px); right: calc(-1 * var(--boardout)); border-radius: 2px 10px 10px 2px; }
+  .frontboard {
+    left: calc(-1 * var(--boardout)); right: calc(50% - 7px); border-radius: 10px 2px 2px 10px;
+    background: var(--f3-board-l, linear-gradient(200deg, #6e4530, #523324 58%, #3d261a));
+    clip-path: inset(-40px -40px -40px calc((1 - var(--openx)) * 100%));
+  }
+
+  /* ---------------- THE RESTING OPEN FRONT COVER ----------------
+     ONE physical object, two renderers. While the cover swings, the mesh owns
+     it (snapCoverBack, rasterised at the FULL .cover box). At rest it is this
+     element — and it is the same rectangle, not a second interpretation:
+     layoutOpenCover() mirrors the measured live .cover rect about the hinge
+     (openCover.left = 2*hingeX - cover.right), so the DOM box at rest is the
+     WebGL box at p = 1 to the pixel.
+
+     It is NOT a leaf. The old model painted a .leaf-sized "pastedown" over a
+     separately composed .frontboard, so a strip of board became newly exposed
+     around it the instant WebGL stopped painting — that was the outer-left
+     border appearing on settle and disappearing on close.
+
+     It uses the same inside-cover recipe as snapCoverBack (mirrored, exactly
+     as the shader mirrors the back face in U), and it stays for the whole
+     session: every sheet flipped to the left lands on top of it. */
+  .opencover {
+    position: absolute; z-index: 0;
+    border-radius: 8px 2px 2px 8px;
+    background: var(--f3-inside-m, linear-gradient(200deg, #6e4530, #523324 60%, #3d261a));
+    box-shadow: inset 0 0 0 1px rgba(255,225,175,.08);
+    /* revealed spine-outward under the swinging board, exactly like the
+       frontboard — never a state-triggered appearance */
+    clip-path: inset(-40px -40px -40px calc((1 - var(--openx)) * 100%));
+    pointer-events: none;
+  }
+
+
+
+
+  .spread {
+    position: absolute; inset: 0;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    /* DIAGNOSTIC ONLY: layout container, not a physical surface. The opaque
+       brown backing popped across cover/page animations because it masked the
+       real frontboard/backcover/crease underneath. Transparent exposes the
+       physical hierarchy. Geometry (padding, gap, inset, radius, clip-path)
+       is unchanged. */
+    background: transparent;
+    border-radius: 6px; padding: 7px;
+    clip-path: inset(-40px -40px -40px calc((1 - var(--openx)) * 50%));
+  }
+
+  .half { position: relative; }
+
+  /* contact shadow: the active leaf sits ON the stack, it does not float.
+     Lives on the half (below the leaf, z-index 0) so it can never bleed into
+     the rasterised leaf texture and desynchronise the handoff. */
+  .half::before {
+    content: ''; position: absolute; inset: 0 var(--papershrinkx, 0px) var(--papershrinky, 0px) 0;
+    z-index: 0; border-radius: 3px;
+    box-shadow: 0 3px 7px rgba(0,0,0,.30), 0 0 0 1px rgba(74,60,38,.40);
+    pointer-events: none;
+  }
+  .half.left::before { inset: 0 0 var(--papershrinky, 0px) var(--papershrinkx, 0px); }
+
+  /* PAPER BLOCK SHRINK. The cover is the hard envelope and never moves; the
+     paper block gives back a couple of CSS px at the fore edge and the bottom
+     so the measured reveal — and therefore the per-sheet step — grows without
+     a single sheet reaching further out. Spine edges are untouched, so the
+     hinge, gutter and mesh axis are unaffected. */
+  .leaf {
+    position: absolute; inset: 0 var(--papershrinkx, 0px) var(--papershrinky, 0px) 0; z-index: 2;
+    background: var(--lift-r), var(--paper);
+    color: var(--ink);
+    padding: 6% 7%; overflow: hidden; border-radius: 3px;
+    user-select: text;
+  }
+  /* page number + paper-concept tag, bottom outer corner, subtle so it reads
+     as notebook furniture and stays identifiable for wear tuning */
+  .pagenum {
+    position: absolute; bottom: 4.2%;
+    font-size: 9.5px; line-height: 1; letter-spacing: .04em;
+    font-style: italic; opacity: .5; pointer-events: none; user-select: none;
+  }
+  /* ---------------- resting page lift near the binding ----------------
+     A bound sheet is never flat into the gutter: it drops into the spine,
+     rises over a short ridge, then settles. We render that as *shading only*,
+     never geometry.
+
+     Why shading and not a real DOM curve: the WebGL texture is a raster of
+     this exact element, so a painted curve is carried across the handoff for
+     free and is byte-identical at p=0 and p=1. A CSS 3D/clip deformation
+     would move pixels that the mesh (which is planar at rest, pinned to z=0)
+     does not move — that is precisely the "curved DOM -> flat GPU page" pop
+     the brief forbids. Restraint wins: the outer ~78% stays flat, all of the
+     curvature reads in the inner 22%. */
+  :root {
+    --lift-r: linear-gradient(90deg,
+      rgba(38,26,10,.22) 0%,
+      rgba(38,26,10,.145) 1.6%,
+      rgba(38,26,10,.055) 4.2%,
+      rgba(255,249,233,.30) 8.5%,
+      rgba(255,249,233,.115) 14%,
+      rgba(255,249,233,.028) 18%,
+      rgba(255,249,233,0) 22%);
+    --lift-l: linear-gradient(270deg,
+      rgba(38,26,10,.22) 0%,
+      rgba(38,26,10,.145) 1.6%,
+      rgba(38,26,10,.055) 4.2%,
+      rgba(255,249,233,.30) 8.5%,
+      rgba(255,249,233,.115) 14%,
+      rgba(255,249,233,.028) 18%,
+      rgba(255,249,233,0) 22%);
+  }
+  /* the left leaf is the same sheet seen from the other side: mirror the lift
+     (the WebGL back face mirrors its texture in U for exactly this reason) */
+  .half.left .leaf { background: var(--lift-l), var(--paper);
+                     inset: 0 0 var(--papershrinky, 0px) var(--papershrinkx, 0px); }
+
+  /* the offscreen stunt double must be able to take EITHER orientation: each
+     page is rasterised exactly as it rests in the DOM (odd pages live on the
+     left half), because the mesh presents the raster un-mirrored on screen at
+     both p=0 and p=1 */
+  .leaf.facing-left { background: var(--lift-l), var(--paper); }
+
+  /* There is no "pastedown leaf" any more. When no real paper sheet rests on
+     the left (turned = 0) the left leaf is simply absent and the inside of the
+     front cover — .opencover, one full-cover object — is what the visitor
+     sees. visibility (not display) so layout, and therefore hinge measurement,
+     is untouched. */
+  .leaf.absent { visibility: hidden; }
+  /* the contact shadow belongs to a sheet lying on the block; with no sheet
+     there is nothing to cast it, and its 1px ring was drawing a leaf-sized
+     rectangle onto the open cover */
+  .book.noleft .half.left::before { display: none; }
+
+  /* diagnostics: strip the lift entirely (textures are rebuilt on toggle) */
+  body.no-lift .leaf, body.no-lift .half.left .leaf,
+  body.no-lift .leaf.facing-left { background: var(--paper); }
+
+
+  /* ---------------- paper stacks (passive DOM, never WebGL) ----------------
+     PROMOTED FROM /paper-lab: the fore-edge stack architecture. The model
+     itself lives in /shared/paper-stack.js, so the lab and production cannot
+     diverge. See buildStacks() for the production recipe and its two hard
+     ceilings (fray <= 0.12, geometric intensity <= 0.55).
+     Tone, yellowing and edge dirt are assigned PER LAYER in JS (deterministic,
+     hashed from the layer index) so the block reads as many individual sheets
+     rather than a striped ramp.
+
+     PHYSICAL Z-ORDER (explicit, documented — not DOM order luck):
+       0  .deskshadow          the shadow the whole book casts on the desk
+       0  .backcover/.frontboard  rigid boards
+       0  .opencover           the resting inside of the front board
+       1  .blockedge           the cut fore-edge of the page block
+       1  .stack .stratum     the bound page block, INSIDE its board
+       2  .leaf                the resting sheet on top of the block
+       3  .crease              gutter contact shading
+       5  #gl                  the moving WebGL sheet or cover
+       6  .hingeshade          spine contact shadow, on top of whoever owns the board
+
+      DEPTH IS NOT A FAN, AND IT IS NOT A PAINTED STRIP EITHER. Every stratum
+      is registered at the BOUND edge; what differs between sheets is their
+      physical EXTENT — where each fore edge and bottom edge actually end —
+      plus that sheet's own edge profile. Thickness is therefore real layered
+      geometry, which is why the artificial .blockedge strip is gone: one real
+      irregular fore edge, not a real one plus an unrelated straight one.
+
+      The block box reaches BLOCK_W past the leaf's fore edge and BLOCK_H past
+      its bottom, into the board margin; a full-extent sheet fills that band and
+      shorter sheets recede from it. The left half is the SAME physical model,
+      mirrored with scaleX(-1) — no separate wear logic for the left stack.
+
+      Scale invariance: --u is 1% of the rendered block width (container
+      query unit), so every seam and cut-edge band keeps its proportions when
+      the notebook resizes. */
+   .stack {
+     position: absolute; inset: 0; z-index: 1;
+     container-type: inline-size; --u: 1cqw;
+     pointer-events: none;
+   }
+   /* the block box starts at the (shrunken) leaf edge and reaches BLOCK_W /
+      BLOCK_H into the board margin — never past the board. */
+   .half.right .stack { right: calc(var(--papershrinkx, 0px) - var(--blockw, 7px));
+                        bottom: calc(var(--papershrinky, 0px) - var(--blockh, 5px)); }
+   .half.left  .stack { left:  calc(var(--papershrinkx, 0px) - var(--blockw, 7px));
+                        bottom: calc(var(--papershrinky, 0px) - var(--blockh, 5px));
+                        transform: scaleX(-1); }
+   .stratum {
+     position: absolute; top: 0; left: 0; border-radius: 2px;
+     will-change: width, height, opacity;
+   }
+   /* the sheet's own face, inset from the stratum by the contact-seam width.
+      The umber left showing around it IS the seam, and it follows the sheet's
+      real irregular edge instead of a straight line laid over a polygon. */
+    .stratumface {
+      position: absolute; top: 0; left: 0; right: 0.65px; bottom: 0;
+      border-radius: 2px;
+    }
+
+
+
+
+
+  /* ---------------- hinge / contact shading (STRUCTURE, not material) ------
+     The compressed darkness where the inside front board meets the binding.
+     It used to be a %-based gradient inside the inside-cover material, so it
+     was rasterised into the WebGL cover texture at .cover width and painted in
+     the resting DOM at .leaf width — two different physical widths for the
+     same shadow, which is what stepped at the endpoint.
+
+     Now it is ONE DOM layer for the whole motion: anchored to the spine,
+     sized in CSS px, never part of any texture, revealed spine-outward by
+     --openx exactly like the board and the page block, and therefore already
+     at its final width, position and darkness on the last animated frame.
+     settle() changes nothing here, and there is no transition to start.
+     It stops where .crease begins so the two never double-darken. */
+  .hingeshade {
+    position: absolute; top: 7px; bottom: 7px;
+    right: calc(50% + 5px);
+    width: clamp(26px, 7.5%, 62px);
+    /* ABOVE the GL canvas (z 5) on purpose: the board underneath may be the
+       DOM pastedown or the WebGL mesh, but this contact shadow lies on top of
+       whichever one is presenting the board, so it never changes hands. */
+    pointer-events: none; z-index: 6;
+
+    opacity: var(--openx);
+    clip-path: inset(0 0 0 calc((1 - var(--openx)) * 100%));
+    background: linear-gradient(270deg,
+      rgba(20,12,5,.46),
+      rgba(20,12,5,.20) 22%,
+      rgba(20,12,5,.06) 58%,
+      rgba(20,12,5,0) 100%);
+  }
+
+  /* binding channel — narrower and softer than before: the page lift now does
+     most of the "bound" work, so the gutter no longer needs to read as a black
+     slot. Still strictly inside the gutter so it can never shade a leaf pixel. */
+  .crease {
+
+    position: absolute; top: 7px; bottom: 7px; left: 50%; width: 10px;
+    transform: translateX(-50%); pointer-events: none; z-index: 3;
+    opacity: var(--openx);
+
+    /* a valley, not a slot: shadow either side of a faint warm highlight where
+       the two sheets meet and catch the light */
+    background:
+      linear-gradient(90deg,
+        rgba(20,14,7,.00) 0%,
+        rgba(20,14,7,.55) 26%,
+        rgba(20,14,7,.62) 40%,
+        rgba(146,118,80,.34) 50%,
+        rgba(20,14,7,.62) 60%,
+        rgba(20,14,7,.55) 74%,
+        rgba(20,14,7,.00) 100%);
+  }
+
+
+  /* ---------------- front cover ----------------
+     WEAR IS BUILT FROM THE MATERIAL, NOT FROM ONE OVERLAY.
+     Layer order (top -> bottom): rubbed highlights where hands hold the board,
+     tonal mottling in the dye, micro-scuffs, leather grain, spine wear,
+     perimeter darkening, then the base dye gradient. Everything is a
+     background-image layer, so `inlineComputed` carries it into the SVG
+     raster verbatim — no pseudo-elements, no masks, no blend modes, which
+     is what keeps the DOM -> WebGL handoff byte-identical. */
+   .cover {
+     position: absolute; inset: -7px -7px -7px 0; z-index: 4;
+     border-radius: 2px 8px 8px 2px;
+     /* The real F3-03 surface, computed in <head> before this markup can be
+        painted. The literal gradient is only the no-JS emergency fallback. */
+     background: var(--f3-cover, linear-gradient(160deg, #6e4530, #523324 58%, #3d261a));
+    color: #e9d8b6; display: flex; align-items: center; justify-content: center;
+    font: 600 clamp(16px, 3vw, 28px)/1.2 Georgia, serif; letter-spacing: .26em;
+    /* INSET ONLY. The board-thickness stack that used to live here as outer
+       box-shadow now belongs to .coveredge, which exists for the whole motion —
+       otherwise the thickness vanished the moment the mesh took over and
+       reappeared on the settle frame. */
+    box-shadow: inset 0 0 0 1px rgba(255,225,175,.10), inset 0 -40px 60px rgba(0,0,0,.28);
+
+    cursor: grab;
+  }
+  /* the stamped title has aged with the board. Per-letter foil loss is set
+     by titleHTML() (lab-frozen 'partial', seed 7); this rule must NOT apply a
+     blanket opacity or shadow, or it flattens that variation back out. */
+  .cover .title {
+    color: #d8bb8b;
+    padding-left: .26em;
+  }
+  .cover .title span { display: inline-block; }
+  /* inner face of the front cover (the paste-down the visitor sees once open) */
+  .cover.inside {
+    /* F3-03 inside face, computed before first paint (see head). The broad
+       inset vignette that used to live here was baked into snapCoverBack by
+       the snapshot and had no equivalent in the resting DOM composition,
+       which is what flipped at the endpoint. Depth now comes from the
+       material's own hinge darkening + perimeter falloff, which both
+       renderers reproduce identically. */
+    background: var(--f3-inside, linear-gradient(200deg, #6e4530, #523324 60%, #3d261a));
+    box-shadow: inset 0 0 0 1px rgba(255,225,175,.08);
+  }
+  .book:not(.closed) .cover, .book.coverflight .cover { visibility: hidden; }
+
+  /* ---------------- continuous cover shadow ----------------
+     One physical shadow, one owner, for the entire cover motion. The renderer
+     changes hands (DOM -> WebGL -> DOM); these layers never do, so there is no
+     settle frame on which a shadow can appear, vanish or flip.
+
+     .covercast  the cast/contact shadow the swinging board throws onto the
+                 page block. Its footprint is the board's *projected* width
+                 (cos of the swing), so it collapses to a contact shadow at
+                 both endpoints and is at its softest and most separated at the
+                 raised middle.
+     .coveredge  the rigid board thickness that used to be baked into the
+                 resting .cover box-shadow. Same projection, mirrored past
+                 vertical, never blurred.
+
+     Both are driven per frame by updateCoverShadow() from the same normalised
+     cover progress the mesh uses — no CSS transition, nothing that could start
+     only after a state change. .deskshadow stays what it always was: the whole
+     notebook's shadow on the desk, and nothing to do with the swinging cover. */
+  .covercast, .coveredge {
+    position: absolute; z-index: 3; pointer-events: none;
+    border-radius: 3px 9px 9px 3px;
+    will-change: transform, filter, opacity;
+  }
+  .covercast { background: #150d06; }
+  .coveredge { background: transparent; }
+  /* ---------------- bound-edge seam backing ----------------
+     The swinging board is a WebGL mesh, and a mesh has an antialiased rim: at
+     its bound (spine-side) edge roughly half a pixel of the column underneath
+     shows through. Underneath, on the right half, is the page block — near
+     white against a dark brick board — so that half pixel read as a bright
+     vertical line for the first frames of opening and the last of closing.
+
+     This is a backing, not a new object: a 3px board-toned strip pinned to the
+     bound edge of the projected board, above the page block and below the GL
+     canvas, so the mesh's rim blends into board instead of paper. It exists
+     only while the board is still over the right-hand block and enough of it
+     is projected to hide the strip completely. */
+  .coverseam {
+    position: absolute; z-index: 3; pointer-events: none;
+    background: #55372a;
+    will-change: opacity;
+  }
+
+  body.shadowsolo .leaf, body.shadowsolo .stack,
+  body.shadowsolo .cover, body.shadowsolo .crease { visibility: hidden; }
+
+  /* (the closed silhouette is produced by --openx = 0, not by a state class) */
+
+
+  /* the GL canvas overscans the stage: mid-turn the sheet/cover lifts toward
+     the camera and would otherwise be clipped by the stage box. The overscan
+     must cover the perspective-enlarged projected height: a 600px cover lifted
+     ~433px toward the camera (dist=1560) projects to ~830px tall, so 14% (768px)
+     was too small and clipped the top/bottom during cover open/close. 24%
+     (888px) clears it with margin. The camera fov is derived from canvas height
+     so 1 world unit stays 1 CSS px at z=0 regardless of overscan size — the
+     notebook itself does not resize, we only see more periphery. */
+  canvas#gl {
+    position: absolute; inset: -24%; width: 148%; height: 148%;
+    z-index: 5;
+    pointer-events: none;              /* DOM keeps the pointer; GL only paints */
+    /* Hidden with opacity, NOT visibility/display: the canvas must stay in the
+       compositor from load. Promoting a canvas this size for the first time
+       costs ~150 ms, and that cost used to land on the frame that starts the
+       cover turn — the click felt dead, then the swing began late.
+       opacity flips instantly (no transition), so the swap is still hard. */
+    opacity: 0;
+    will-change: opacity;
+    transform: translateZ(0);
+  }
+  canvas#gl.active { opacity: 1; }
+  .grab { position: absolute; top: 0; height: 100%; width: 12%; cursor: grab; z-index: 6; }
+  .grab.next { right: 0; } .grab.prev { left: 0; }
+  .book.closed ~ .grab { display: none; }
+  body.turning .leaf { user-select: none; }
+
+
+  /* offscreen stunt double used to rasterise a page at the real leaf size */
+  #snapHost {
+    position: fixed; left: -10000px; top: 0;
+    visibility: hidden; pointer-events: none;
+  }
+
+  /* ---- dev-only alignment diagnostics (?debug=1 or press D) ---- */
+  #dbg {
+    display: none; font: 12px/1.6 ui-monospace, monospace;
+    background: #1b1610; border: 1px solid #4a3d2e; border-radius: 8px;
+    padding: 10px 14px; color: #e8e0d2; max-width: 900px; width: min(92vw, 900px);
+  }
+  body.debug #dbg { display: block; }
+  #dbg .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  #dbg h3 { margin: 0 0 6px; font: 12px/1.4 ui-monospace, monospace; opacity: .6; letter-spacing: .08em; }
+  #dbg label { display: inline-flex; gap: 5px; align-items: center; }
+  #dbg input[type=range] { width: 160px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>G2 Stack Variant — Experimental</h1>
+  <p><a href="/notebook-lab-native" style="color:#c8b79a">Lab Native — Frozen</a> · <strong>G2 Stack Variant — Experimental</strong></p>
+  <p>Twelve pages of draft Antony Santos copy (6 sheets). The spread is real HTML. Grabbing a gutter rasterises the <em>actual rendered leaf</em> (computed-style clone → SVG foreignObject), hands the turn to a curling three.js mesh calibrated 1&nbsp;world&nbsp;unit&nbsp;=&nbsp;1&nbsp;CSS&nbsp;px, then hands the finished state back to DOM.</p>
+</header>
+
+<div class="stage" id="stage">
+  <div class="book closed" id="book">
+    <div class="deskshadow"></div>
+    <div class="frontboard"></div>
+    <div class="backcover"></div>
+    <!-- the resting inside of the front cover: the SAME rectangle the WebGL
+         cover occupies at p = 1 (see layoutOpenCover). It lives here, above
+         the boards and below the spread, so every sheet later flipped onto
+         the left lands on top of it — as it physically must. -->
+    <div class="opencover" id="opencover"></div>
+
+    <div class="spread" id="spread">
+      <div class="half left">
+        <div class="stack" id="stackL"></div>
+        <div class="leaf" id="leafL"></div>
+      </div>
+      <div class="half right">
+        <div class="stack" id="stackR"></div>
+        <div class="leaf" id="leafR"></div>
+
+        <div class="cover" id="cover"><span class="title">CUADERNO</span></div>
+      </div>
+      <!-- CONTINUOUS COVER SHADOW SYSTEM (see updateCoverShadow).
+           These two layers are DOM for the whole motion — closed, mid-swing
+           under WebGL, and open — so the renderer can change hands without the
+           shadow changing hands. They sit above the leaves (z 2) and below the
+           resting cover (z 4). -->
+      <div class="covercast" id="covercast"></div>
+      <div class="coveredge" id="coveredge"></div>
+      <div class="coverseam" id="coverseam"></div>
+
+    </div>
+
+
+    <!-- structural hinge/contact shading: DOM for the whole motion, so the
+         renderer can change hands without this shadow changing hands -->
+    <div class="hingeshade"></div>
+    <div class="crease"></div>
+
+  </div>
+  <canvas id="gl"></canvas>
+  <div class="grab next" id="grabNext"></div>
+  <div class="grab prev" id="grabPrev"></div>
+</div>
+
+
+<div class="controls">
+  <button id="prev">◀ Back</button>
+  <button id="next">Forward ▶</button>
+</div>
+<div class="stackctl">
+  <label>compression <input type="range" id="ctlCompress" min="0" max="1" step="0.01" value="0.45" /><span id="ctlCompressV">0.45</span></label>
+  <label>recession <input type="range" id="ctlRecession" min="0" max="3" step="0.05" value="1.20" /><span id="ctlRecessionV">1.20</span></label>
+  <label>visible layer spacing <input type="range" id="ctlShrink" min="0" max="32" step="0.25" value="10" /><span id="ctlShrinkV">10.00</span></label>
+</div>
+<div class="stackctl">
+  <label>strata <input type="range" id="ctlLayers" min="4" max="12" step="1" value="6" /><span id="ctlLayersV">6</span></label>
+  <label>seam width <input type="range" id="ctlSeamW" min="0.3" max="1.2" step="0.01" value="0.65" /><span id="ctlSeamWV">0.65</span></label>
+  <label>seam darkness <input type="range" id="ctlSeamG" min="0.8" max="5.2" step="0.02" value="5.20" /><span id="ctlSeamGV">5.20</span></label>
+  <label>cut contrast <input type="range" id="ctlCutG" min="0.8" max="4" step="0.02" value="4.00" /><span id="ctlCutGV">4.00</span></label>
+  <label><input type="checkbox" id="ctlSeamsOnly" /> seams only</label>
+</div>
+<div class="hud" id="hud"></div>
+
+
+<div id="dbg">
+  <h3>ALIGNMENT DIAGNOSTICS — dev only</h3>
+  <div class="row">
+    <button id="dbgPose0">hold @ p=0 (front == right leaf)</button>
+    <button id="dbgPose1">hold @ p=1 (back == left leaf)</button>
+    <button id="dbgCover">hold cover mid-open</button>
+    <button id="dbgRelease">release</button>
+  </div>
+  <div class="row" style="margin-top:8px">
+    <label>p <input type="range" id="dbgP" min="0" max="1" step="0.01" value="0" /></label>
+    <label><input type="checkbox" id="dbgDom" checked /> DOM visible</label>
+    <label><input type="checkbox" id="dbgGl" checked /> WebGL visible</label>
+    <label>GL opacity <input type="range" id="dbgOp" min="0" max="1" step="0.05" value="1" /></label>
+    <label><input type="checkbox" id="dbgFlat" /> flatten (no curl)</label>
+  </div>
+  <div class="row" style="margin-top:8px">
+    <span style="opacity:.6">shadow continuity:</span>
+    <span id="shadowHoldBtns"></span>
+    <button data-sp="live">live</button>
+    <label><input type="checkbox" id="dbgShadowSolo" /> shadows only</label>
+  </div>
+  <div class="row" style="margin-top:8px">
+    <span style="opacity:.6">left layering (solo):</span>
+    <select id="dbgLayerSolo">
+      <option value="">all</option>
+      <option value="#opencover">opencover</option>
+      <option value="#coveredge">coveredge</option>
+      <option value="#stackL">stackL</option>
+      <option value="#leafL">leafL</option>
+    </select>
+  </div>
+
+  <div class="row" style="margin-top:8px">
+    <span style="opacity:.6">physicality:</span>
+    <label><input type="checkbox" id="dbgLift" checked /> resting curvature</label>
+    <label><input type="checkbox" id="dbgThick" checked /> paper thickness</label>
+    <label><input type="checkbox" id="dbgIrr" checked /> edge irregularity</label>
+  </div>
+  <div class="row" style="margin-top:8px">
+    <span style="opacity:.6">wear:</span>
+    <label><select id="dbgWear">
+      <option value="0">off</option>
+      <option value="1" selected>current</option>
+      <option value="1.7">stronger</option>
+    </select></label>
+    <label><input type="checkbox" id="wGrain" checked /> paper grain</label>
+    <label><input type="checkbox" id="wEdges" checked /> edge aging</label>
+    <label><input type="checkbox" id="wDamage" checked /> random damage</label>
+    <label><input type="checkbox" id="wCover" checked /> cover wear</label>
+  </div>
+
+
+  <div class="row" style="margin-top:8px">
+    <span style="opacity:.6">WebGL render DPR:</span>
+    <label><select id="dbgGlDpr">
+      <option value="1">1.00</option>
+      <option value="1.25" selected>1.25</option>
+      <option value="1.5">1.50</option>
+      <option value="2">2.00</option>
+    </select></label>
+    <button id="dbgGlReport">report GL resolution</button>
+  </div>
+
+  <div class="row" style="margin-top:8px; opacity:.7" id="dbgOut"></div>
+  <div class="row" style="margin-top:8px; opacity:.7; white-space:pre" id="dbgPerf"></div>
+</div>
+
+<div id="snapHost">
+  <div style="position:relative"><div class="leaf" id="snapLeaf"></div></div>
+  <div style="position:relative"><div class="cover" id="snapCover"><span class="title">CUADERNO</span></div></div>
+  <div style="position:relative"><div class="cover inside" id="snapCoverBack"></div></div>
+</div>
+
+
+
+
+<script src="./content.js"></script>
+<script src="/shared/paper-surface.js"></script>
+<script src="./paper-system-v2.js"></script>
+
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.169.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+const pages = window.NOTEBOOK_PAGES;
+const SHEETS = pages.length / 2;
+let turned = 0;                  // sheets flipped; spread shows pages [2t-1, 2t]
+let turning = null;              // {kind:'paper'|'cover', dir, sheet, p, dragging, ...}
+
+/* ---------- notebook state ------------------------------------------
+   CLOSED_FRONT -> the book block sits entirely right of the spine and the
+   front cover caps it. OPEN -> the normal spread. CLOSED_BACK is not
+   implemented in this iteration (documented in the README).
+   Compromise: in CLOSED_FRONT the *same* spread markup is used and simply
+   clipped to the right of the spine, rather than physically relocating the
+   book block. Visually identical, and it keeps the page-turn geometry —
+   which is measured from the live leaf rect — completely untouched.
+   -------------------------------------------------------------------- */
+const CLOSED_FRONT = 'CLOSED_FRONT', OPEN = 'OPEN';
+let state = CLOSED_FRONT;
+
+/* ---------- DOM resting state (the single source of truth) ---------- */
+const stage = document.getElementById('stage');
+const book = document.getElementById('book');
+const cover = document.getElementById('cover');
+const leafL = document.getElementById('leafL');
+const leafR = document.getElementById('leafR');
+const backcover = document.querySelector('.backcover');
+const stackL = document.getElementById('stackL');
+const stackR = document.getElementById('stackR');
+const openCoverEl = document.getElementById('opencover');
+const covercast = document.getElementById('covercast');
+const coveredge = document.getElementById('coveredge');
+const coverseam = document.getElementById('coverseam');
+
+const spreadEl  = document.getElementById('spread');
+
+
+const snapLeaf = document.getElementById('snapLeaf');
+const snapCover = document.getElementById('snapCover');
+const snapCoverBack = document.getElementById('snapCoverBack');
+const hud = document.getElementById('hud');
+const btnNext = document.getElementById('next');
+const btnPrev = document.getElementById('prev');
+
+function pageHTML(p, idx) {
+  if (!p) return '';   // paste-down: bound board material, no page furniture
+  const extra = p.kind === 'sketch' ? '<div class="ph-sketch"></div>'
+    : p.kind === 'photo' ? '<div class="ph-photo"></div><p style="font-family:cursive;font-size:12px">— handwritten annotation —</p>'
+    : p.kind === 'clipping' ? '<div class="ph-clip">clipping placeholder</div>' : '';
+  /* small footer: page number + paper concept so wear types can be reviewed
+     and eliminated/tuned page by page. idx identifies the physical sheet. */
+  let footer = '';
+  if (idx != null) {
+    const r = window.PAPERV2 && PAPERV2.label(idx, (window.NOTEBOOK_PAGES || []).length);
+    /* outer corner of the face as it RESTS: odd pages sit on the left half */
+    const side = idx % 2 ? 'left:7%' : 'right:7%';
+    footer = `<footer class="pagenum" style="${side}">p.${idx + 1}${r ? ' · ' + r : ''}</footer>`;
+  }
+  return `<article class="page-content"><h2>${p.title}</h2><p>${p.body}</p>${extra}</article>${footer}`;
+}
+/* ======================================================================
+   DETERMINISTIC EDGE IRREGULARITY
+   ----------------------------------------------------------------------
+   Real stacked paper is hand-cut: corners are never all the same radius and
+   no two sheets are identical. We express that as a tiny per-SHEET variation
+   of the four corner radii (~2.1–3.9px against a 3px nominal).
+
+   Per SHEET, not per page: a physical sheet has ONE silhouette, so its front
+   and back faces must agree — otherwise the mesh mask at p=0 would not match
+   the DOM page it resolves to at p=1.
+
+   Deterministic (hashed from the sheet index), never per-frame: the edge
+   cannot shimmer, and screenshots are reproducible.
+   ==================================================================== */
+const NOMINAL_R = 3;
+function hash1(n) { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); }
+let irregular = true;   // diagnostics toggle
+let thickness = true;   // diagnostics toggle
+/* [tl, tr, br, bl] as seen from the RIGHT-hand (front) side of the sheet */
+function sheetRadii(sheet) {
+  if (!irregular) return [NOMINAL_R, NOMINAL_R, NOMINAL_R, NOMINAL_R];
+  return [0, 1, 2, 3].map(k => +(NOMINAL_R + (hash1(sheet * 4 + k + 1) - 0.5) * 1.8).toFixed(2));
+}
+const mirrorR = r => [r[1], r[0], r[3], r[2]];   // same sheet, seen from behind
+const cssR = r => `${r[0]}px ${r[1]}px ${r[2]}px ${r[3]}px`;
+const sheetOf = pageIdx => Math.floor(pageIdx / 2);
+
+/* ======================================================================
+   MATERIAL SYSTEM — deterministic procedural wear
+   ----------------------------------------------------------------------
+   Two families of cue, deliberately mixed so no single frequency reads:
+
+   1. MACRO: CSS gradient blobs, positioned/sized from a per-surface hash.
+      Large rubbed areas, thumb zones, patchy edge yellowing, stains.
+   2. MICRO: tiny canvas-generated tiles (fibres, specks, leather grain,
+      scratches, abrasion) baked once into data URLs at boot.
+
+   Both are plain `background-image` layers set inline, which is the one
+   thing that matters for this architecture: `inlineComputed` copies
+   background-image/-size/-position/-repeat, so a data-URL texture and a
+   gradient are carried into the SVG raster verbatim. No pseudo-elements,
+   no masks, no blend modes, no external files (data URLs also dodge the
+   foreignObject CORS rules entirely).
+   ==================================================================== */
+let liftOn = true;                       // diagnostics toggle (resting curvature)
+let WEAR = 1;                            // 0 = off, 1 = current, 1.7 = stronger
+const wearFlags = { grain: true, edges: true, damage: true, cover: true };
+const h2 = (n, k) => hash1(n * 13.37 + k * 7.77 + 5.5);
+const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
+const rgb = c => `rgb(${c[0]},${c[1]},${c[2]})`;
+const PAPER_FRESH = [246, 241, 230], PAPER_AGED = [231, 219, 189];
+const A = x => Math.max(0, x * WEAR).toFixed(3);          // wear-scaled alpha
+
+/* ---------- canvas texture factory (deterministic, cached, data-URL) ---------- */
+const TEXCACHE = new Map();
+function texURL(key, w, h, draw) {
+  let u = TEXCACHE.get(key);
+  if (u) return u;
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  draw(c.getContext('2d'), w, h);
+  u = `url("${c.toDataURL('image/png')}")`;
+  TEXCACHE.set(key, u);
+  return u;
+}
+function rnd(seed) {                     // small deterministic LCG
+  let s = (Math.abs(seed) * 2654435761 % 2147483647) || 7;
+  return () => (s = (s * 48271) % 2147483647) / 2147483647;
+}
+/* Genuine tiling: the random parameters are generated ONCE, then drawn on a
+   3x3 wrap. Re-rolling the randomness per pass (the naive version) leaves
+   features clipped differently at each border and the tile grid becomes
+   visible as rectangular blocks. */
+function wrapped(g, w, h, items, draw) {
+  for (const dx of [-w, 0, w]) for (const dy of [-h, 0, h]) {
+    g.save(); g.translate(dx, dy);
+    for (const it of items) draw(it);
+    g.restore();
+  }
+}
+const many = (n, r, make) => Array.from({ length: n }, () => make(r));
+
+/* paper: fibres + specks + soft mottling. Two tiles at different sizes are
+   layered in paperSkin, so the visible period is their LCM, not 128px. */
+function paperTile(v) {
+  return texURL('paper' + v, 128, 128, (g, w, h) => {
+    const r = rnd(41 + v * 17);
+    const blobs = many(22, r, r0 => ({
+      x: r0() * w, y: r0() * h, rad: 8 + r0() * 26, dark: r0() > 0.45 }));
+    wrapped(g, w, h, blobs, b => {
+      const gr = g.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.rad);
+      gr.addColorStop(0, b.dark ? 'rgba(126,102,58,.05)' : 'rgba(255,252,240,.055)');
+      gr.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = gr; g.beginPath(); g.arc(b.x, b.y, b.rad, 0, 7); g.fill();
+    });
+    const fibres = many(140, r, r0 => ({
+      x: r0() * w, y: r0() * h, a: r0() * Math.PI, len: 3 + r0() * 15,
+      bx: (r0() - .5) * 3, by: (r0() - .5) * 3,
+      light: r0() > 0.5, al: 0.03 + r0() * 0.06, lw: 0.5 + r0() * 0.6 }));
+    wrapped(g, w, h, fibres, f => {
+      g.strokeStyle = f.light
+        ? `rgba(255,253,244,${(f.al + .02).toFixed(3)})`
+        : `rgba(112,90,52,${f.al.toFixed(3)})`;
+      g.lineWidth = f.lw;
+      g.beginPath(); g.moveTo(f.x, f.y);
+      g.quadraticCurveTo(f.x + Math.cos(f.a) * f.len * .5 + f.bx,
+                         f.y + Math.sin(f.a) * f.len * .5 + f.by,
+                         f.x + Math.cos(f.a) * f.len, f.y + Math.sin(f.a) * f.len);
+      g.stroke();
+    });
+    const specks = many(80, r, r0 => ({
+      x: r0() * w, y: r0() * h, rad: 0.25 + r0() * 0.7, al: 0.05 + r0() * 0.11 }));
+    wrapped(g, w, h, specks, s0 => {
+      g.fillStyle = `rgba(104,82,44,${s0.al.toFixed(3)})`;
+      g.beginPath(); g.arc(s0.x, s0.y, s0.rad, 0, 7); g.fill();
+    });
+  });
+}
+
+/* leather: irregular pebbled cells, never a stripe */
+function leatherTile() {
+  return texURL('leather', 160, 160, (g, w, h) => {
+    const r = rnd(913);
+    const cells = many(300, r, r0 => ({
+      x: r0() * w, y: r0() * h, rad: 1.6 + r0() * 4.2, sq: 0.6 + r0() * 0.6,
+      rot: r0() * 3, d: 0.05 + r0() * 0.09, l: 0.03 + r0() * 0.05, lw: 0.7 + r0() * 0.7 }));
+    wrapped(g, w, h, cells, c => {
+      g.strokeStyle = `rgba(24,15,6,${c.d.toFixed(3)})`;
+      g.lineWidth = c.lw;
+      g.beginPath(); g.ellipse(c.x, c.y, c.rad, c.rad * c.sq, c.rot, 0, 7); g.stroke();
+      g.strokeStyle = `rgba(255,232,190,${c.l.toFixed(3)})`;
+      g.beginPath(); g.ellipse(c.x - .6, c.y - .7, c.rad * .8, c.rad * .55, c.rot, 0, 7); g.stroke();
+    });
+  });
+}
+
+/* board / pastedown: coarse fibrous cloth, no visible weave rhythm */
+function boardTile() {
+  return texURL('board', 128, 128, (g, w, h) => {
+    const r = rnd(577);
+    const fib = many(230, r, r0 => ({
+      x: r0() * w, y: r0() * h, a: r0() * Math.PI, len: 2 + r0() * 9,
+      dark: r0() > 0.5, al: 0.04 + r0() * 0.07, lw: 0.6 + r0() * 0.7 }));
+    wrapped(g, w, h, fib, f => {
+      g.strokeStyle = f.dark ? `rgba(20,12,5,${f.al.toFixed(3)})`
+                             : `rgba(238,214,172,${(f.al * .7).toFixed(3)})`;
+      g.lineWidth = f.lw;
+      g.beginPath(); g.moveTo(f.x, f.y);
+      g.lineTo(f.x + Math.cos(f.a) * f.len, f.y + Math.sin(f.a) * f.len); g.stroke();
+    });
+  });
+}
+
+/* individual abrasions: FEW, irregular, mostly absent. Stretched to the
+   surface (background-size 100% 100%) so nothing repeats. */
+function scratchLayer(seed, count) {
+  return texURL('scr' + seed + '_' + count, 480, 320, (g, w, h) => {
+    const r = rnd(seed);
+    for (let i = 0; i < count; i++) {
+      const x = r() * w, y = r() * h, a = (r() - 0.5) * 2.4, len = 8 + r() * r() * 90;
+      const bright = r() > 0.42;
+      g.strokeStyle = bright
+        ? `rgba(236,208,160,${(0.10 + r() * 0.22).toFixed(3)})`
+        : `rgba(20,12,5,${(0.10 + r() * 0.22).toFixed(3)})`;
+      g.lineWidth = 0.5 + r() * 1.1;
+      g.beginPath(); g.moveTo(x, y);
+      // interrupted: a scratch fades and returns, it is not one clean line
+      let px = x, py = y;
+      const steps = 3 + Math.floor(r() * 4);
+      for (let k = 0; k < steps; k++) {
+        const nx = px + Math.cos(a) * (len / steps) + (r() - .5) * 4;
+        const ny = py + Math.sin(a) * (len / steps) + (r() - .5) * 4;
+        if (r() > 0.28) { g.moveTo(px, py); g.lineTo(nx, ny); }
+        px = nx; py = ny;
+      }
+      g.stroke();
+    }
+    // rubbed patches where the finish has gone
+    for (let i = 0; i < 5; i++) {
+      const x = r() * w, y = r() * h, rad = 14 + r() * 46;
+      const gr = g.createRadialGradient(x, y, 0, x, y, rad);
+      gr.addColorStop(0, `rgba(226,196,148,${(0.06 + r() * 0.10).toFixed(3)})`);
+      gr.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = gr;
+      g.beginPath(); g.ellipse(x, y, rad, rad * (0.4 + r() * 0.5), r() * 3, 0, 7); g.fill();
+    }
+  });
+}
+
+/* corner abrasion: dense speckle + rubbed light, packed into one corner of
+   the tile so it can be positioned at each corner independently */
+function cornerAbrasion(seed, ax, ay) {
+  return texURL(`corner${seed}_${ax}${ay}`, 128, 128, (g, w, h) => {
+    const r = rnd(seed);
+    const cx = ax * w, cy = ay * h;                 // the abraded corner
+    const gr = g.createRadialGradient(cx, cy, 0, cx, cy, 100);
+    gr.addColorStop(0, 'rgba(228,198,150,.26)');
+    gr.addColorStop(.55, 'rgba(214,182,132,.08)');
+    gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 200; i++) {                 // grime beside the rub
+      const d = r() * r() * 122, a = r() * Math.PI / 2;
+      const x = cx + (ax ? -1 : 1) * Math.cos(a) * d;
+      const y = cy + (ay ? -1 : 1) * Math.sin(a) * d;
+      g.fillStyle = r() > 0.45
+        ? `rgba(28,18,8,${(0.05 + r() * 0.22).toFixed(3)})`
+        : `rgba(238,212,168,${(0.05 + r() * 0.20).toFixed(3)})`;
+      g.beginPath(); g.arc(x, y, 0.4 + r() * 1.5, 0, 7); g.fill();
+    }
+  });
+}
+
+/* ---------- helpers to keep the background shorthand readable ---------- */
+const layer = (img, size, pos) => `${img} ${pos || '0 0'} / ${size} no-repeat`;
+const tile = (img, size) => `${img} 0 0 / ${size} repeat`;
+
+/* ======================================================================
+   PAPER SKIN — the full `background` shorthand for one page
+   Physical logic: outer edge and lower outer corner are handled; early
+   sheets far more than deep ones; but history is NOT a smooth curve, so a
+   hashed "character" per page lets a deep page be filthy and a shallow one
+   be almost clean.
+   ==================================================================== */
+function paperSkin(idx) {
+  const left = idx % 2 === 1;
+  const total = (window.NOTEBOOK_PAGES || pages || []).length || 12;
+  const L = [];
+  if (liftOn) L.push(left ? 'var(--lift-l)' : 'var(--lift-r)');
+  L.push(window.PAPERV2.skin(idx, left, total));
+  return L.join(', ');
+}
+
+
+/* ---------- cover / boards / pastedown ---------- */
+function legacyCoverSkin() {
+  if (!wearFlags.cover || !WEAR) return 'linear-gradient(148deg, #74562f, #4d3821 55%, #3a2a17)';
+  const L = [];
+  // corners: the four most damaged places on any carried notebook, each
+  // worn by a different amount (asymmetry is the whole point)
+  const corners = [
+    ['right top', .95, 2, 1, 0], ['right bottom', 1, 5, 1, 1],
+    ['left bottom', .55, 8, 0, 1], ['left top', .4, 11, 0, 0]];
+  for (const [pos, k, seed, ax, ay] of corners) {
+    L.push(layer(cornerAbrasion(seed, ax, ay), `${(11 + k * 8).toFixed(0)}% ${(13 + k * 10).toFixed(0)}%`, pos));
+  }
+  // few, irregular abrasions across the board
+  L.push(layer(scratchLayer(31, 16), '100% 100%'));
+  // MACRO: asymmetric perimeter history — some sections rubbed light, some
+  // darkened with grime, some almost untouched
+  L.push(`radial-gradient(30% 12% at 84% 0%, rgba(226,196,146,${A(.16)}), transparent 74%)`);
+  L.push(`radial-gradient(22% 10% at 34% 0%, rgba(30,19,8,${A(.24)}), transparent 76%)`);
+  L.push(`radial-gradient(26% 12% at 62% 100%, rgba(226,196,146,${A(.13)}), transparent 74%)`);
+  L.push(`radial-gradient(18% 12% at 22% 100%, rgba(30,19,8,${A(.20)}), transparent 78%)`);
+  L.push(`radial-gradient(9% 30% at 100% 62%, rgba(226,196,146,${A(.17)}), transparent 72%)`);
+  L.push(`radial-gradient(7% 22% at 100% 22%, rgba(30,19,8,${A(.22)}), transparent 76%)`);
+  // rubbed opening zone, where a thumb lifts the board
+  L.push(`radial-gradient(24% 22% at 90% 50%, rgba(232,202,152,${A(.13)}), transparent 74%)`);
+  // uneven dye across the whole surface
+  L.push(`radial-gradient(66% 52% at 28% 30%, rgba(38,25,11,${A(.20)}), transparent 76%)`);
+  L.push(`radial-gradient(48% 40% at 78% 74%, rgba(38,25,11,${A(.22)}), transparent 78%)`);
+  L.push(`radial-gradient(40% 34% at 52% 12%, rgba(224,192,142,${A(.07)}), transparent 78%)`);
+  // SPINE: several irregular longitudinal creases at different depths,
+  // uneven top to bottom — thousands of openings, not one clean band
+  L.push(layer(`linear-gradient(90deg, transparent 1.2%, rgba(20,12,5,${A(.42)}) 2.6%, transparent 4%)`, '100% 46%', '0 4%'));
+  L.push(layer(`linear-gradient(90deg, transparent 3.4%, rgba(255,232,190,${A(.10)}) 4.6%, transparent 6.2%)`, '100% 62%', '0 30%'));
+  L.push(layer(`linear-gradient(90deg, transparent 6%, rgba(20,12,5,${A(.26)}) 7.6%, transparent 9.4%)`, '100% 74%', '0 20%'));
+  L.push(layer(`linear-gradient(90deg, transparent 8.6%, rgba(20,12,5,${A(.14)}) 10%, transparent 12%)`, '100% 38%', '0 62%'));
+  L.push(`linear-gradient(90deg, rgba(26,16,7,${A(.62)}) 0%, rgba(26,16,7,${A(.18)}) 3.5%,` +
+    ` rgba(255,230,190,${A(.06)}) 6.5%, rgba(26,16,7,${A(.07)}) 11%, transparent 18%)`);
+  L.push(tile(leatherTile(), '150px 150px'));
+  L.push(tile(leatherTile(), '97px 113px'));
+  L.push(`radial-gradient(126% 116% at 50% 50%, transparent 58%, rgba(24,15,6,${A(.46)}) 100%)`);
+  L.push('linear-gradient(148deg, #74562f, #4d3821 55%, #3a2a17)');
+  return L.join(', ');
+}
+
+/* the inner faces: older and more intimate than the outside — glue haloes,
+   a ghost where a label once sat, a darkened hinge */
+function legacyInsideSkin(mirror) {
+  const hinge = mirror ? '270deg' : '90deg';
+  const L = [];
+  if (WEAR) {
+    L.push(layer(scratchLayer(77, 6), '100% 100%'));
+    // faint rectangular ghost of something once pasted here
+    L.push(layer(`linear-gradient(rgba(150,118,66,${A(.05)}), rgba(150,118,66,${A(.05)}))`, '29% 21%', '61% 23%'));
+    L.push(layer(`radial-gradient(closest-side, transparent 62%, rgba(120,94,52,${A(.07)}) 100%)`, '34% 26%', '59% 21%'));
+    L.push(`radial-gradient(30% 22% at ${mirror ? 22 : 78}% 26%, rgba(196,160,106,${A(.12)}), transparent 72%)`);
+    L.push(`radial-gradient(22% 16% at ${mirror ? 66 : 34}% 72%, rgba(150,116,64,${A(.11)}), transparent 74%)`);
+    // glue discoloration following the perimeter, unevenly
+    L.push(`radial-gradient(120% 110% at 50% 50%, transparent 74%, rgba(176,142,84,${A(.13)}) 92%, rgba(30,19,8,${A(.20)}) 100%)`);
+    L.push(tile(boardTile(), '124px 124px'));
+    L.push(tile(boardTile(), '83px 91px'));
+  }
+  L.push(`linear-gradient(${hinge}, rgba(20,12,5,${A(.55)}), rgba(20,12,5,${A(.12)}) 6%, transparent 16%)`);
+  L.push(`radial-gradient(124% 116% at 50% 50%, transparent 58%, rgba(20,12,5,${A(.40)}) 100%)`);
+  L.push('linear-gradient(200deg, #6b5233, #4a3620 60%, #3e2d19)');
+  return L.join(', ');
+}
+
+function legacyBoardSkin(left) {
+  const L = [];
+  if (WEAR) {
+    L.push(layer(scratchLayer(left ? 121 : 143, 8), '100% 100%'));
+    L.push(tile(leatherTile(), '150px 150px'));
+    L.push(`radial-gradient(60% 48% at ${left ? 70 : 30}% 70%, rgba(38,25,11,${A(.20)}), transparent 78%)`);
+  }
+  L.push(`radial-gradient(124% 116% at 50% 50%, transparent 56%, rgba(24,15,6,${A(.44)}) 100%)`);
+  L.push(`linear-gradient(${left ? 210 : 150}deg, #6a4f2c, #46331c 58%, #2f2213)`);
+  return L.join(', ');
+}
+
+/* ---------- FINAL COVER DIRECTION: F3-03 (brick cloth/board) ----------
+   F3-03 "Slightly more scuffed - Brick" from /material-lab is the selected
+   final cover direction. Its recipe lives verbatim in ./cover-f3.js
+   (FINAL_COVER_PRESET) and is the single source of truth for every visible
+   cover surface: front cover (closed, opening, resting open), the front
+   board, the pastedown and the back cover. The legacy* functions above are
+   the previous leather direction, kept only as a fallback. */
+const F3 = window.F3_COVER;
+const F3_FLAT = 'linear-gradient(160deg, #6e4530, #523324 58%, #3d261a)';
+
+function coverSkin() {
+  if (!F3) return legacyCoverSkin();
+  if (!wearFlags.cover || !WEAR) return F3_FLAT;
+  return F3.coverSkin(1);
+}
+
+/* inner faces: same pigment and substrate, but only the quiet wear a
+   protected surface picks up, plus this notebook's hinge + vignette */
+function insideSkin(mirror) {
+  if (!F3) return legacyInsideSkin(mirror);
+  // The hinge/contact darkening is deliberately NOT part of this material: it
+  // is structural, belongs to the spine, and is owned by .hingeshade in the DOM
+  // for the whole motion. A %-based gradient here resolved against two boxes of
+  // different width (cover raster vs resting pastedown) and stepped at settle.
+  const L = [];
+  L.push(`radial-gradient(124% 116% at 50% 50%, transparent 58%, rgba(20,12,5,${A(.40)}) 100%)`);
+  return L.join(', ') + ', ' + (WEAR ? F3.boardSkin(.35) : F3_FLAT);
+}
+
+
+function boardSkin(left) {
+  if (!F3) return legacyBoardSkin(left);
+  const L = [];
+  L.push(`radial-gradient(60% 48% at ${left ? 70 : 30}% 70%, rgba(38,25,11,${A(.16)}), transparent 78%)`);
+  L.push(`radial-gradient(124% 116% at 50% 50%, transparent 56%, rgba(24,15,6,${A(.44)}) 100%)`);
+  return L.join(', ') + ', ' + (WEAR ? F3.boardSkin(left ? .3 : .5) : F3_FLAT);
+}
+
+/* ---------- occasional real damage as DOM children ----------
+   Real elements, so they clone into the snapshot with the page and land in
+   the WebGL texture at exactly the same pixels. Inline styles only (the
+   snapshot drops classes), and every property used is in SNAP_PROPS. */
+function damageNodes(el, idx) {
+  if (!wearFlags.damage || !WEAR) return;
+  const left = idx % 2 === 1;
+  const total = (window.NOTEBOOK_PAGES || pages || []).length || 12;
+  // dog-ears and edge nicks now come from the paper-lab per-page recipe
+  window.PAPERV2.damage(el, idx, left, total);
+}
+
+
+/* A leaf is always paper. The inside of the front cover is .opencover and
+   nothing else may impersonate it, so there is no board branch here. */
+function dressLeaf(el, idx) {
+  el.style.background = paperSkin(idx);
+  damageNodes(el, idx);
+}
+/* li < 0 means "no paper sheet rests on the left". The leaf becomes absent
+   (and its contact shadow with it) and .opencover — already there, already
+   stationary — is simply uncovered. */
+function paintLeftLeaf(li) {
+  const none = li < 0;
+  leafL.classList.toggle('absent', none);
+  book.classList.toggle('noleft', none);
+  if (none) { leafL.innerHTML = ''; return; }
+  leafL.innerHTML = pageHTML(pages[li], li);
+  dressLeaf(leafL, li);
+  leafL.style.borderRadius = cssR(mirrorR(sheetRadii(sheetOf(li))));
+}
+function paintRightLeaf(ri) {
+  leafR.innerHTML = pageHTML(pages[ri], ri);
+  dressLeaf(leafR, ri);
+  leafR.style.borderRadius = cssR(sheetRadii(sheetOf(ri)));
+}
+/* the boards and both cover faces are painted from the same material
+   functions the snapshot uses, so nothing can drift between them */
+const TITLE = 'CUADERNO';
+/* The frozen title treatment from the material lab (seed 7), narrowed so that
+   EVERY letter reads as worn foil rather than a mix of rubbed-out letters and
+   near-intact ones. The per-letter hashes still set the amount, but the whole
+   band now sits in the distressed range the good letters occupied. */
+const TITLE_SEED = 7;
+function titleHTML() {
+  return [...TITLE].map((ch, i) => {
+    const r = h2(i + TITLE_SEED, 91), r2 = h2(i + TITLE_SEED, 92), r3 = h2(i + TITLE_SEED, 93);
+    const o = 0.22 + r * 0.22 + r2 * 0.08;
+    const bx = (r3 - 0.5) * 0.6;
+    return `<span style="opacity:${o.toFixed(2)};text-shadow:${bx.toFixed(2)}px 1px 0 rgba(22,14,6,.5)">${ch}</span>`;
+  }).join('');
+}
+function dressChrome() {
+  for (const t of [cover.querySelector('.title'), snapCover.querySelector('.title')]) {
+    if (t) t.innerHTML = titleHTML();
+  }
+  cover.style.background = coverSkin();
+  snapCover.style.background = coverSkin();
+  snapCoverBack.style.background = insideSkin(false);
+  /* ONE recipe for the inside of the front cover. The mesh samples the
+     snapCoverBack raster (insideSkin(false), mirrored in U by the shader);
+     the resting DOM object carries the mirrored recipe. Same composition,
+     same box, so the settle frame changes renderer and nothing else. */
+  openCoverEl.style.background = insideSkin(true);
+  document.querySelector('.frontboard').style.background = boardSkin(true);
+  backcover.style.background = boardSkin(false);
+}
+
+
+function paintDOM() {
+  const li = turned * 2 - 1, ri = turned * 2;
+  // left leaf is a sheet seen from behind -> mirrored silhouette
+  paintLeftLeaf(li);
+  paintRightLeaf(ri);
+  /* absence / noleft ownership is decided inside paintLeftLeaf(). */
+  book.classList.toggle('closed', state === CLOSED_FRONT);
+  btnNext.disabled = !texReady || (state === OPEN && turned >= SHEETS);
+  btnPrev.disabled = !texReady || (state === CLOSED_FRONT);
+  updateStacks();
+}
+
+
+
+
+
+/* ======================================================================
+   PAPER STACKS / PAGE BLOCK — passive DOM/CSS only. Never a mesh.
+   ----------------------------------------------------------------------
+   FINAL PRODUCTION STACK. This is the /paper-lab fore-edge architecture,
+   promoted verbatim: the model comes from /shared/paper-stack.js, so there is
+   exactly one version of the algorithm.
+
+   Depth is REAL LAYERED GEOMETRY, not a fan and not a painted strip:
+     - every stratum is registered at the bound (spine) edge
+     - each sheet has its own physical EXTENT (fore edge + bottom edge),
+       from a broad block envelope + correlated cluster deformation + a small
+       per-sheet deviation, so page lengths come in groups, never as noise
+     - each sheet carries its own deterministic edge profile (recession,
+       restrained chipping, cockle) as a clip-path polygon
+     - each visible stratum contributes a tight dark contact seam and a
+       slightly warmer/darker cut edge — contact occlusion, not floating cards
+
+   THE TWO HARD CEILINGS (PaperStack.PRODUCTION_LIMITS) are applied inside
+   condition(), i.e. to the recipe itself, not to a debug control:
+       fray / chipping      <= 0.16   (M2)
+       geometric intensity  <= 0.65   (M2)
+   Per-sheet variation moves DOWN from those ceilings (x0.72 .. x1.0), so the
+   strongest sheet is the approved maximum and every other sheet is quieter.
+   Recession, compression and extent variation — not fraying — do the work.
+
+   MIRRORING: the left half uses the same model, flipped with scaleX(-1) in
+   CSS. Fore edge = right on the right, left on the left. No second algorithm.
+
+   PERFORMANCE: the model (polygons, seams, conditions) is built once per side
+   and memoised. A page turn only touches width / height / transform / opacity
+   — no polygon or texture is regenerated during animation.
+   ==================================================================== */
+/* ---- STACK REVEAL DEPTH + CONTACT CONTRAST -----------------------------
+   Twenty strata sharing 7px resolved to well under a pixel each, so the block
+   merged into one beige strip. The fix is physical reveal depth plus a real
+   contact seam — NOT more damage. M2 geometry, fray, oxidation, families and
+   humidity are untouched.
+
+   Density candidates (?stack=A|B|C, debug comparison only):
+     A  7px  — the previous compressed block
+     B 11px  — more readable
+     C 14px  — strong readable stack   (default: 13px, between B and C)
+   Seam controls (?seam=, ?seamw=, ?cut=) are exposed for evaluation so
+   "the block needs to be wider" stays separable from "the sheets need
+   stronger boundaries". No damage control is exposed. */
+const QS = new URLSearchParams(location.search);
+const qnum = (k, d) => (QS.has(k) && isFinite(+QS.get(k)) ? +QS.get(k) : d);
+const STACK_PRESET = { A: 7, B: 11, C: 14 }[(QS.get('stack') || '').toUpperCase()];
+
+/* strata in a full block. This is a RENDERING budget, not a page count: the
+   reveal has to give every stratum ~1px of its own or the sheets average
+   together into one beige strip. The envelope is fixed by the cover (about
+   5-6px), so the budget — not the geometry — is what gets reduced. 6 strata
+   also matches the prototype's six physical sheets. */
+let LAYERS   = qnum('layers', 7);
+/* VISIBLE LAYER SPACING. Not a fan and not an outward push: this is how many
+   CSS px of PAPER are given back at the fore edge (and 0.8x that at the
+   bottom) so the same containment envelope holds a wider reveal band. Every
+   px surrendered here becomes reveal, split evenly across the strata. */
+let PAPER_SHRINK = qnum('shrink', 10);
+function applyPaperShrink() {
+  const el = document.getElementById('book') || document.body;
+  el.style.setProperty('--papershrinkx', PAPER_SHRINK.toFixed(2) + 'px');
+  /* BOTTOM STAYS COMPRESSED. The vertical shrink used to hand ~8px of paper
+     back below the leaf, which read as a bright multi-layer shelf under the
+     active page. The fore edge keeps its full shrink; the bottom gets none. */
+  el.style.setProperty('--papershrinky', '0px');
+}
+/* THE ENVELOPE IS THE COVER. Nothing here is a chosen number any more:
+   the paper block may only occupy the board margin that actually exists
+   between the resting leaf and the rigid cover, minus a visible board
+   reserve. Both reveals are measured in buildStacks(); these are only
+   provisional values used before the first layout. */
+const SAFE_PX     = qnum('safe', 1.5);   // board margin the paper may never eat
+let FORE_REVEAL   = 5;                   // painted paper past the leaf, fore edge
+let BOT_REVEAL    = 1;                   // painted paper past the leaf, bottom
+/* fraction of the measured bottom margin that is allowed to become VISIBLE
+   stack depth. Fore edge = 100%; bottom ~15% -> a quiet compressed edge. */
+let BOT_VISIBLE   = Math.max(0, Math.min(1, qnum('botvis', 0.15)));
+let BLOCK_W       = 5;                   // block BOX reach (clip recedes inside it)
+let BLOCK_H       = 4;
+
+
+/* OPTICAL SEPARATION TUNING (no geometry). The seam is a perceived width in
+   real CSS px — under ~0.5px it is lost to antialiasing, which is why the
+   block used to average into one cream strip. */
+let SEAM_W    = qnum('seamw', 0.26);   // perceived contact-seam width, CSS px
+let SEAM_GAIN = qnum('seam',  5.20);   // seam darkness (max)
+let CUT_GAIN  = qnum('cut',   4.00);   // cut-edge tonal contrast (max)
+/* how much of the measured reveal the shared M2 edge profile is allowed to
+   swing through. The sheets share ONE profile, so a large amplitude keeps the
+   rungs parallel (no interleaving) while letting real bays, chips and notches
+   be seen in the silhouette instead of being flattened to a straight line. */
+let DAMAGE_AMP = qnum('damage', 0.85);
+/* diagnostic: neutralise the page surfaces so only geometry + cut edges +
+   contact seams remain. Tuning aid only; off by default. */
+let SEAMS_ONLY = qnum('seamsonly', 0) > 0;
+
+
+/* readable contact seam: warm dark, px-floored, deterministically varied.
+   Width is explicit; only the cut BAND follows the measured per-sheet step. */
+function seamOpt(stepPx) {
+  return {
+    gain:    SEAM_GAIN,
+    widthLo: SEAM_W * 0.85,
+    widthHi: SEAM_W * 1.23,
+    cutGain: CUT_GAIN,
+    /* a sheet's cut band must fill the whole sliver it exposes; bands only
+       ever paint INWARD, over the sheet's own face. */
+    cutLo: stepPx * 1.4, cutHi: stepPx * 3.4,
+    alt: qnum('alt', 0.52),       // organic tonal spread between neighbours
+    bottom: 0.65,                 // fore edge reads first; bottom stays quieter
+  };
+}
+const SEAM_OPT = seamOpt(FORE_REVEAL / Math.max(1, LAYERS - 1));
+
+
+/* The approved Sandbox state, promoted as the production recipe. Surface
+   settings are deliberately NOT the sandbox's exercised extremes; this is the
+   stack's GEOMETRY / DEPTH character. */
+const STACK_RECIPE = {
+  strata: LAYERS,
+  familyMix: 0.51,          // Carried/Handled -> Protected Interior
+  fei: 0.55,                // family edge influence
+  exposure: 0.42,
+  age: 0.85,
+  geo: PaperStack.PRODUCTION_LIMITS.geometricIntensity,   // 0.65 = the promoted M2 ceiling
+  humid: 0.35, foxing: 0.15, bloom: 0.20,
+  compress: 0.45, notchRate: 0,
+  frayScale: 1.77,          // tuned so the strongest sheet lands ON the ceiling
+  limits: PaperStack.PRODUCTION_LIMITS,
+  notebookEdge: {
+    /* fray is requested ABOVE the production ceiling on purpose: the limits
+       clamp it to exactly 0.16, so the discrete chips/bites are as deep as
+       the approved M2 ceiling allows. cornerWear restored — a dropped,
+       carried notebook loses its corners first. */
+    recession: 1.20, fray: 0.20, cornerWear: 0.50, cornerSpine: 0.16,
+    cockle: 0.00, compression: 1.00, bottomSag: 1.00,
+  },
+  boxScale: 100,            // the stratum box IS the block box
+  /* extent spread, in % of the block box. Kept just under the visible reveal
+     band so most sheets actually end inside it instead of hiding under the
+     resting leaf — this is what turns depth into legibility. */
+  foreDepth: 1.9,
+  bottomDepth: 1.4,
+  /* NO whole-sheet translation in production. The binding IS the registration
+     and the bottom stack is expressed as recession, not as sheets slid down:
+     at presentation size either one turns into several CSS px of paper
+     outside the board. Layering comes from where sheets END. */
+  lift: 0, registration: 0,
+  clusterAmp: 0.62, indivAmp: 0.22,
+  placementMode: 'recession',   // never the legacy outward cascade resolver
+  seam: SEAM_OPT,
+};
+
+/* both halves are the same notebook sheets, so they share one model; only the
+   presentation is mirrored (CSS scaleX on the left .stack) */
+let STACK_MODEL = null;
+
+/* THE PAPER ENVELOPE, MEASURED FROM THE ACTUAL BOARD.
+   The cover is the largest object. Whatever margin it happens to leave past
+   the resting leaf is ALL the room paper has, minus a reserve of visible
+   board. Nothing is guessed and nothing is clipped away afterwards. */
+function measurePaperEnvelope() {
+  const leaf  = leafR.getBoundingClientRect();
+  const board = (typeof cover !== 'undefined' && cover) ? cover.getBoundingClientRect() : null;
+  /* both halves share ONE model, so the envelope is the TIGHTER of the two
+     boards: the right cover and the mirrored left front board. */
+  const fbEl  = document.querySelector('.frontboard');
+  const fb    = fbEl ? fbEl.getBoundingClientRect() : null;
+  const leafLR = (typeof leafL !== 'undefined' && leafL) ? leafL.getBoundingClientRect() : null;
+  let availFore   = board ? board.right  - leaf.right  : 7;
+  let availBottom = board ? board.bottom - leaf.bottom : 7;
+  if (fb && leafLR && leafLR.width) {
+    availFore   = Math.min(availFore,   leafLR.left  - fb.left);
+    availBottom = Math.min(availBottom, fb.bottom - leafLR.bottom);
+  }
+  FORE_REVEAL = Math.max(1.5, availFore   - SAFE_PX);
+  /* THE FORE EDGE EXPLAINS THE STACK; THE BOTTOM DOES NOT REPEAT IT.
+     Only a small fraction of the available bottom margin is spent on visible
+     stacking, so the bottom reads as one compressed block edge with slight
+     unevenness instead of six stepped horizontal layers. */
+  BOT_REVEAL  = Math.max(0.5, (availBottom - SAFE_PX) * BOT_VISIBLE);
+  return { leafW: leaf.width || 750, leafH: leaf.height || 990, availFore, availBottom };
+}
+
+function buildStacks() {
+  /* the shrink must be committed to layout BEFORE the envelope is measured,
+     otherwise the reveal is solved against the old leaf rect */
+  applyPaperShrink();
+  /* recession steps are specified in REAL CSS PIXELS of the measured reveal
+     and converted to the model's %-of-block units, so the same recipe stays
+     physical at any stage size. */
+  const env = measurePaperEnvelope();
+  const bw = (stackR.getBoundingClientRect().width || env.leafW);
+  const bh = (stackR.getBoundingClientRect().height || env.leafH);
+  const pcW = px => (px / bw) * 100, pcH = px => (px / bh) * 100;
+  const mean = FORE_REVEAL / Math.max(1, LAYERS - 1);
+  const meanB = BOT_REVEAL / Math.max(1, LAYERS - 1);
+  STACK_MODEL = PaperStack.buildStackModel({
+    ...STACK_RECIPE, strata: LAYERS, seed: 7300, seam: seamOpt(mean),
+    foreStep:   { min: pcW(mean * 0.62), max: pcW(mean * 1.34) },
+    bottomStep: { min: pcH(meanB * 0.55), max: pcH(meanB * 1.35) },
+  });
+
+  /* SOLVE THE LADDER ON THE PAINTED EDGE, NOT ON THE BOX.
+     Every sheet's M2 profile is expressed in percent of that sheet's OWN box,
+     so a sheet with a smaller box and a slightly deeper profile ended up
+     painting at almost the same x as the sheet under it. That is the real
+     reason the block read as one cream strip: five sheets, one edge.
+     Here each sheet's inset is re-solved from where it must PAINT — an even
+     ladder across the measured visible band, with deterministic irregularity —
+     so the endings are physically distinct. The envelope is untouched: the
+     outermost sheet still lands exactly on the measured reveal. */
+  const sheets = STACK_MODEL.sheets;
+  /* G2: SIBLINGS, NOT CLONES. Every represented sheet keeps its OWN
+     deterministic profile from the shared PaperStack model. The frozen
+     Lab-Native variant assigns one reference clip to all strata; here each
+     sheet's clip is normalised individually so its authored bays, chips and
+     corner erosion read at presentation size, and its extent is then solved
+     per sheet so it can never paint past the envelope. Correlation comes from
+     the model (one notebook age, one family curve, cluster deformation);
+     individuality comes from the per-sheet profile that survives. */
+  const rescale = (clip, targetPxX, targetPxY, capPxX, capPxY, wPx, hPx) => {
+    const inner = /polygon\(([^)]*)\)/.exec(clip);
+    if (!inner) return clip;
+    const pts = inner[1].split(',').map(t => t.trim().split(/\s+/).map(parseFloat));
+    let devX = 0, devY = 0;
+    for (const [x, y] of pts) {
+      if (100 - x < 8 && y > 2 && y < 98) devX = Math.max(devX, 100 - x);
+      if (100 - y < 8 && x > 2 && x < 98) devY = Math.max(devY, 100 - y);
+    }
+    const devXpx = devX / 100 * wPx, devYpx = devY / 100 * hPx;
+    const wantX = Math.min(Math.max(0.6, targetPxX), capPxX);
+    const wantY = Math.min(Math.max(0.4, targetPxY), capPxY);
+    const sx = devXpx > 0.01 ? Math.max(0.2, Math.min(3.4, wantX / devXpx)) : 1;
+    const sy = devYpx > 0.01 ? Math.max(0.2, Math.min(3.4, wantY / devYpx)) : 1;
+    return 'polygon(' + pts.map(([x, y]) => {
+      const nx = 100 - x < 8 ? 100 - (100 - x) * sx : x;
+      const ny = 100 - y < 8 ? 100 - (100 - y) * sy : y;
+      return nx.toFixed(3) + '% ' + ny.toFixed(3) + '%';
+    }).join(', ') + ')';
+  };
+  const stackBox = stackR.getBoundingClientRect();
+  const bwPx = stackBox.width || bw, bhPx = stackBox.height || bh;
+  const hsh = (i, a, b) => { const x = Math.sin((i + 1) * a + b) * 43758.5453; return x - Math.floor(x); };
+
+  /* per-sheet damage depth: most sheets are quiet, a couple carry a real bite.
+     Rarity is deliberate — the block must not read as a torn saw blade. */
+  const capX = Math.max(1.6, FORE_REVEAL * DAMAGE_AMP);
+  const capY = Math.max(1.0, BOT_REVEAL  * DAMAGE_AMP * 0.7);
+  for (const s of sheets) {
+    const q = hsh(s.i, 12.9898, 78.233);          // quiet .. chipped
+    const kD = q > 0.86 ? 1.0 : q > 0.68 ? 0.72 : 0.30 + q * 0.30;
+    s.clip = rescale(s.clip,
+                     FORE_REVEAL * 0.55 * kD, BOT_REVEAL * 0.45 * kD,
+                     capX, capY, bwPx, bhPx);
+  }
+
+  const minMx = Math.min(...sheets.map(s => s.mx || 100)) / 100;
+  const minMy = Math.min(...sheets.map(s => s.my || 100)) / 100;
+  BLOCK_W = Math.max(0, (env.leafW + FORE_REVEAL) / minMx - env.leafW);
+  BLOCK_H = Math.max(0, (env.leafH + BOT_REVEAL)  / minMy - env.leafH);
+  const stackW = env.leafW + BLOCK_W, stackH = env.leafH + BLOCK_H;
+
+  /* NO FORCED LADDER. The model's own extents already carry the broad envelope,
+     the cluster deformation and the small individual deviation, so all we do is
+     map that existing distribution affinely onto the measured reveal band. Some
+     neighbours land nearly flush, others open a clear interval — that rhythm is
+     the point. Fore and bottom are normalised independently, so a sheet can be
+     short at the fore edge and full at the bottom. */
+  const mapAxis = (vals, lo, hi) => {
+    const mn = Math.min(...vals), mx = Math.max(...vals), sp = mx - mn;
+    return vals.map(v => lo + (sp > 1e-6 ? (mx - v) / sp : 0) * (hi - lo));
+  };
+  const foreTargets   = mapAxis(sheets.map(s => s.foreInset),   0.45, FORE_REVEAL);
+  const bottomTargets = mapAxis(sheets.map(s => s.bottomInset), 0.08, BOT_REVEAL);
+  sheets.forEach((s, n) => {
+    /* PER-SHEET CONTAINMENT: this sheet's own maximum painted reach (mx/my come
+       from its own profile) decides the box it may occupy, anchored at the
+       binding. No single global solution is imposed on the block. */
+    const targetX = foreTargets[n], targetY = bottomTargets[n];
+    const wantW = (env.leafW + targetX) / ((s.mx || 100) / 100);
+    const wantH = (env.leafH + targetY) / ((s.my || 100) / 100);
+    s.foreInset   = Math.max(0, 100 - (wantW / stackW) * 100);
+    s.bottomInset = Math.max(0, 100 - (wantH / stackH) * 100);
+    s.box = 100;
+    s.width  = (100 - s.foreInset).toFixed(3) + '%';
+    s.height = (100 - s.bottomInset).toFixed(3) + '%';
+    s._reach = targetX;
+  });
+  /* paint order follows physical extent: deepest-receding sheet on top, so no
+     longer sheet can erase a shorter one's exposed sliver. */
+  [...sheets].sort((a, b) => b._reach - a._reach)
+    .forEach((s, r) => { s._z = r + 1; });
+
+
+  for (const el of [stackL, stackR]) {
+    el.innerHTML = '';
+    stacksKey = null;                 // fresh children: the memo is stale
+    el.style.setProperty('--blockw', BLOCK_W + 'px');
+    el.style.setProperty('--blockh', BLOCK_H + 'px');
+
+
+
+    for (const s of STACK_MODEL.sheets) {
+      const d = document.createElement('div');
+      d.className = 'stratum';
+      d.style.clipPath = s.clip;
+      /* CONTOUR CONTACT SEAM. A gradient band can only sit at ONE distance from
+         the box edge, so on an irregular M2 profile it is clipped away almost
+         everywhere — which is why the block averaged into a single cream strip.
+         Instead the stratum ITSELF is the seam: it is filled with warm dark
+         umber, and the sheet's face is a child inset by the seam width with the
+         SAME polygon. What survives is a hairline of umber that follows the real
+         irregular edge — bays, recessions and chipping included — and the
+         silhouette is unchanged, so containment is untouched. */
+      const hs = (a, b) => { const x = Math.sin((s.i + 1) * a + b) * 43758.5453; return x - Math.floor(x); };
+      /* QUIET CONTOUR. The rim still follows the sheet's real irregular
+         silhouette (so separation is geometry, not a painted stripe), but it is
+         now a soft paper-toned contact value instead of a dark umber outline —
+         stacked umber contours were what read as repeating vertical bars. */
+      const rimA = Math.min(0.12, (0.24 + 0.14 * hs(12.9898, 78.2)) * SEAM_GAIN * 0.16);
+      d.style.background = `rgba(146,124,92,${rimA.toFixed(3)})`;
+      const wPx = (SEAM_W * (0.85 + 0.38 * hs(4.1414, 12.7))).toFixed(2);
+
+      const face = document.createElement('div');
+      face.className = 'stratumface';
+      face.style.clipPath = s.clip;
+      face.style.right = wPx + 'px';
+      /* NO BOTTOM INSET: a rim sliver at every sheet's bottom edge stacked
+         into periodic horizontal dashes — the "barcode" artifact. */
+      /* cut-edge bands + the sheet's own aged body. Nothing here changes as
+         pages transfer, so it is painted exactly once. */
+      face.style.background = SEAMS_ONLY
+        ? s.seam + ', linear-gradient(0deg, rgb(222,218,208), rgb(222,218,208))'
+        : s.seam + ', ' + s.cheapBody;
+      d.appendChild(face);
+
+
+
+      d.style.zIndex = String(s._z || s.z || s.i + 1);
+      d.dataset.k  = String((s.z || s.i + 1) - 1);
+      d.dataset.fi = s.foreInset.toFixed(4);
+      d.dataset.bi = s.bottomInset.toFixed(4);
+      d.dataset.dx = s.dx.toFixed(4);
+      d.dataset.dy = s.dy.toFixed(4);
+      d.dataset.t  = s.t.toFixed(4);
+      d.dataset.mx = String(s.mx || 100);
+      d.dataset.my = String(s.my || 100);
+      el.appendChild(d);
+    }
+  }
+  if (document.body.classList.contains('debug'))
+    requestAnimationFrame(() => assertStackContainment());
+}
+
+/* ---- containment assertion (debug only) ---------------------------------
+   The element box may reach past the board on purpose: the clip polygon only
+   REMOVES material, so what matters physically is the painted extent
+   (box * mx/100 on the fore axis, box * my/100 on the bottom axis). Any
+   negative clearance is a real physical failure and is reported. */
+function assertStackContainment() {
+  const fb = document.querySelector('.frontboard');
+  if (!cover || !fb) return;
+  let worst = Infinity, fails = 0;
+  for (const [el, mirrored, board] of [
+    [stackR, false, cover.getBoundingClientRect()],
+    [stackL, true,  fb.getBoundingClientRect()],
+  ]) {
+    const kids = el.children;
+    for (let i = 0; i < kids.length; i++) {
+      const k = kids[i], r = k.getBoundingClientRect();
+      if (!r.width || !r.height) continue;
+      const mx = (+k.dataset.mx || 100) / 100, my = (+k.dataset.my || 100) / 100;
+      const painted = {
+        left:   mirrored ? r.right - r.width * mx : r.left,
+        right:  mirrored ? r.right : r.left + r.width * mx,
+        top:    r.top,
+        bottom: r.top + r.height * my,
+      };
+      const clear = {
+        left:   painted.left  - board.left,
+        right:  board.right   - painted.right  - SAFE_PX,
+        top:    painted.top   - board.top,
+        bottom: board.bottom  - painted.bottom - SAFE_PX,
+      };
+      for (const edge of ['left', 'right', 'top', 'bottom']) {
+        worst = Math.min(worst, clear[edge]);
+        if (clear[edge] < -0.05) {
+          fails++;
+          console.warn(`STACK CONTAINMENT FAILURE\nsheet: ${i}${mirrored ? ' (left)' : ''}\nedge: ${edge}\noverflow: ${(-clear[edge]).toFixed(2)}px`);
+        }
+      }
+    }
+  }
+  console.log(`[stack] containment ${fails ? fails + ' FAILURES' : 'OK'} · min clearance ${worst.toFixed(2)}px · reveal ${FORE_REVEAL.toFixed(2)}/${BOT_REVEAL.toFixed(2)}px · block ${BLOCK_W.toFixed(2)}/${BLOCK_H.toFixed(2)}px · layers ${LAYERS}`);
+}
+
+
+function visualTurned() {
+  if (turning && turning.kind === 'paper') return turning.sheet + turning.p;
+  return turned;
+}
+/* --openx: how much of the left half the swinging cover currently covers.
+   This is MEASURED, not guessed. The old model assumed a rigid board
+   (max(0,-cos(p*PI)) with a hand-tuned ^1.25 fudge for the curl). The painted
+   object is a curled, perspective-projected mesh, so near the end of the swing
+   the rigid prediction ran ahead of the real edge and a thin outer-left band
+   was un-clipped in the DOM before the mesh reached it — the brief sliver of
+   the surface beneath, visible for a frame or two as the book opens.
+
+   coverFreeEdgeScreenX() projects the mesh's actual free edge through the same
+   bend, hinge rotation, model position, camera and cached canvas rectangle GL
+   uses. Converting that screen X into a reveal fraction makes the DOM clip
+   track the painted edge by construction. REVEAL_LAG_PX keeps the DOM a hair
+   behind the mesh so it can only ever trail, never lead. Endpoints stay exact.
+   Uses only cached geometry — no per-frame layout reads. */
+const REVEAL_LAG_PX = 1;
+function measuredOpenX(p) {
+  if (!geom || !geom.coverOpenRect) return NaN;
+  const span = geom.hingeX - geom.coverOpenRect.left;   // full left reveal width
+  if (!(span > 0)) return NaN;
+  const edgeX = coverFreeEdgeScreenX();
+  if (!isFinite(edgeX)) return NaN;
+  return Math.max(0, Math.min(1, (geom.hingeX - edgeX - REVEAL_LAG_PX) / span));
+}
+function updateChrome() {
+  let open;
+  if (turning && turning.kind === 'cover') {
+    const t = turning;
+    const p = Math.max(0, Math.min(1, t.p));
+    if (p <= 0) open = 0;
+    else if (p >= 1) open = 1;
+    else {
+      const m = measuredOpenX(p);
+      open = isFinite(m) ? m : Math.pow(Math.max(0, -Math.cos(p * Math.PI)), 1.25);
+    }
+    /* Monotonic in the direction of travel. The projected edge swings a hair
+       PAST the resting open rectangle around p ~ .85 and comes back, so a raw
+       reading would re-clip the outermost pixel column at the very end of the
+       opening — exactly the one-frame sliver at the outer left. Opening can
+       only reveal, closing can only cover. */
+    if (!t.dragging) {
+      if (t.dir === 1) open = t.revealSeen = Math.max(t.revealSeen || 0, open);
+      else open = t.revealSeen = Math.min(t.revealSeen == null ? 1 : t.revealSeen, open);
+    }
+  } else {
+    open = state === CLOSED_FRONT ? 0 : 1;
+  }
+  book.style.setProperty('--openx', open.toFixed(4));
+  updateCoverShadow();
+}
+
+
+
+/* ---------- the resting open cover IS the WebGL cover at p = 1 ----------
+   Not a second interpretation of it. There is ONE physical rectangle and ONE
+   hinge, and both renderers derive from the same cached structure:
+
+     hingeX          = world.hingeX   (centre of the gutter — the axis the
+                                       mesh actually rotates about, see
+                                       configureMesh/resize)
+     openCover.left  = 2 * hingeX - cover.right
+     openCover.right = 2 * hingeX - cover.left
+     top / height    = the cover's own
+
+   The previous implementation mirrored about cover.left instead of the hinge.
+   With a 10px gutter the cover's bound edge is not the hinge, so the resting
+   DOM box was displaced by twice that error — the "inside cover shift" seen
+   at settle (opening) and at acquisition (closing).
+
+   This rectangle is a property of the LAYOUT, not of the animation: it is
+   measured once and cached (boot / resize / any real geometry change) so no
+   animation frame ever forces a layout read-write-read cycle. */
+let geom = null;              // cached layout geometry, see measureLayout()
+
+function measureLayout(cachedCoverRect, cachedCanvasRect) {
+  const cr = cachedCoverRect || cover.getBoundingClientRect();
+  const br = book.getBoundingClientRect();
+  const sr = spreadEl ? spreadEl.getBoundingClientRect() : null;
+  const xr = cachedCanvasRect || canvas.getBoundingClientRect();
+  if (!cr.width || !br.width || !sr || !sr.width) return null;
+  const hingeX = world.hingeX;
+  // reflection of the closed cover about the true hinge, in viewport space
+  const openLeftViewport = 2 * hingeX - (cr.left + cr.width);
+  geom = {
+    coverW: cr.width, coverH: cr.height,
+    hingeX,
+    /* Complete viewport-space rectangles are cached on layout/resize. Cover
+       acquisition must never force a getBoundingClientRect() on click. */
+    coverRect: { left: cr.left, top: cr.top, width: cr.width, height: cr.height },
+    coverOpenRect: { left: openLeftViewport, top: cr.top, width: cr.width, height: cr.height },
+    canvasRect: { left: xr.left, top: xr.top, width: xr.width, height: xr.height },
+    // book-relative (for .opencover) and spread-relative (for the shadows)
+    openLeft: openLeftViewport - br.left,
+    openTop:  cr.top - br.top,
+    spineX: cr.left - sr.left,
+    shadowTop: cr.top - sr.top,
+  };
+  layoutOpenCover();
+  return geom;
+}
+
+
+function layoutOpenCover() {
+  if (!openCoverEl || !geom) return;
+  openCoverEl.style.left   = geom.openLeft.toFixed(2) + 'px';
+  openCoverEl.style.top    = geom.openTop.toFixed(2) + 'px';
+  openCoverEl.style.width  = geom.coverW.toFixed(2) + 'px';
+  openCoverEl.style.height = geom.coverH.toFixed(2) + 'px';
+}
+
+
+/* ---------- the one cover shadow ----------
+   p = 0 closed on the right, .5 vertical, 1 laid open on the left. The board
+   is rigid, so its projected width on the desk is |cos(p*PI)| of its true
+   width and its lift is sin(p*PI): both are continuous through the whole
+   swing and identical whichever renderer happens to own the material on that
+   frame. Nothing here reads a state class, so settle() cannot change it. */
+let shadowHold = null;        // dev-only: freeze the shadow at a fixed p
+
+function coverProgress() {
+  if (turning && turning.kind === 'cover') return Math.max(0, Math.min(1, turning.p));
+  return state === CLOSED_FRONT ? 0 : 1;
+}
+
+let edgeZ = null;
+function updateCoverShadow() {
+  if (!covercast) return;
+  if (!geom && !measureLayout()) return;
+  const g = geom;
+
+  const p    = shadowHold != null ? shadowHold : coverProgress();
+  const c    = Math.cos(p * Math.PI);                //  1 -> -1
+  const a    = Math.abs(c);                          //  projected width factor
+  const lift = Math.sin(p * Math.PI);                //  0 at both endpoints
+  const sign = c >= 0 ? 1 : -1;                      //  which side of the spine
+
+  const w = Math.max(1, g.coverW * a);
+  const x = sign > 0 ? g.spineX : g.spineX - w;
+  const y = g.shadowTop;
+
+  // cast shadow: tight contact at both ends, soft and offset while raised
+  covercast.style.left   = x + 'px';
+  covercast.style.top    = y + 'px';
+  covercast.style.width  = w + 'px';
+  covercast.style.height = g.coverH + 'px';
+  covercast.style.borderRadius = sign > 0 ? '3px 9px 9px 3px' : '9px 3px 3px 9px';
+  covercast.style.transform = `translate(${(-sign * lift * 9).toFixed(2)}px, ${(2 + lift * 15).toFixed(2)}px)`;
+  covercast.style.filter = `blur(${(4 + lift * 24).toFixed(2)}px)`;
+  /* A board lying flat casts no separated shadow — only contact. So the cast
+     fades out completely at BOTH endpoints; if it survived at p=1 it painted
+     a dark slab over the open pastedown that the WebGL frame never had, which
+     is exactly the flip seen on settle. Contact darkening at rest belongs to
+     the materials, not to this layer. */
+  covercast.style.opacity = (Math.pow(lift, 0.6) * 0.58).toFixed(3);
+
+  // board thickness: the same projection, unblurred, mirrored past vertical
+  coveredge.style.left   = x + 'px';
+  coveredge.style.top    = y + 'px';
+  coveredge.style.width  = w + 'px';
+  coveredge.style.height = g.coverH + 'px';
+  coveredge.style.borderRadius = covercast.style.borderRadius;
+  const t = a;                                       // thickness rotates out of view
+  coveredge.style.boxShadow =
+    `${(sign * 3 * t).toFixed(2)}px 0 0 -1px #2b160e, ` +
+    `${(sign * 6 * t).toFixed(2)}px 0 0 -2px #55362a, ` +
+    `${(sign * 9 * t).toFixed(2)}px 0 0 -3px #23120c`;
+
+  /* bound-edge seam backing: only while the board is still over the page
+     block (sign > 0) and still wide enough that the mesh covers the strip
+     entirely. It fades out as the board approaches vertical, where there is
+     no longer any mesh rim sitting over paper. */
+  if (coverseam) {
+    const seamW = 3;
+    coverseam.style.left   = g.spineX + 'px';
+    coverseam.style.top    = y + 'px';
+    coverseam.style.width  = seamW + 'px';
+    coverseam.style.height = g.coverH + 'px';
+    coverseam.style.opacity =
+      (sign > 0 ? Math.max(0, Math.min(1, (w - 10) / 24)) : 0).toFixed(3);
+  }
+
+
+
+  /* WHICH SIDE OF THE SPINE THE BOARD IS ON DECIDES WHAT IT IS UNDER.
+     p < .5 : the board is still over the page block on the right — its
+              thickness is the nearest thing to the eye (z 3).
+     p > .5 : it has crossed the spine and become the structural surface the
+              left-hand pages lie ON. Every sheet flipped left is above it, so
+              its edge drops below .blockedge / .stack / .leaf (z 0).
+     The switch happens at p = .5 where a = |cos(pi/2)| = 0: the edge is
+     collapsed exactly edge-on, so the change of order is invisible. */
+  const z = sign > 0 ? 3 : 0;
+  if (z !== edgeZ) { edgeZ = z; coveredge.style.zIndex = String(z); }
+}
+
+
+
+/* Paper transfer. During a COVER turn `turned` does not change, so the whole
+   block geometry is already correct and rewriting 32 strata every frame is
+   pure waste — applyPose() calls updateChrome() alone in that case. */
+let stacksKey = null;
+function updateStacks(force) {
+  updateChrome();
+
+  const vt = Math.max(0, Math.min(SHEETS, visualTurned()));
+  /* 32 strata + 2 fore-edges is a real style/layout cost. It is only worth
+     paying when the block actually changed: settle() of a COVER turn (and
+     every repaint that does not move paper) would otherwise spend it on the
+     exact frame the renderer is handing back, which read as an end-of-swing
+     stutter. */
+  const key = vt.toFixed(4);
+  if (!force && key === stacksKey) return;
+  stacksKey = key;
+  const fr = { l: vt / SHEETS, r: (SHEETS - vt) / SHEETS };
+  for (const [el, f] of [[stackL, fr.l], [stackR, fr.r]]) {
+
+    /* the block gains bulk fast at first and then compresses, like real
+       paper under its own weight — a linear ramp made 1 -> 2 sheets read as
+       nothing at all. g scales the block's DEPTH: at a thin block the sheets
+       still end at different places, just over a shallower band. */
+    const g = Math.pow(f, 0.72);
+    const kids = el.children;
+    for (let i = 0; i < kids.length; i++) {
+      const k = kids[i];
+      /* physical extent, scaled by the current block depth. Nothing procedural
+         is recomputed here: the polygon, the seam and the body were baked once
+         in buildStacks(); only the box and its opacity move. */
+      k.style.width  = (100 - (+k.dataset.fi) * g).toFixed(3) + '%';
+      k.style.height = (100 - (+k.dataset.bi) * g).toFixed(3) + '%';
+      /* spine registration slop only, plus bottom-edge accumulation. No fan,
+         no cascade offset: layering comes from extent recession above, so the
+         binding never moves. As pages transfer, g interpolates how much
+         recession each sheet carries — not where it sits. */
+      k.style.transform =
+        `translate(${((+k.dataset.dx) * g).toFixed(3)}%, ${((-(+k.dataset.dy)) * g).toFixed(3)}%)`;
+
+      /* sheets enter the block one at a time as pages transfer, so the stack
+         grows and depletes continuously instead of switching on as a slab.
+         At f = 0 (e.g. turned = 0 on the left) the block is fully absent and
+         the canonical open cover is what remains visible. */
+      k.style.opacity = Math.max(0, Math.min(1, f * LAYERS - (+k.dataset.k || 0))).toFixed(3);
+    }
+  }
+}
+
+
+
+
+/* ======================================================================
+   TEXTURES — rasterise the real rendered leaf, never re-draw it
+   ----------------------------------------------------------------------
+   Method: deep-clone the live leaf element, inline the *computed* style of
+   every node (so every %, em, vw, clamp() and inherited value is already
+   resolved to px by the same engine that laid out the DOM), wrap it in an
+   SVG <foreignObject>, and decode that SVG as an image. One visual source of
+   truth: no canvas re-implementation of any page element.
+
+   Why a computed-style clone rather than shipping base.css into the SVG:
+   the stylesheet uses clamp(..,3.2vw,..), and inside a foreignObject `vw`
+   resolves against the SVG viewport, not the window — the type would silently
+   shift. Resolving to px first removes that whole class of drift.
+
+   Limitations (documented, all acceptable here):
+   - Text anti-aliasing in an SVG image is grayscale, while live DOM text may
+     use subpixel LCD AA. Sub-pixel colour fringing differs; glyph positions,
+     metrics and wrapping are identical.
+   - External resources (webfonts, <img src>) must be inlined as data URLs to
+     be painted; system fonts (as used here) are fine.
+   - Rasterisation is async, so textures are prepared up-front and on resize;
+     the turn controls stay disabled for the first ~100ms after layout.
+   - Firefox needs explicit width/height on the foreignObject child (we set it).
+   ==================================================================== */
+const SNAP_PROPS = [
+  'display','position','top','right','bottom','left','float','clear','z-index',
+  'box-sizing','width','height','min-width','min-height','max-width','max-height','aspect-ratio',
+  'margin-top','margin-right','margin-bottom','margin-left',
+  'padding-top','padding-right','padding-bottom','padding-left',
+  'border-top-width','border-right-width','border-bottom-width','border-left-width',
+  'border-top-style','border-right-style','border-bottom-style','border-left-style',
+  'border-top-color','border-right-color','border-bottom-color','border-left-color',
+  'border-top-left-radius','border-top-right-radius','border-bottom-right-radius','border-bottom-left-radius',
+  'background-color','background-image','background-size','background-position','background-repeat','background-clip','background-origin',
+  'color','opacity','mix-blend-mode','filter','box-shadow','text-shadow',
+  'font-family','font-size','font-style','font-weight','font-variant','font-stretch',
+  'line-height','letter-spacing','word-spacing','text-align','text-indent','text-transform',
+  'text-decoration-line','text-decoration-color','text-decoration-style',
+  'white-space','word-break','overflow-wrap','hyphens','direction','writing-mode','unicode-bidi',
+  'overflow-x','overflow-y','vertical-align','list-style-type','list-style-position',
+  'flex-direction','flex-wrap','align-items','justify-content','gap','transform','transform-origin',
+];
+
+function inlineComputed(srcRoot) {
+  const clone = srcRoot.cloneNode(true);
+  const srcs = [srcRoot, ...srcRoot.querySelectorAll('*')];
+  const dsts = [clone, ...clone.querySelectorAll('*')];
+  for (let i = 0; i < srcs.length; i++) {
+    const cs = getComputedStyle(srcs[i]);
+    let css = '';
+    for (const prop of SNAP_PROPS) {
+      const v = cs.getPropertyValue(prop);
+      if (v !== '' && v !== 'auto' && v !== 'normal' && v !== 'none' && v !== 'currentcolor') css += `${prop}:${v};`;
+      else if (v === 'none' && (prop === 'text-decoration-line' || prop === 'list-style-type')) css += `${prop}:none;`;
+    }
+    dsts[i].setAttribute('style', css);
+    dsts[i].removeAttribute('class');
+  }
+  return clone;
+}
+
+function snapshotEl(el, w, h, dpr) {
+  // stunt double: exact same classes, exact same box, so layout is identical.
+  // CRITICAL: the *containing block* must also match the live one — % padding
+  // (.leaf uses `padding: 6% 7%`) resolves against the containing block width,
+  // not the element's own width, so a shrink-to-fit host silently strips the
+  // page margins and reflows the copy. That was the "padding shift" on handoff.
+  const host = el.parentElement;
+  host.style.position = 'relative';
+  host.style.width = w + 'px';
+  host.style.height = h + 'px';
+  el.style.position = 'absolute';
+  el.style.inset = 'auto';
+  el.style.left = '0px'; el.style.top = '0px';
+  el.style.width = w + 'px';
+  el.style.height = h + 'px';
+  void el.offsetWidth;                                        // force layout
+
+
+
+  const clone = inlineComputed(el);
+  clone.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
+  const inner = new XMLSerializer().serializeToString(clone);
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(w * dpr)}" height="${Math.round(h * dpr)}" viewBox="0 0 ${w} ${h}">` +
+    `<foreignObject x="0" y="0" width="${w}" height="${h}">${inner}</foreignObject></svg>`;
+
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.decoding = 'sync';
+    img.onload = () => res(img);
+    img.onerror = rej;
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  });
+}
+function snapshotLeaf(page, idx, w, h, dpr) {
+  snapLeaf.innerHTML = pageHTML(page, idx);
+  // Rasterise each page in the orientation it RESTS in: odd pages sit on the
+  // left half, so their spine lift and their hand-cut corners are mirrored.
+  // The mesh presents a raster un-mirrored on screen at both ends of the turn
+  // (the sampler's U-flip only compensates for the 180 degree swing), so the
+  // raster must already look like the DOM page it hands over to.
+  const left = idx % 2 === 1;
+  snapLeaf.classList.toggle('facing-left', left);
+  // identical wear stack to the resting leaf: same page index, same hashes,
+  // same damage child nodes — one code path, so nothing can drift
+  dressLeaf(snapLeaf, idx);
+
+  const rr = sheetRadii(sheetOf(idx));
+  snapLeaf.style.borderRadius = cssR(left ? mirrorR(rr) : rr);
+  return snapshotEl(snapLeaf, w, h, dpr);
+}
+
+function toTexture(img, w, h, dpr) {
+  const c = document.createElement('canvas');
+  c.width = Math.round(w * dpr); c.height = Math.round(h * dpr);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  const t = new THREE.CanvasTexture(c);
+  // no colour transform anywhere in this pipeline: the texture already holds
+  // final sRGB bytes, so sampling and writing them raw makes the mesh at rest
+  // byte-identical to the DOM pixels it replaces
+  t.colorSpace = THREE.NoColorSpace;
+  t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  t.generateMipmaps = true;
+  t.minFilter = THREE.LinearMipmapLinearFilter;
+  t.magFilter = THREE.LinearFilter;
+  return t;
+}
+
+let texes = [], coverTex = [], texKey = '', texReady = false, buildSeq = 0;
+async function buildTextures() {
+  const r = leafR.getBoundingClientRect();
+  const cr = cover.getBoundingClientRect();
+  if (!r.width) return;
+  const dpr = Math.min(devicePixelRatio, 2);
+  const w = r.width, h = r.height;
+
+  const key = `${w.toFixed(2)}x${h.toFixed(2)}x${cr.width.toFixed(2)}@${dpr}`;
+  if (key === texKey) return;
+  texKey = key;
+  const seq = ++buildSeq;
+
+  const next = [];
+  for (let i = 0; i < pages.length; i++) {
+    const img = await snapshotLeaf(pages[i], i, w, h, dpr);
+    if (seq !== buildSeq) return;                             // superseded by a resize
+    next.push(toTexture(img, w, h, dpr));
+  }
+  // the front cover uses the identical pipeline — same source of truth,
+  // just a different DOM element and a stiffer material profile
+  const nextCover = [];
+  if (cr.width) {
+    for (const el of [snapCover, snapCoverBack]) {
+      const img = await snapshotEl(el, cr.width, cr.height, dpr);
+      if (seq !== buildSeq) return;
+      nextCover.push(toTexture(img, cr.width, cr.height, dpr));
+    }
+  }
+  // swap only once the whole set is ready — never show a half-built set
+  const old = texes.concat(coverTex);
+  texes = next; coverTex = nextCover;
+  old.forEach(t => t.dispose());
+  texReady = true;
+  if (turning) bindFaces(turning);
+  paintDOM();
+  warmGPU();
+}
+
+
+/* ======================================================================
+   SCENE — world units are CSS pixels
+   ----------------------------------------------------------------------
+   Camera choice: PERSPECTIVE, but calibrated so the z = 0 plane maps exactly
+   1:1 to CSS pixels (fov derived from camera distance and canvas height).
+   Reasoning:
+   - Orthographic guarantees the 1:1 match at rest but the curl reads as a
+     flat, "cardboard" fold: the lifted half never foreshortens, which is what
+     made the mid-turn page look like a different scale from the resting page.
+   - A perspective camera foreshortens the lifted half naturally. The risk is
+     a scale jump on handoff — that is removed by pinning the paper's rest
+     pose to z = 0 and calibrating the frustum to the pixel grid, so at
+     p = 0 and p = 1 the mesh is *mathematically* the DOM rectangle.
+   - Distance is deliberately long (2.6x stage height ≈ 21° fov): enough
+     depth cue for the curl, little enough that the small z excursions of the
+     paper cannot read as a size change.
+   ==================================================================== */
+const canvas = document.getElementById('gl');
+/* Cap for the WebGL drawing buffer only. DOM owns sharpness at rest; WebGL
+   owns motion, and a bending, foreshortened, shaded page does not need the
+   same pixel density. Debug-selectable (1.0 / 1.25 / 1.5 / 2.0). */
+let MAX_GL_DPR = 1.25;
+const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+renderer.outputColorSpace = THREE.LinearSRGBColorSpace;   // see texture note below
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(30, 1, 1, 20000);
+
+let PW = 100, PH = 100, GAP = 2;                              // page box in px
+let geo = new THREE.PlaneGeometry(1, 1, 96, 6);
+
+const uniforms = {
+  uT:     { value: 0 },     // 0..1 turn progress
+  uBend:  { value: 0 },     // curl amount, 0 at both ends
+  uEnv:   { value: 0 },     // shading envelope, 0 at both ends -> texture as-is
+  uX0:    { value: GAP },   // page inner edge, in local x
+  uW:     { value: PW },
+  uFront: { value: null },
+  uBack:  { value: null },
+  uSize:  { value: new THREE.Vector2(PW, PH) },
+  // per-corner radii (tl, tr, br, bl) of THIS sheet, in the same right-facing
+  // orientation as the front texture — keeps the GL silhouette identical to
+  // the DOM leaf's deterministic hand-cut corners
+  uRad4:  { value: new THREE.Vector4(3, 3, 3, 3) },
+  // visible paper-edge thickness in CSS px; gated by uEnv so it is absent at
+  // both ends of the turn and can never appear in a resting frame
+  uThick: { value: 1.6 },
+
+};
+
+const mat = new THREE.ShaderMaterial({
+  side: THREE.DoubleSide,
+  transparent: true,
+  uniforms,
+  vertexShader: `
+    uniform float uT, uBend, uW, uX0;
+    varying vec2 vUv; varying vec3 vNormal; varying float vCurve;
+    void main() {
+      vUv = uv;
+      float s = position.x - uX0;                 // 0 at inner edge, uW at outer edge
+      float u = clamp(s / uW, 0.0, 1.0);
+      vec3 p = position;
+      float phi = 0.0;
+      if (uBend > 0.001) {
+        float R = uW / uBend;                     // arc length preserved: no width loss
+        phi = u * uBend;
+        p.x = uX0 + R * sin(phi);
+        p.z = R * (1.0 - cos(phi));
+        // NOTE: no vertical taper. Any y-scaling here shows up as the page
+        // resolving to the wrong height at the end of the turn.
+      }
+      float a = -uT * 3.14159265;                 // swing the sheet about the hinge (x = 0)
+      float ca = cos(a), sa = sin(a);
+      vec3 q = vec3(p.x * ca + p.z * sa, p.y, -p.x * sa + p.z * ca);
+      vec3 tan_ = vec3(cos(phi), 0.0, sin(phi));
+      vec3 tr = vec3(tan_.x * ca + tan_.z * sa, 0.0, -tan_.x * sa + tan_.z * ca);
+      vNormal = normalize(cross(vec3(0.0, 1.0, 0.0), tr));
+      vCurve = phi;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(q, 1.0);
+    }`,
+  fragmentShader: `
+    precision highp float;
+    uniform sampler2D uFront, uBack;
+    uniform float uEnv, uThick;
+    uniform vec4 uRad4;                       // tl, tr, br, bl
+    uniform vec2 uSize;
+    varying vec2 vUv; varying vec3 vNormal; varying float vCurve;
+
+    // uv.y == 1 is the TOP of the texture (three flips canvas textures)
+    float radiusAt(vec2 uv) {
+      float top = step(0.5, uv.y), right = step(0.5, uv.x);
+      float lft = mix(uRad4.w, uRad4.x, top);   // bl -> tl
+      float rgt = mix(uRad4.z, uRad4.y, top);   // br -> tr
+      return mix(lft, rgt, right);
+    }
+    // signed distance to the rounded-rect silhouette, in CSS px (negative inside)
+    float silhouette(vec2 uv) {
+      float r = radiusAt(uv);
+      vec2 h = uSize * 0.5;
+      vec2 d = abs((uv - 0.5) * uSize) - (h - r);
+      return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0) - r;
+    }
+    void main() {
+      vec4 c = gl_FrontFacing ? texture2D(uFront, vUv)
+                              : texture2D(uBack, vec2(1.0 - vUv.x, vUv.y));
+      vec3 n = normalize(gl_FrontFacing ? vNormal : -vNormal);
+      vec3 L = normalize(vec3(-0.25, 0.45, 1.0));
+      float lit  = 0.74 + 0.26 * abs(dot(n, L));
+      float spec = pow(max(dot(reflect(-L, n), vec3(0.0, 0.0, 1.0)), 0.0), 24.0) * 0.06;
+      float ao   = 1.0 - 0.16 * smoothstep(0.0, 1.3, vCurve);
+      // uEnv is 0 at p=0 and p=1 -> the sheet resolves to the resting paper
+      // exactly, so the DOM swap cannot show a brightness step.
+      float shade = mix(1.0, lit * ao, uEnv);
+
+      // mesh UV is mirrored w.r.t. screen space at p=1, so evaluating the sheet's
+      // own corner radii here yields the mirrored silhouette the left leaf shows
+      float sd = silhouette(vUv);
+      float a = 1.0 - smoothstep(-0.5, 0.5, sd);
+      if (a <= 0.002) discard;
+
+      vec3 rgb = c.rgb * shade + spec * uEnv;
+
+      /* --- paper thickness ------------------------------------------------
+         Not extruded geometry: a sub-2px shaded band hugging the silhouette,
+         weighted by how edge-on the sheet is (n.z -> 0). Face-on it vanishes;
+         at grazing angles it reads as the cut edge of a real sheet. Scaled by
+         uEnv, so a resting page is exactly its texture. */
+      float graze = 1.0 - abs(n.z);
+      float band  = 1.0 - smoothstep(-uThick, -0.35, sd);   // 1 at the very rim
+      float edge  = band * graze * uEnv;
+      vec3 edgeCol = rgb * 0.66 + vec3(0.055, 0.045, 0.030);
+      rgb = mix(rgb, edgeCol, clamp(edge, 0.0, 1.0) * 0.9);
+
+      gl_FragColor = vec4(rgb, a);
+
+    }`,
+});
+const mesh = new THREE.Mesh(geo, mat);
+scene.add(mesh);
+
+let world = { cx: 0, cy: 0, hingeX: 0 };
+
+/* Fit the mesh to an arbitrary DOM rectangle (a leaf, or the front cover).
+   The hinge always stays at the centre of the gutter, so a 180° swing maps
+   the right-hand object exactly onto the left-hand one. */
+/* Geometry is a property of the LAYOUT (paper rect, cover rect), not of the
+   gesture. Allocating a 96x6 plane on the frame the user asks the cover to
+   move used to cost a visible hitch, so both profiles are built once per
+   layout and cached; switching profiles at interaction time is a pointer
+   assignment plus a few uniform writes. */
+const geoCache = new Map();
+function planeFor(w, h, gap) {
+  const key = w.toFixed(2) + 'x' + h.toFixed(2) + '@' + gap.toFixed(2);
+  let g = geoCache.get(key);
+  if (!g) {
+    g = new THREE.PlaneGeometry(w, h, 96, 6);
+    g.translate(gap + w / 2, 0, 0);
+    geoCache.set(key, g);
+  }
+  return g;
+}
+function configureMesh(rect, radii, thick) {
+  PW = rect.width;
+  PH = rect.height;
+  GAP = rect.left - world.hingeX;
+  geo = planeFor(PW, PH, GAP);
+  mesh.geometry = geo;
+  mesh.position.set(world.hingeX - world.cx, world.cy - (rect.top + PH / 2), 0);
+  uniforms.uW.value = PW;
+  uniforms.uX0.value = GAP;
+  uniforms.uSize.value.set(PW, PH);
+  const r = typeof radii === 'number' ? [radii, radii, radii, radii] : radii;
+  uniforms.uRad4.value.set(r[0], r[1], r[2], r[3]);
+  uniforms.uThick.value = thickness ? (thick == null ? 1.6 : thick) : 0;
+}
+
+/* the mesh silhouette for a paper turn is the SHEET's silhouette (shared by
+   both of its pages), so p=0 matches the right leaf and p=1 the left one */
+const meshRadiiForSheet = s => sheetRadii(s);
+
+
+function resize() {
+  const stageR = stage.getBoundingClientRect();
+  const cvsR = canvas.getBoundingClientRect();
+  const leafRect = leafR.getBoundingClientRect();
+  if (!stageR.width || !leafRect.width) return;
+
+  /* PERFORMANCE — the drawing buffer is decoupled from the CSS canvas box.
+     The notebook is presented large on purpose, so at device DPR the moving
+     page was shading several times more pixels per frame than before. The CSS
+     canvas keeps its exact physical size (geometry, camera and DOM<->GL
+     registration all derive from cvsR, never from the buffer); only the
+     internal buffer density is capped, and the browser upscales it. The DOM
+     resting state is untouched and stays full resolution. */
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, MAX_GL_DPR));
+  renderer.setSize(cvsR.width, cvsR.height, false);
+
+  // 1 world unit == 1 CSS px on the z = 0 plane
+  const dist = stageR.height * 2.6;
+  camera.fov = 2 * Math.atan((cvsR.height / 2) / dist) * 180 / Math.PI;
+  camera.aspect = cvsR.width / cvsR.height;
+  camera.position.set(0, 0, dist);
+  camera.near = dist * 0.05; camera.far = dist * 4;
+  camera.updateProjectionMatrix();
+
+  // world origin = canvas centre (which coincides with the stage centre)
+  world.cx = cvsR.left + cvsR.width / 2;
+  world.cy = cvsR.top + cvsR.height / 2;
+  // Hinge sits at the centre of the gutter, not at the leaf edge.
+  world.hingeX = (leafRect.left + leafL.getBoundingClientRect().right) / 2;
+
+  // a new layout invalidates every cached plane and the cached rectangles
+  for (const g of geoCache.values()) g.dispose();
+  geoCache.clear();
+  configureMesh(leafRect, meshRadiiForSheet(sheetOf(turned * 2)));
+  // build the cover plane now too, so no turn ever allocates one
+  const coverRect = cover.getBoundingClientRect();
+  planeFor(coverRect.width, coverRect.height, coverRect.left - world.hingeX);
+
+  measureLayout(coverRect, cvsR);
+
+  buildTextures();
+  reportAlign(leafRect, stageR);
+
+}
+addEventListener('resize', resize);
+
+
+/* ======================================================================
+   TURN STATE MACHINE
+   One mesh, one gesture model, two MATERIAL PROFILES. A cover is not a
+   second animation system: it is the same turn with a stiffer bend, a
+   heavier shading envelope and its own source rectangle.
+   ==================================================================== */
+/* Easing is part of the material, not of the widget. Paper keeps its existing
+   cubic motion. A cover must feel heavy WITHOUT remaining mathematically
+   parked at either endpoint: this measured curve retains gentle endpoint
+   velocity, adds middle momentum, and therefore produces visible free-edge
+   displacement in the first two motion frames at 60 Hz. */
+const easeInOutCubic = k => k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+const easeHeavyCover = k => k - 0.2 * Math.sin(2 * Math.PI * k) / (2 * Math.PI);
+const MATERIAL = {
+  paper: { bend: 1.15, env: 1.00, maxMs: 800,  curve: easeInOutCubic },
+  cover: { bend: 0.34, env: 1.35, maxMs: 1150, curve: easeHeavyCover },
+};
+const MIN_MS = 160;
+
+
+
+
+/* Upload every texture and compile the program while the canvas is still
+   hidden. Without this the first cover turn stalls ~170 ms on its very first
+   frame (geometry rebuild + first-ever texture upload), which ate the slow
+   part of the easing curve and made the opening feel late and abrupt. */
+let warmed = false;
+let warmPending = 0;
+function warmGPU() {
+
+  if (warmed || !texReady) return;
+  warmed = true;
+  const f = uniforms.uFront.value, b = uniforms.uBack.value;
+  for (const pair of [coverTex, texes.slice(0, 2)]) {
+    if (pair.length < 2) continue;
+    uniforms.uFront.value = pair[0];
+    uniforms.uBack.value = pair[1];
+    renderer.render(scene, camera);      // canvas is not .active -> invisible
+  }
+  uniforms.uFront.value = f; uniforms.uBack.value = b;
+  /* ...and composite once, empty. Rendering while hidden warms the GL side,
+     but the first time the canvas is actually *shown* the browser still has
+     to present its drawing buffer, and that presentation is what stalled the
+     opening frame. Show an empty (fully transparent) frame at load instead. */
+  mesh.visible = false;
+  renderer.render(scene, camera);
+  canvas.classList.add('active');
+  /* The teardown of the warm-up is deferred by two frames, so a turn can begin
+     inside that window (the cover is clickable the instant textures are
+     ready). If it does, the turn now OWNS the canvas: tearing down here would
+     hide the canvas and blank the mesh for a frame or two, and because the DOM
+     cover is already hidden by .coverflight the page underneath bled through
+     at the very start of the opening. reveal() cancels this callback; the
+     callback also refuses to fire once a turn exists. */
+  warmPending = requestAnimationFrame(() => {
+    warmPending = requestAnimationFrame(() => {
+      warmPending = 0;
+      mesh.visible = true;
+      if (turning) return;                 // a turn claimed the canvas
+      canvas.classList.remove('active');
+      renderer.render(scene, camera);
+    });
+  });
+
+}
+function bindFaces(t) {
+  if (t.kind === 'cover') {
+    uniforms.uFront.value = coverTex[0];
+    uniforms.uBack.value = coverTex[1];
+  } else {
+    uniforms.uFront.value = texes[t.sheet * 2];
+    uniforms.uBack.value = texes[t.sheet * 2 + 1];
+  }
+}
+function reveal(t) {
+  // the turn takes the canvas away from any pending warm-up teardown
+  if (warmPending) { cancelAnimationFrame(warmPending); warmPending = 0; }
+  /* Preparation is deliberately not presentation. Keep GL hidden while its
+     exact resting pose is uploaded; frame() alone owns the acquire frame. */
+  if (t.kind === 'cover') canvas.classList.remove('active');
+  mesh.visible = true;
+  document.body.classList.add('turning');
+  turning = t;
+  if (t.kind === 'cover') {
+    t.phase = 'acquire';
+    t.acquireP = t.p;
+    t.trace = [];
+    t.traceLast = 0;
+  }
+  bindFaces(t);
+  // buffer preparation only — the resting DOM remains visible above the desk
+  applyPose();
+  renderer.render(scene, camera);
+  if (t.kind !== 'cover') canvas.classList.add('active');
+  return t;
+}
+
+function beginTurn(dir) {
+  if (!texReady || state !== OPEN || turning) return null;
+  const sheet = dir === 1 ? turned : turned - 1;
+  if (sheet < 0 || sheet >= SHEETS) return null;
+  turned = sheet;                          // DOM shows the "not yet flipped" spread
+  paintLeftLeaf(sheet * 2 - 1);
+  paintRightLeaf(sheet * 2 + 2);
+  configureMesh(leafR.getBoundingClientRect(), meshRadiiForSheet(sheetOf(turned * 2)));
+  return reveal({ kind: 'paper', dir, sheet, p: dir === 1 ? 0 : 1, dragging: true, ease: 'out' });
+}
+/* dir = 1 opens the notebook, dir = -1 closes it back onto the front cover */
+function beginCoverTurn(dir) {
+  if (!texReady || turning || !coverTex.length) return null;
+  if (dir === 1 && state !== CLOSED_FRONT) return null;
+  if (dir === -1 && (state !== OPEN || turned !== 0)) return null;
+  /* Settled state remains untouched throughout flight. The resting DOM cover
+     stays visible for acquisition and relinquishes ownership only on the first
+     genuinely moving frame. Geometry is the resize-time cached cover box. */
+  if (!geom || !geom.coverRect) return null;
+  configureMesh(geom.coverRect, [2, 8, 8, 2], 5.0);  // stiffer, visibly thicker board
+  return reveal({ kind: 'cover', dir, p: dir === 1 ? 0 : 1, dragging: true, ease: 'out' });
+}
+function launch(t, target, ease) {
+  const dist = Math.abs(target - t.p);
+  if (!perf) perfBegin(t);
+  t.dragging = false;
+  t.target = target;
+  t.from = t.p;
+  /* A button-launched turn is still waiting for its single acquire frame.
+     A pointer-released turn already owns the canvas, so its motion clock can
+     start now without reacquiring or presenting a duplicate resting pose. */
+  if (t.phase === 'dragging') {
+    t.phase = 'moving';
+    t.t0 = performance.now();
+  } else if (t.kind !== 'cover') {
+    /* Preserve the established paper lifecycle; cover acquisition does not
+       use this sentinel and records its clock on its own acquire frame. */
+    t.t0 = 0;
+  }
+  t.ease = ease || 'out';
+  t.dur = Math.max(MIN_MS, MATERIAL[t.kind].maxMs * Math.pow(dist, 0.85));
+}
+function finishTurn() {
+  if (!turning || !turning.dragging || dbg.hold) return;
+  const done = turning.dir === 1 ? turning.p > 0.5 : turning.p < 0.5;
+  launch(turning, turning.dir === 1 ? (done ? 1 : 0) : (done ? 0 : 1), 'out');
+}
+let stacksSolvedOpen = false;
+function settleCoverDOM(t) {
+  state = t.target === 1 ? OPEN : CLOSED_FRONT;
+  book.classList.toggle('closed', state === CLOSED_FRONT);
+  book.classList.remove('coverflight');
+  updateChrome();
+  btnNext.disabled = !texReady || (state === OPEN && turned >= SHEETS);
+  btnPrev.disabled = !texReady || state === CLOSED_FRONT;
+  /* The paper envelope only physically exists once the book is open: closed,
+     the leaf sits under the cover and the measured board margin is not the one
+     the eye will ever see. Solve the stack ONCE against the real open spread —
+     never during motion, never per frame. */
+  if (state === OPEN && !stacksSolvedOpen) {
+    stacksSolvedOpen = true;
+    requestAnimationFrame(() => { buildStacks(); updateStacks(true); });
+  }
+}
+
+function settle() {
+  const t = turning;
+  turning = null;
+  if (t.kind === 'cover') {
+    /* Cover settlement never rebuilds page HTML, damage nodes, or stacks. */
+    settleCoverDOM(t);
+  } else {
+    turned = t.target === 1 ? t.sheet + 1 : t.sheet;
+    paintDOM();
+  }
+  document.body.classList.remove('turning');
+  canvas.classList.remove('active');
+  flushCoverTrace(t);
+  perfEnd(t);
+}
+
+/* ---------- dev-only frame-time summary for one turn ----------
+   Silent unless debug mode is on; never logs per-frame in normal use. */
+let perf = null;
+function perfBegin(t) {
+  if (!document.body.classList.contains('debug')) { perf = null; return; }
+  perf = { kind: t.kind, dir: t.dir, dts: [], last: 0 };
+}
+function perfSample(now) {
+  if (!perf) return;
+  if (perf.last) perf.dts.push(now - perf.last);
+  perf.last = now;
+}
+function perfEnd(t) {
+  if (!perf || perf.dts.length < 3) { perf = null; return; }
+  const d = perf.dts, n = d.length;
+  const avg = d.reduce((a, b) => a + b, 0) / n;
+  const over = k => d.filter(v => v > k).length;
+  const line =
+    `${perf.kind} ${perf.dir === 1 ? 'forward' : 'backward'}  frames=${n}  ` +
+    `avg=${avg.toFixed(1)}ms (${(1000 / avg).toFixed(0)}fps)  worst=${Math.max(...d).toFixed(1)}ms  ` +
+    `>16.7:${over(16.7)}  >20:${over(20)}  >30:${over(30)}  >50:${over(50)}`;
+  console.log('[nb perf] ' + line);
+  const el = document.getElementById('dbgPerf');
+  if (el) el.textContent = line + '\n' + glResolutionReport();
+  perf = null;
+}
+/* framebuffer diagnostic: proves the cap is actually applied */
+function glResolutionReport() {
+  const r = canvas.getBoundingClientRect();
+  const px = canvas.width * canvas.height;
+  const tw = Math.round(leafR.getBoundingClientRect().width * Math.min(devicePixelRatio, 2));
+  const th = Math.round(leafR.getBoundingClientRect().height * Math.min(devicePixelRatio, 2));
+  const mem = (texes.length + coverTex.length) * tw * th * 4 / (1024 * 1024);
+  return `CSS: ${r.width.toFixed(0)} x ${r.height.toFixed(0)}   device DPR: ${devicePixelRatio}   ` +
+    `GL DPR: ${renderer.getPixelRatio()}   buffer: ${canvas.width} x ${canvas.height} (${(px / 1e6).toFixed(2)} Mpx)\n` +
+    `${texes.length} page textures + ${coverTex.length} cover textures @ ${tw} x ${th}  ~${mem.toFixed(1)} MB RGBA`;
+}
+
+function applyPose() {
+  const p = turning ? turning.p : 0;
+  const m = MATERIAL[turning ? turning.kind : 'paper'];
+  const env = Math.sin(Math.min(1, Math.max(0, p)) * Math.PI);   // 0 at both ends
+  uniforms.uT.value = p;
+  uniforms.uBend.value = dbg.flat ? 0 : env * m.bend;
+  uniforms.uEnv.value = dbg.flat ? 0 : Math.min(1, env * m.env);
+  /* A cover turn does not transfer any paper: `turned` is unchanged, so the
+     block geometry underneath is already correct. Only the cover chrome moves. */
+  if (turning && turning.kind === 'cover') updateChrome();
+  else updateStacks();                  // stacks transfer continuously mid-turn
+}
+
+/* ---------- frame lifecycle ----------
+   Cover automation is an explicit phase machine. Exactly one rAF presents the
+   acquired rest pose and records t0. The very next rAF computes a non-zero k,
+   relinquishes DOM ownership, and moves. The exact target is then presented
+   once before DOM settlement on the following rAF. Paper keeps its proven
+   lifecycle unchanged. No timers, fades, or synthetic delays. */
+function frame() {
+  const now = performance.now();
+  if (turning) {
+    perfSample(now);
+    const t = turning;
+    if (t.kind === 'cover') {
+      if (t.phase === 'acquire') {
+        t.p = t.acquireP;
+        t.t0 = now;
+        applyPose();
+        renderer.render(scene, camera);
+        canvas.classList.add('active');
+        traceCoverFrame(t, 'acquire', now);
+        t.phase = t.dragging ? 'dragging' : 'moving';
+      } else if (t.phase === 'dragging') {
+        applyPose(); renderer.render(scene, camera);
+      } else if (t.phase === 'endpoint') {
+        t.phase = 'settle';
+        traceCoverFrame(t, 'settle', now);
+        settle();
+      } else if (t.phase === 'moving') {
+        const k = Math.min(1, (now - t.t0) / t.dur);
+        const e = t.ease === 'inout' ? MATERIAL.cover.curve(k) : 1 - Math.pow(1 - k, 3);
+        t.p = k >= 1 ? t.target : t.from + (t.target - t.from) * e;
+
+        /* Ownership changes only when there is real movement. Until here the
+           exact DOM rest pose and exact GL rest pose coexist. */
+        if (!t.ownershipRelinquished && k > 0) {
+          t.ownershipRelinquished = true;
+          book.classList.add('coverflight');
+          if (t.dir === 1) book.classList.remove('closed');
+        }
+        applyPose(); renderer.render(scene, camera);
+        if (k >= 1) {
+          t.phase = 'endpoint';
+          traceCoverFrame(t, 'endpoint', now);
+        } else {
+          traceCoverFrame(t, 'moving', now);
+        }
+      }
+    } else if (t.dragging) {
+      applyPose(); renderer.render(scene, camera);
+    } else if (!t.startPresented) {
+      t.startPresented = true;
+      applyPose(); renderer.render(scene, camera);
+      frameLog('start-handoff', t.p, now);
+    } else if (t.endpointPresented) {
+      frameLog('settle', t.p, now);
+      settle();                                   // endpoint frame has been shown
+    } else {
+      if (t.t0 === 0) t.t0 = now;
+      const k = Math.min(1, (now - t.t0) / t.dur);
+      const e = t.ease === 'inout'
+        ? MATERIAL[t.kind].curve(k)
+        : 1 - Math.pow(1 - k, 3);
+      t.p = k >= 1 ? t.target : t.from + (t.target - t.from) * e;
+      applyPose(); renderer.render(scene, camera);
+      if (k >= 1) { t.endpointPresented = true; frameLog('endpoint-present', t.p, now); }
+      else frameLog('moving', t.p, now);
+    }
+  }
+  hud.textContent = !texReady ? 'preparing page textures…'
+    : `state=${state}   mode=${turning ? 'WEBGL ' + turning.kind + ' p=' + turning.p.toFixed(2) : 'DOM resting'}   turned=${turned}/${SHEETS}`;
+  requestAnimationFrame(frame);
+}
+
+/* Dev-only strict cover trace. The projected free-edge X uses the same bend,
+   hinge rotation, model position, camera and cached canvas rectangle as GL —
+   p alone is not accepted as evidence of visible movement. */
+let lastCoverTrace = [];
+const tracePoint = new THREE.Vector3();
+function coverFreeEdgeScreenX() {
+  if (!geom || !geom.canvasRect) return NaN;
+  const bend = uniforms.uBend.value;
+  let x = GAP + PW, z = 0;
+  if (bend > 0.001) {
+    const radius = PW / bend;
+    x = GAP + radius * Math.sin(bend);
+    z = radius * (1 - Math.cos(bend));
+  }
+  const angle = -uniforms.uT.value * Math.PI;
+  const qx = x * Math.cos(angle) + z * Math.sin(angle);
+  const qz = -x * Math.sin(angle) + z * Math.cos(angle);
+  tracePoint.set(qx + mesh.position.x, mesh.position.y, qz).project(camera);
+  return geom.canvasRect.left + (tracePoint.x + 1) * geom.canvasRect.width / 2;
+}
+function traceCoverFrame(t, phase, now) {
+  if (!document.body.classList.contains('debug') || t.trace.length >= 12) return;
+  const domVisible = t.dir === 1
+    ? !book.classList.contains('coverflight') && book.classList.contains('closed')
+    : !book.classList.contains('coverflight') && !book.classList.contains('closed');
+  t.trace.push({
+    frame: t.trace.length,
+    timestamp: +now.toFixed(2),
+    dt: +(t.traceLast ? now - t.traceLast : 0).toFixed(2),
+    phase,
+    p: +t.p.toFixed(6),
+    openx: +getComputedStyle(book).getPropertyValue('--openx') || 0,
+    freeEdgeX: +coverFreeEdgeScreenX().toFixed(3),
+    canvasActive: canvas.classList.contains('active'),
+    domCoverVisible: domVisible,
+    coverflight: book.classList.contains('coverflight'),
+    state,
+  });
+  t.traceLast = now;
+}
+function flushCoverTrace(t) {
+  if (t.kind !== 'cover' || !t.trace) return;
+  lastCoverTrace = t.trace.slice();
+  if (document.body.classList.contains('debug')) {
+    console.groupCollapsed(`[nb] cover ${t.dir === 1 ? 'opening' : 'closing'} start trace`);
+    console.table(lastCoverTrace);
+    console.groupEnd();
+  }
+}
+
+/* dev-only frame-time instrumentation: distinguishes "the picture jumped"
+   from "the frame never arrived". Silent unless the debug panel is open. */
+let lastFrameT = 0;
+function frameLog(phase, p, now) {
+  if (!document.body.classList.contains('debug')) { lastFrameT = now; return; }
+  const dt = lastFrameT ? now - lastFrameT : 0;
+  lastFrameT = now;
+  if (dt > 20) {
+    const tag = dt > 50 ? 'STALL>50ms' : dt > 30 ? 'long>30ms' : 'slow>20ms';
+    console.log(`[nb] ${tag} ${dt.toFixed(1)}ms  phase=${phase} p=${p.toFixed(3)}`);
+  }
+}
+
+
+/* ---------- pointer ---------- */
+let startX = 0, base = 0;
+function drag(t, e) {
+  if (!t) return;
+  perfBegin(t);
+  startX = e.clientX; base = t.p; stage.setPointerCapture(e.pointerId);
+}
+stage.addEventListener('pointermove', e => {
+  if (!turning || !turning.dragging || dbg.hold) return;
+  const w = stage.getBoundingClientRect().width / 2;
+  turning.p = Math.max(0, Math.min(1, base + (startX - e.clientX) / w));
+});
+stage.addEventListener('pointerup', finishTurn);
+stage.addEventListener('pointercancel', finishTurn);
+cover.addEventListener('pointerdown', e => drag(beginCoverTurn(1), e));
+document.getElementById('grabNext').addEventListener('pointerdown', e => drag(beginTurn(1), e));
+document.getElementById('grabPrev').addEventListener('pointerdown', e => {
+  drag(state === OPEN && turned === 0 ? beginCoverTurn(-1) : beginTurn(-1), e);
+});
+btnNext.onclick = () => {
+  const t = state === CLOSED_FRONT ? beginCoverTurn(1) : beginTurn(1);
+  if (t) launch(t, 1, 'inout');
+};
+btnPrev.onclick = () => {
+  const t = state === OPEN && turned === 0 ? beginCoverTurn(-1) : beginTurn(-1);
+  if (t) launch(t, 0, 'inout');
+};
+
+
+/* ======================================================================
+   DEV-ONLY ALIGNMENT DIAGNOSTICS  (?debug=1, or press "d")
+   Not part of the experience: lets you freeze the mesh at p=0 / p=1 and
+   flick the DOM and the WebGL representation on top of each other to check
+   they occupy the same pixels.
+   ==================================================================== */
+const dbg = { hold: false, flat: false };
+const dbgOut = document.getElementById('dbgOut');
+if (new URLSearchParams(location.search).get('debug') === '1') document.body.classList.add('debug');
+addEventListener('keydown', e => {
+  if (e.key === 'd' && !e.metaKey && !e.ctrlKey) document.body.classList.toggle('debug');
+});
+function hold(dir, p, kind) {
+  if (turning) { turning = null; document.body.classList.remove('turning'); }
+  if (kind !== 'cover') { state = OPEN; book.classList.remove('closed', 'coverflight'); }
+  else { state = CLOSED_FRONT; book.classList.add('closed'); }
+  paintDOM();
+  const t = kind === 'cover' ? beginCoverTurn(dir) : beginTurn(dir);
+  if (!t) return;
+  dbg.hold = true; t.dragging = true; t.p = p;
+  document.getElementById('dbgP').value = p;
+  applyPose(); renderer.render(scene, camera);
+}
+document.getElementById('dbgPose0').onclick = () => hold(1, 0);
+document.getElementById('dbgPose1').onclick = () => hold(1, 1);
+document.getElementById('dbgCover').onclick = () => hold(1, 0.5, 'cover');
+
+document.getElementById('dbgRelease').onclick = () => {
+  dbg.hold = false;
+  if (turning) launch(turning, turning.p > 0.5 ? 1 : 0, 'out');
+};
+document.getElementById('dbgP').oninput = e => {
+  if (!turning) hold(1, +e.target.value);
+  else { dbg.hold = true; turning.dragging = true; turning.p = +e.target.value; applyPose(); renderer.render(scene, camera); }
+};
+document.getElementById('dbgDom').onchange = e => {
+  leafL.style.opacity = leafR.style.opacity = e.target.checked ? '' : '0';
+};
+document.getElementById('dbgGl').onchange = e => { canvas.style.display = e.target.checked ? '' : 'none'; };
+document.getElementById('dbgOp').oninput = e => { canvas.style.opacity = e.target.value; };
+/* dev-only shadow continuity rig: freeze the cover shadow at fixed progress
+   values and compare the WebGL frame against the resting DOM frame. */
+{
+  const host = document.getElementById('shadowHoldBtns');
+  for (const v of [0, .05, .25, .5, .75, .95, 1]) {
+    const b = document.createElement('button');
+    b.textContent = 'p=' + v; b.dataset.sp = v; host.appendChild(b);
+  }
+  document.getElementById('dbg').addEventListener('click', e => {
+    const v = e.target.dataset && e.target.dataset.sp;
+    if (v == null) return;
+    shadowHold = v === 'live' ? null : +v;
+    updateCoverShadow();
+  });
+  document.getElementById('dbgShadowSolo').onchange = e =>
+    document.body.classList.toggle('shadowsolo', e.target.checked);
+}
+/* dev-only: isolate one left-hand layer to verify the cover edge really is
+   underneath the page block once the board has crossed the spine */
+{
+  const SOLO = ['#opencover', '#coveredge', '#stackL', '#leafL'];
+  document.getElementById('dbgLayerSolo').onchange = e => {
+    const pick = e.target.value;
+    for (const sel of SOLO) {
+      const el = document.querySelector(sel);
+      if (el) el.style.visibility = !pick || sel === pick ? '' : 'hidden';
+    }
+  };
+}
+
+document.getElementById('dbgFlat').onchange = e => {
+  dbg.flat = e.target.checked; applyPose(); renderer.render(scene, camera);
+};
+/* --- physicality toggles ------------------------------------------------
+   Each one changes BOTH representations at once (DOM class / radii, plus a
+   full texture re-rasterisation) so flipping a switch can never itself be
+   the source of a handoff seam. */
+function rebuildAll() {
+  texKey = '';                 // force a re-raster of every page
+  dressChrome();
+  buildStacks();
+  paintDOM();
+  resize();
+}
+document.getElementById('dbgWear').onchange = e => { WEAR = +e.target.value; rebuildAll(); };
+for (const [id, key] of [['wGrain', 'grain'], ['wEdges', 'edges'], ['wDamage', 'damage'], ['wCover', 'cover']]) {
+  document.getElementById(id).onchange = e => { wearFlags[key] = e.target.checked; rebuildAll(); };
+}
+
+document.getElementById('dbgLift').onchange = e => {
+  liftOn = e.target.checked;
+  document.body.classList.toggle('no-lift', !liftOn);
+  rebuildAll();
+};
+document.getElementById('dbgIrr').onchange = e => { irregular = e.target.checked; rebuildAll(); };
+/* Rebuilding the drawing buffer only. resize() re-derives camera, world origin
+   and mesh from the CSS boxes, so geometry and registration are unchanged. */
+document.getElementById('dbgGlDpr').onchange = e => {
+  MAX_GL_DPR = +e.target.value;
+  resize();
+  if (turning) { applyPose(); renderer.render(scene, camera); }
+  document.getElementById('dbgPerf').textContent = glResolutionReport();
+};
+document.getElementById('dbgGlReport').onclick = () => {
+  const r = glResolutionReport();
+  document.getElementById('dbgPerf').textContent = r;
+  console.log('[nb gl]\n' + r);
+};
+document.getElementById('dbgThick').onchange = e => {
+  thickness = e.target.checked;
+  uniforms.uThick.value = thickness ? 1.6 : 0;
+  if (turning) { applyPose(); renderer.render(scene, camera); }
+};
+
+function reportAlign(leafRect, stageR) {
+  const l = leafL.getBoundingClientRect();
+  dbgOut.textContent =
+    `leafR ${leafRect.width.toFixed(1)}x${leafRect.height.toFixed(1)} @ ${leafRect.left.toFixed(1)},${leafRect.top.toFixed(1)}   ` +
+    `leafL ${l.width.toFixed(1)}x${l.height.toFixed(1)} @ ${l.left.toFixed(1)},${l.top.toFixed(1)}   ` +
+    `hinge gap=${GAP.toFixed(2)}px   dpr=${Math.min(devicePixelRatio, 2)}`;
+}
+/* ---------- dev-only endpoint registration rig ----------
+   Freezes the cover mesh at an exact p with no motion, so the WebGL rectangle
+   and the resting DOM rectangle can be measured and toggled against each
+   other. Geometry is validated spatially (bounding boxes), never by mean RGB:
+   a surface can be several px out and still average identically. */
+function coverFreeze(p, mode) {
+  if (!coverTex.length) return null;
+  if (turning) { turning = null; document.body.classList.remove('turning'); }
+  dbg.hold = true;
+  configureMesh(geom.coverRect, [2, 8, 8, 2], 5.0);
+  bindFaces({ kind: 'cover' });
+  turning = { kind: 'cover', dir: 1, p, dragging: true, phase: 'dragging', ease: 'out' };
+  mesh.visible = true;
+  applyPose();
+  renderer.render(scene, camera);
+  turning = null;
+  document.body.classList.remove('turning');
+  // ownership: 'gl' = WebGL only, 'dom' = resting DOM only, 'both' = overlaid
+  const showGL = mode !== 'dom', showDOM = mode !== 'gl';
+  canvas.classList.toggle('active', showGL);
+  canvas.style.display = showGL ? '' : 'none';
+  book.classList.toggle('coverflight', !showDOM);
+  book.classList.toggle('closed', p < 0.5);
+  book.style.setProperty('--openx', p >= 0.5 ? '1' : '0');
+  updateCoverShadow();
+  return coverMeasure();
+}
+/* Actual on-screen bounding box of whatever the mesh painted this frame,
+   found by scanning the drawing buffer's alpha — not by trusting the CPU
+   side's idea of the pose. */
+let scanCv = null;
+function coverMeasure() {
+  const r = canvas.getBoundingClientRect();
+  if (!scanCv) scanCv = document.createElement('canvas');
+  // scan at the drawing-buffer resolution: sub-CSS-px sampling, so a 0.25px
+  // registration target is actually resolvable
+  const W = Math.min(2400, canvas.width), H = Math.min(2400, canvas.height);
+  scanCv.width = W; scanCv.height = H;
+  const ctx = scanCv.getContext('2d', { willReadFrequently: true });
+  ctx.clearRect(0, 0, W, H);
+  ctx.drawImage(canvas, 0, 0, W, H);
+  const d = ctx.getImageData(0, 0, W, H).data;
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (d[(y * W + x) * 4 + 3] > 24) {
+      if (x < x0) x0 = x; if (x > x1) x1 = x;
+      if (y < y0) y0 = y; if (y > y1) y1 = y;
+    }
+  }
+  const sx = r.width / W, sy = r.height / H;
+  const gl = x1 < 0 ? null : {
+    left: r.left + x0 * sx, top: r.top + y0 * sy,
+    right: r.left + (x1 + 1) * sx, bottom: r.top + (y1 + 1) * sy,
+  };
+  if (gl) { gl.width = gl.right - gl.left; gl.height = gl.bottom - gl.top; }
+  const domEl = openCoverEl.getBoundingClientRect();
+  const dc = cover.getBoundingClientRect();
+  const rect = o => ({ left: +o.left.toFixed(2), top: +o.top.toFixed(2), right: +o.right.toFixed(2),
+                       bottom: +o.bottom.toFixed(2), width: +o.width.toFixed(2), height: +o.height.toFixed(2) });
+  return { webgl: gl && rect(gl), domOpen: rect(domEl), domClosed: rect(dc), hingeX: world.hingeX,
+           px: r.width / W };
+}
+function coverUnfreeze() {
+  dbg.hold = false;
+  canvas.style.display = '';
+  canvas.classList.remove('active');
+  book.classList.remove('coverflight');
+  book.classList.toggle('closed', state === CLOSED_FRONT);
+  updateChrome();
+}
+
+window.__protoB = {                                    // handles for automated checks
+  hold, get turning() { return turning; }, applyPose,
+  render: () => renderer.render(scene, camera),
+  get ready() { return texReady; },
+  get coverTrace() { return turning && turning.kind === 'cover' ? turning.trace : lastCoverTrace; },
+  get geom() { return geom; },
+  coverFreeze, coverMeasure, coverUnfreeze,
+  /* dev-only: measured reveal fraction vs the old rigid-cos model at a pose */
+  revealAt(p) {
+    const prev = turning;
+    configureMesh(geom.coverRect, [2, 8, 8, 2], 5.0);
+    turning = { kind: 'cover', dir: 1, p, dragging: true, phase: 'dragging', ease: 'out' };
+    applyPose();
+    const measured = measuredOpenX(p);
+    const edgeX = coverFreeEdgeScreenX();
+    turning = prev;
+    return { p, measured, rigid: Math.pow(Math.max(0, -Math.cos(p * Math.PI)), 1.25),
+             edgeX, hingeX: geom.hingeX, openLeft: geom.coverOpenRect.left };
+  },
+};
+
+
+/* ---------- boot ---------- */
+dressChrome();
+buildStacks();
+
+/* live stack controls beneath the book: adjust the recipe, rebuild the
+   model, repaint. Geometry (BLOCK_W/H) is re-derived inside buildStacks
+   from the same measured envelope, so containment is preserved. */
+{
+  const cC = document.getElementById('ctlCompress'), cCV = document.getElementById('ctlCompressV');
+  const cR = document.getElementById('ctlRecession'), cRV = document.getElementById('ctlRecessionV');
+  const cS = document.getElementById('ctlShrink'), cSV = document.getElementById('ctlShrinkV');
+  cS.value = String(PAPER_SHRINK);
+  cSV.textContent = PAPER_SHRINK.toFixed(2);
+  const rebuild = () => {
+    STACK_RECIPE.compress = +cC.value;
+    STACK_RECIPE.notebookEdge.recession = +cR.value;
+    PAPER_SHRINK = +cS.value;
+    cCV.textContent = (+cC.value).toFixed(2);
+    cRV.textContent = (+cR.value).toFixed(2);
+    cSV.textContent = PAPER_SHRINK.toFixed(2);
+    buildStacks();
+    updateStacks(true);
+    /* the leaf rect changed, so the moving sheet's mesh and raster must be
+       re-derived; both are measured, never cached across a rebuild */
+    if (typeof resize === 'function') resize();
+  };
+  cC.addEventListener('input', rebuild);
+  cR.addEventListener('input', rebuild);
+  cS.addEventListener('input', rebuild);
+}
+
+/* SEAM LEGIBILITY DIAGNOSTICS (tuning only). Every value here is baked once
+   into the stack backgrounds by buildStacks(); nothing is evaluated per frame,
+   and no geometry, recession, compression or envelope value is touched. */
+{
+  const g = id => document.getElementById(id);
+  const L = g('ctlLayers'),  LV = g('ctlLayersV');
+  const W = g('ctlSeamW'),   WV = g('ctlSeamWV');
+  const D = g('ctlSeamG'),   DV = g('ctlSeamGV');
+  const C = g('ctlCutG'),    CV = g('ctlCutGV');
+  const O = g('ctlSeamsOnly');
+  L.value = String(LAYERS); LV.textContent = String(LAYERS);
+  W.value = SEAM_W.toFixed(2);   WV.textContent = SEAM_W.toFixed(2);
+  D.value = SEAM_GAIN.toFixed(2); DV.textContent = SEAM_GAIN.toFixed(2);
+  C.value = CUT_GAIN.toFixed(2);  CV.textContent = CUT_GAIN.toFixed(2);
+  O.checked = SEAMS_ONLY;
+  const apply = () => {
+    LAYERS    = +L.value;
+    SEAM_W    = +W.value;
+    SEAM_GAIN = +D.value;
+    CUT_GAIN  = +C.value;
+    SEAMS_ONLY = O.checked;
+    LV.textContent = String(LAYERS);
+    WV.textContent = (+W.value).toFixed(2);
+    DV.textContent = (+D.value).toFixed(2);
+    CV.textContent = (+C.value).toFixed(2);
+    buildStacks();
+    updateStacks(true);
+  };
+  for (const el of [L, W, D, C]) el.addEventListener('input', apply);
+  O.addEventListener('change', apply);
+}
+
+
+applyPaperShrink();
+paintDOM();
+resize();
+frame();
+// fonts can settle after first layout; re-rasterise once they have
+if (document.fonts && document.fonts.ready) {
+  document.fonts.ready.then(() => { texKey = ''; buildTextures(); });
+}
+</script>
+</body>
+</html>

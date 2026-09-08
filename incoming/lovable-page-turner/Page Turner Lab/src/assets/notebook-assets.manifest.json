@@ -1,0 +1,464 @@
+{
+  "version": 1,
+  "stage": "Notebook rebuild \u00b7 Stage 1",
+  "master": {
+    "w": 840,
+    "h": 1120,
+    "aspect": "3:4"
+  },
+  "generatedBy": "extraction/notebook-native/tools/bake-assets.py",
+  "runtime": {
+    "canvas": 0,
+    "webgl": 0,
+    "technique": "CSS + static images"
+  },
+  "assets": [
+    {
+      "id": "substrate-carried",
+      "label": "Carried substrate",
+      "group": "substrate",
+      "path": "/notebook-assets/substrate-carried.webp",
+      "w": 840,
+      "h": 1120,
+      "format": "webp",
+      "transparent": false,
+      "bytes": 23164
+    },
+    {
+      "id": "substrate-humidity",
+      "label": "Humidity substrate",
+      "group": "substrate",
+      "path": "/notebook-assets/substrate-humidity.webp",
+      "w": 840,
+      "h": 1120,
+      "format": "webp",
+      "transparent": false,
+      "bytes": 19720
+    },
+    {
+      "id": "substrate-protected",
+      "label": "Protected substrate",
+      "group": "substrate",
+      "path": "/notebook-assets/substrate-protected.webp",
+      "w": 840,
+      "h": 1120,
+      "format": "webp",
+      "transparent": false,
+      "bytes": 21892
+    },
+    {
+      "id": "fibre-stock",
+      "label": "Fibre / stock texture",
+      "group": "wear",
+      "path": "/notebook-assets/fibre-stock.webp",
+      "w": 200,
+      "h": 200,
+      "format": "webp",
+      "transparent": true,
+      "bytes": 39836
+    },
+    {
+      "id": "foxing-light",
+      "label": "Foxing \u2014 light",
+      "group": "wear",
+      "path": "/notebook-assets/foxing-light.webp",
+      "w": 840,
+      "h": 1120,
+      "format": "webp",
+      "transparent": true,
+      "bytes": 26018
+    },
+    {
+      "id": "foxing-heavy",
+      "label": "Foxing \u2014 heavy",
+      "group": "wear",
+      "path": "/notebook-assets/foxing-heavy.webp",
+      "w": 840,
+      "h": 1120,
+      "format": "webp",
+      "transparent": true,
+      "bytes": 66566
+    },
+    {
+      "id": "water-stain",
+      "label": "Water stain",
+      "group": "wear",
+      "path": "/notebook-assets/water-stain.webp",
+      "w": 420,
+      "h": 560,
+      "format": "webp",
+      "transparent": true,
+      "bytes": 4742
+    },
+    {
+      "id": "humidity-bloom",
+      "label": "Humidity bloom / tide mark",
+      "group": "wear",
+      "path": "/notebook-assets/humidity-bloom.webp",
+      "w": 420,
+      "h": 560,
+      "format": "webp",
+      "transparent": true,
+      "bytes": 16180
+    },
+    {
+      "id": "grime-handling",
+      "label": "Handling grime",
+      "group": "wear",
+      "path": "/notebook-assets/grime-handling.webp",
+      "w": 420,
+      "h": 560,
+      "format": "webp",
+      "transparent": true,
+      "bytes": 10830
+    },
+    {
+      "id": "edge-oxidation",
+      "label": "Edge oxidation",
+      "group": "wear",
+      "path": "/notebook-assets/edge-oxidation.webp",
+      "w": 420,
+      "h": 560,
+      "format": "webp",
+      "transparent": true,
+      "bytes": 4376
+    },
+    {
+      "id": "tonal-drift",
+      "label": "Tonal drift",
+      "group": "wear",
+      "path": "/notebook-assets/tonal-drift.webp",
+      "w": 420,
+      "h": 560,
+      "format": "webp",
+      "transparent": true,
+      "bytes": 35944
+    },
+    {
+      "id": "smudge-abrasion",
+      "label": "Smudge / abrasion",
+      "group": "wear",
+      "path": "/notebook-assets/smudge-abrasion.webp",
+      "w": 420,
+      "h": 560,
+      "format": "webp",
+      "transparent": true,
+      "bytes": 3160
+    },
+    {
+      "id": "crease",
+      "label": "Crease",
+      "group": "wear",
+      "path": "/notebook-assets/crease.webp",
+      "w": 840,
+      "h": 1120,
+      "format": "webp",
+      "transparent": true,
+      "bytes": 4492
+    },
+    {
+      "id": "trauma-ring-stain",
+      "label": "Trauma \u2014 ring stain + spill",
+      "group": "trauma",
+      "path": "/notebook-assets/trauma-ring-stain.webp",
+      "w": 840,
+      "h": 1120,
+      "format": "webp",
+      "transparent": true,
+      "bytes": 19250
+    },
+    {
+      "id": "trauma-tide-lines",
+      "label": "Trauma \u2014 multi-front tide lines",
+      "group": "trauma",
+      "path": "/notebook-assets/trauma-tide-lines.webp",
+      "w": 840,
+      "h": 1120,
+      "format": "webp",
+      "transparent": true,
+      "bytes": 171786
+    },
+    {
+      "id": "trauma-hand-smear",
+      "label": "Trauma \u2014 hand smear drag",
+      "group": "trauma",
+      "path": "/notebook-assets/trauma-hand-smear.webp",
+      "w": 420,
+      "h": 560,
+      "format": "webp",
+      "transparent": true,
+      "bytes": 4136
+    },
+    {
+      "id": "trauma-thumb-grime",
+      "label": "Trauma \u2014 thumb grime",
+      "group": "trauma",
+      "path": "/notebook-assets/trauma-thumb-grime.webp",
+      "w": 420,
+      "h": 560,
+      "format": "webp",
+      "transparent": true,
+      "bytes": 9564
+    },
+    {
+      "id": "trauma-corner-fold",
+      "label": "Trauma \u2014 corner folds / dog-ear",
+      "group": "trauma",
+      "path": "/notebook-assets/trauma-corner-fold.webp",
+      "w": 840,
+      "h": 1120,
+      "format": "webp",
+      "transparent": true,
+      "bytes": 5186
+    },
+    {
+      "id": "edge-mask-a",
+      "label": "Edge silhouette A",
+      "group": "mask",
+      "path": "/notebook-assets/edge-mask-a.webp",
+      "w": 840,
+      "h": 1120,
+      "format": "webp",
+      "transparent": true,
+      "bytes": 3716
+    },
+    {
+      "id": "edge-mask-b",
+      "label": "Edge silhouette B",
+      "group": "mask",
+      "path": "/notebook-assets/edge-mask-b.webp",
+      "w": 840,
+      "h": 1120,
+      "format": "webp",
+      "transparent": true,
+      "bytes": 3514
+    },
+    {
+      "id": "edge-mask-c",
+      "label": "Edge silhouette C",
+      "group": "mask",
+      "path": "/notebook-assets/edge-mask-c.webp",
+      "w": 840,
+      "h": 1120,
+      "format": "webp",
+      "transparent": true,
+      "bytes": 3726
+    },
+    {
+      "id": "edge-mask-heavy-1",
+      "label": "Heavy edge silhouette 1",
+      "group": "mask",
+      "path": "/notebook-assets/edge-mask-heavy-1.webp",
+      "w": 840,
+      "h": 1120,
+      "format": "webp",
+      "transparent": true,
+      "bytes": 4058
+    },
+    {
+      "id": "edge-mask-heavy-2",
+      "label": "Heavy edge silhouette 2",
+      "group": "mask",
+      "path": "/notebook-assets/edge-mask-heavy-2.webp",
+      "w": 840,
+      "h": 1120,
+      "format": "webp",
+      "transparent": true,
+      "bytes": 3978
+    },
+    {
+      "id": "edge-mask-heavy-3",
+      "label": "Heavy edge silhouette 3",
+      "group": "mask",
+      "path": "/notebook-assets/edge-mask-heavy-3.webp",
+      "w": 840,
+      "h": 1120,
+      "format": "webp",
+      "transparent": true,
+      "bytes": 4004
+    },
+    {
+      "id": "cover-brick-front",
+      "label": "Brick front cover board (F3-03)",
+      "group": "cover",
+      "path": "/notebook-assets/cover-brick-front.webp",
+      "w": 840,
+      "h": 1120,
+      "format": "webp",
+      "transparent": false,
+      "bytes": 119682
+    },
+    {
+      "id": "cover-brick-inside",
+      "label": "Brick inside board / pastedown",
+      "group": "cover",
+      "path": "/notebook-assets/cover-brick-inside.webp",
+      "w": 840,
+      "h": 1120,
+      "format": "webp",
+      "transparent": false,
+      "bytes": 61014
+    }
+  ],
+  "recipes": {
+    "carried": {
+      "id": "carried",
+      "label": "Carried / Handled",
+      "note": "Repeatedly opened, thumbed at the fore edge, exposed to light and air.",
+      "substrate": "substrate-carried",
+      "edgeMask": "edge-mask-a",
+      "layers": [
+        {
+          "asset": "fibre-stock",
+          "opacity": 0.85,
+          "repeat": true
+        },
+        {
+          "asset": "tonal-drift",
+          "opacity": 0.75
+        },
+        {
+          "asset": "foxing-light",
+          "opacity": 0.55
+        },
+        {
+          "asset": "grime-handling",
+          "opacity": 0.95
+        },
+        {
+          "asset": "smudge-abrasion",
+          "opacity": 0.6
+        },
+        {
+          "asset": "edge-oxidation",
+          "opacity": 1.0
+        },
+        {
+          "asset": "crease",
+          "opacity": 0.7
+        }
+      ]
+    },
+    "humidity": {
+      "id": "humidity",
+      "label": "Humidity Affected",
+      "note": "A damp episode shared by a run of neighbouring sheets: blooms, tide marks, heavy foxing.",
+      "substrate": "substrate-humidity",
+      "edgeMask": "edge-mask-b",
+      "layers": [
+        {
+          "asset": "fibre-stock",
+          "opacity": 0.8,
+          "repeat": true
+        },
+        {
+          "asset": "tonal-drift",
+          "opacity": 1.0
+        },
+        {
+          "asset": "humidity-bloom",
+          "opacity": 1.0
+        },
+        {
+          "asset": "water-stain",
+          "opacity": 0.85,
+          "mirror": true
+        },
+        {
+          "asset": "foxing-heavy",
+          "opacity": 0.8
+        },
+        {
+          "asset": "edge-oxidation",
+          "opacity": 0.7
+        },
+        {
+          "asset": "grime-handling",
+          "opacity": 0.35
+        }
+      ]
+    },
+    "protected": {
+      "id": "protected",
+      "label": "Protected Interior",
+      "note": "Deep in the block \u2014 protected age rather than clean paper: quiet drift, faint foxing, almost no grime.",
+      "substrate": "substrate-protected",
+      "edgeMask": "edge-mask-c",
+      "layers": [
+        {
+          "asset": "fibre-stock",
+          "opacity": 0.7,
+          "repeat": true
+        },
+        {
+          "asset": "tonal-drift",
+          "opacity": 0.4
+        },
+        {
+          "asset": "foxing-light",
+          "opacity": 0.28,
+          "mirror": true
+        },
+        {
+          "asset": "edge-oxidation",
+          "opacity": 0.35
+        }
+      ]
+    },
+    "trauma": {
+      "id": "trauma",
+      "label": "Front-of-block trauma",
+      "note": "The first sheets: a ringed spill, tide lines, a hand smear and thumb grime over a chewed fore edge. Echoes onto the two sheets behind it.",
+      "substrate": "substrate-carried",
+      "edgeMask": "edge-mask-heavy-1",
+      "layers": [
+        {
+          "asset": "fibre-stock",
+          "opacity": 0.88,
+          "repeat": true
+        },
+        {
+          "asset": "tonal-drift",
+          "opacity": 0.9
+        },
+        {
+          "asset": "trauma-tide-lines",
+          "opacity": 0.95
+        },
+        {
+          "asset": "trauma-ring-stain",
+          "opacity": 1.0
+        },
+        {
+          "asset": "foxing-heavy",
+          "opacity": 0.7
+        },
+        {
+          "asset": "trauma-thumb-grime",
+          "opacity": 1.0
+        },
+        {
+          "asset": "trauma-hand-smear",
+          "opacity": 0.9
+        },
+        {
+          "asset": "grime-handling",
+          "opacity": 0.8
+        },
+        {
+          "asset": "edge-oxidation",
+          "opacity": 1.0
+        },
+        {
+          "asset": "trauma-corner-fold",
+          "opacity": 0.8
+        },
+        {
+          "asset": "crease",
+          "opacity": 0.7
+        }
+      ]
+    }
+  },
+  "totalBytes": 690534
+}
