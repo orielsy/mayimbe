@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import manifestSource from '~~/public/notebook-assets/manifest.json'
 import {
+  pocketNotebookMaterialAt,
+  type PocketNotebookRecipeId,
+  type PocketNotebookWearLayer,
+} from '~/runtime/pocket-notebook-materials'
+import {
   createPocketNotebookState,
   isPocketNotebookTransitioning,
   pocketNotebookRestingPageIndex,
@@ -8,7 +13,6 @@ import {
   type PocketNotebookPhase,
 } from '~/runtime/pocket-notebook-state'
 
-type NotebookRecipeId = 'carried' | 'humidity' | 'protected'
 type NotebookPageVariant = 'essay' | 'date-note' | 'sketch' | 'margin-note'
 
 interface NotebookAsset {
@@ -24,7 +28,7 @@ interface NotebookAsset {
 }
 
 interface NotebookRecipe {
-  id: NotebookRecipeId
+  id: PocketNotebookRecipeId
   label: string
   description: string
   base: string
@@ -43,13 +47,18 @@ interface NotebookAssetManifest {
 
 interface PocketNotebookPage {
   id: string
-  recipe: NotebookRecipeId
   variant: NotebookPageVariant
   eyebrow: string
   title: string
   paragraphs: string[]
   annotation?: string
   dateMark?: string
+}
+
+interface StackSheet {
+  x: number
+  y: number
+  r: number
 }
 
 const manifest = manifestSource as NotebookAssetManifest
@@ -59,7 +68,6 @@ const recipeMap = new Map(manifest.recipes.map(recipe => [recipe.id, recipe]))
 const pages: PocketNotebookPage[] = [
   {
     id: 'primeras-notas',
-    recipe: 'carried',
     variant: 'essay',
     eyebrow: 'Antes del disco',
     title: 'Primeras notas',
@@ -71,7 +79,6 @@ const pages: PocketNotebookPage[] = [
   },
   {
     id: 'aprendizaje',
-    recipe: 'humidity',
     variant: 'margin-note',
     eyebrow: 'Aprendizaje',
     title: 'El oficio antes del nombre',
@@ -83,7 +90,6 @@ const pages: PocketNotebookPage[] = [
   },
   {
     id: 'la-chupadera',
-    recipe: 'protected',
     variant: 'date-note',
     eyebrow: 'Primeras grabaciones',
     title: 'La Chupadera',
@@ -96,7 +102,6 @@ const pages: PocketNotebookPage[] = [
   },
   {
     id: 'fecha-abierta',
-    recipe: 'carried',
     variant: 'margin-note',
     eyebrow: 'Método de archivo',
     title: 'Una fecha abierta',
@@ -108,7 +113,6 @@ const pages: PocketNotebookPage[] = [
   },
   {
     id: 'instrumento-y-memoria',
-    recipe: 'humidity',
     variant: 'sketch',
     eyebrow: 'Apunte visual',
     title: 'Instrumento y memoria',
@@ -119,7 +123,6 @@ const pages: PocketNotebookPage[] = [
   },
   {
     id: 'archivo-abierto',
-    recipe: 'protected',
     variant: 'essay',
     eyebrow: 'Continuará',
     title: 'Archivo abierto',
@@ -138,7 +141,8 @@ let motionQuery: MediaQueryList | undefined
 
 const restingPageIndex = computed(() => pocketNotebookRestingPageIndex(notebookState.value))
 const currentPage = computed(() => pages[restingPageIndex.value] ?? pages[0]!)
-const currentRecipe = computed(() => recipeMap.get(currentPage.value.recipe) ?? manifest.recipes[0]!)
+const currentMaterial = computed(() => pocketNotebookMaterialAt(restingPageIndex.value))
+const currentRecipe = computed(() => recipeMap.get(currentMaterial.value.recipe) ?? manifest.recipes[0]!)
 const isClosed = computed(() => notebookState.value.phase === 'closed-front')
 const isOpening = computed(() => notebookState.value.phase === 'opening')
 const isClosing = computed(() => notebookState.value.phase === 'closing')
@@ -147,7 +151,7 @@ const controlsLocked = computed(() => isPocketNotebookTransitioning(notebookStat
 const canOpen = computed(() => notebookState.value.phase === 'closed-front' && !controlsLocked.value)
 const canClose = computed(() => notebookState.value.phase === 'open' && notebookState.value.pageIndex === 0 && !controlsLocked.value)
 
-const stackSheets = [
+const stackSheets: StackSheet[] = [
   { x: 0.2, y: 0.6, r: -0.08 },
   { x: 0.8, y: 1.2, r: 0.05 },
   { x: 1.3, y: 1.9, r: -0.04 },
@@ -156,18 +160,6 @@ const stackSheets = [
   { x: 2.8, y: 3.7, r: 0.04 },
   { x: 3.2, y: 4.3, r: -0.02 },
 ]
-
-const layerOpacity: Record<string, number> = {
-  'wear-tonal-drift': 0.62,
-  'wear-edge-oxidation': 0.94,
-  'wear-handling-grime': 0.86,
-  'wear-foxing-light': 0.74,
-  'wear-foxing-heavy': 0.84,
-  'wear-water-stain': 0.9,
-  'wear-humidity-bloom': 0.78,
-  'wear-smudge': 0.68,
-  'wear-crease': 0.62,
-}
 
 const assetFor = (id: string) => assetMap.get(id)
 
@@ -185,9 +177,9 @@ const maskStyle = (recipe: NotebookRecipe) => {
   }
 }
 
-const wearStyle = (layerId: string) => ({
-  backgroundImage: `url(${assetFor(layerId)?.path ?? ''})`,
-  opacity: layerOpacity[layerId] ?? 1,
+const wearStyle = (layer: PocketNotebookWearLayer) => ({
+  backgroundImage: `url(${assetFor(layer.id)?.path ?? ''})`,
+  opacity: layer.opacity,
 })
 
 const wearTier = (layerId: string) => (
@@ -195,6 +187,19 @@ const wearTier = (layerId: string) => (
     ? 'paper-wear--over'
     : 'paper-wear--under'
 )
+
+const stackSheetStyle = (sheet: StackSheet, index: number) => {
+  const edgeAlpha = 0.30 + index * 0.035
+  const shadowAlpha = 0.24 + index * 0.025
+  return {
+    ...maskStyle(currentRecipe.value),
+    backgroundImage: `url(${assetFor(currentRecipe.value.base)?.path})`,
+    transform: `translate(${sheet.x}px, ${sheet.y}px) rotate(${sheet.r}deg)`,
+    zIndex: String(stackSheets.length - index),
+    boxShadow: `inset -1px 0 rgba(91, 58, 30, ${Math.min(0.5, edgeAlpha)}), 0 0 0 1px rgba(84, 56, 31, .12)`,
+    filter: `drop-shadow(${(0.55 + index * 0.13).toFixed(2)}px 0 ${(0.35 + index * 0.10).toFixed(2)}px rgba(42, 25, 12, ${Math.min(0.48, shadowAlpha)}))`,
+  }
+}
 
 const clearSettleTimer = () => {
   if (settleTimer !== undefined) {
@@ -315,7 +320,8 @@ useSeoMeta({
         <p class="exhibit-note__index">01</p>
         <h2 id="pocket-shell-title">Open and settle</h2>
         <p>
-          Checkpoint 2 makes the front cover reviewable. Page 1 is prepared underneath before the disposable cover layer moves.
+          The material sequence now follows the selected Lab-Native PaperV2 history: first-page trauma, fading echo,
+          humidity episode, then protected interior.
         </p>
         <dl>
           <div><dt>Logical pages</dt><dd>{{ pages.length }}</dd></div>
@@ -333,19 +339,17 @@ useSeoMeta({
             :data-page-index="notebookState.pageIndex"
             :data-resting-page-index="restingPageIndex"
             :data-current-page="currentPage.id"
+            :data-paper-history="currentMaterial.id"
           >
             <img class="notebook-board" :src="assetFor('cover-f3-03-board')?.path" alt="" aria-hidden="true">
 
-            <div class="paper-stack" aria-hidden="true">
+            <div class="paper-stack" aria-hidden="true" data-testid="paper-stack">
               <span
                 v-for="(sheet, index) in stackSheets"
                 :key="index"
                 class="paper-stack__sheet"
-                :style="{
-                  ...maskStyle(currentRecipe),
-                  backgroundImage: `url(${assetFor(currentRecipe.base)?.path})`,
-                  transform: `translate(${sheet.x}px, ${sheet.y}px) rotate(${sheet.r}deg)`,
-                }"
+                :data-stack-depth="index"
+                :style="stackSheetStyle(sheet, index)"
               />
             </div>
 
@@ -358,11 +362,12 @@ useSeoMeta({
             >
               <img class="paper-base" :src="assetFor(currentRecipe.base)?.path" alt="" aria-hidden="true">
               <span
-                v-for="layerId in currentRecipe.layers"
-                :key="layerId"
+                v-for="layer in currentMaterial.layers"
+                :key="layer.id"
                 class="paper-wear"
-                :class="wearTier(layerId)"
-                :style="wearStyle(layerId)"
+                :class="wearTier(layer.id)"
+                :data-wear-layer="layer.id"
+                :style="wearStyle(layer)"
                 aria-hidden="true"
               />
 
@@ -418,7 +423,7 @@ useSeoMeta({
               aria-hidden="true"
               @animationend="onCoverAnimationEnd"
             >
-              <div class="turning-cover__face turning-cover__face--front">
+              <div class="turning-cover__face turning-cover__face--front" data-testid="turning-cover-front">
                 <img :src="assetFor('cover-f3-03-front')?.path" alt="">
                 <div class="notebook-cover__title">
                   <span>CUADERNO</span>
@@ -462,14 +467,12 @@ useSeoMeta({
 
       <aside class="exhibit-note exhibit-note--contract">
         <p class="exhibit-note__index">02</p>
-        <h2>Transient cover</h2>
-        <p>
-          The resting cover is never the animated element. Opening and closing create a temporary two-faced cover that is removed after settling.
-        </p>
+        <h2>One damage story</h2>
+        <p>{{ currentMaterial.story }}</p>
         <ul>
-          <li>Front face · F3-03 cover</li>
-          <li>Back face · F3-03 inside board</li>
-          <li>Page 1 · ordinary DOM underneath</li>
+          <li>Page 1 · exceptional trauma</li>
+          <li>Pages 2–3 · fading trauma echo + humidity</li>
+          <li>Deeper block · protected age, never clean paper</li>
         </ul>
         <p class="exhibit-note__small">Arrow Right opens the notebook. Arrow Left closes it from page 1.</p>
       </aside>
@@ -595,9 +598,6 @@ useSeoMeta({
   background-position: center;
   background-repeat: no-repeat;
   background-size: 100% 100%;
-  box-shadow:
-    1px 1px 0 rgba(115, 79, 43, .36),
-    0 0 0 1px rgba(84, 56, 31, .1);
   transform-origin: left center;
 }
 
@@ -802,15 +802,14 @@ useSeoMeta({
   position: absolute;
   inset: 0;
   overflow: hidden;
-  border-radius: 3px 11px 11px 3px;
+  /* The F3 assets already contain their physical corner silhouette. Do not
+     impose the settled-cover radius again while the cover is in motion. */
+  border-radius: 0;
   backface-visibility: hidden;
   box-shadow: 0 9px 18px rgba(0, 0, 0, .34);
 }
 
-.turning-cover__face--front {
-  background: #743e31;
-}
-
+.turning-cover__face--front { background: #743e31; }
 .turning-cover__face--back {
   transform: rotateY(180deg);
   background: #5d4435;
@@ -981,8 +980,6 @@ useSeoMeta({
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .turning-cover {
-    animation-duration: 1ms !important;
-  }
+  .turning-cover { animation-duration: 1ms !important; }
 }
 </style>
