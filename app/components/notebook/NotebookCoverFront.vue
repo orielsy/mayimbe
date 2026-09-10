@@ -47,37 +47,42 @@ withDefaults(defineProps<{
 </template>
 
 <style scoped>
-.pn-cover--desk {
-  --cover-foil: oklch(0.79 0.075 78);
-  --cover-foil-highlight: oklch(0.9 0.055 83);
-  --cover-foil-shadow: oklch(0.2 0.035 55);
-}
-
-.pn-cover--desk .pn-cover__copy {
+/*
+ * The desk and focused notebook are the same physical cover at different
+ * scales. Keep all typography geometry shared so the pickup transition never
+ * morphs between two cover designs.
+ */
+.pn-cover__copy {
   padding-inline: 10%;
 }
 
-.pn-cover--desk .pn-foil {
-  filter: contrast(1.18) brightness(1.08);
-}
-
-.pn-cover--desk .pn-foil-small {
+.pn-foil-small {
   font-size: 4.5cqw;
   letter-spacing: .2em;
   padding-left: .2em;
 }
 
-.pn-cover--desk .pn-foil-title {
+.pn-foil-title {
   margin-top: 8%;
   font-size: 10cqw;
   letter-spacing: .075em;
   padding-left: .075em;
 }
 
-.pn-cover--desk .pn-foil-artist {
+.pn-foil-artist {
   margin-top: 9%;
   font-size: 4.15cqw;
   letter-spacing: .16em;
   padding-left: .16em;
+}
+
+.pn-cover--desk {
+  --cover-foil: oklch(0.79 0.075 78);
+  --cover-foil-highlight: oklch(0.9 0.055 83);
+  --cover-foil-shadow: oklch(0.2 0.035 55);
+}
+
+.pn-cover--desk .pn-foil {
+  filter: contrast(1.18) brightness(1.08);
 }
 </style>
