@@ -72,13 +72,13 @@ export function reduceNotebookState(
     }
 
     case 'CLOSE': {
-      if (!settled || state.status !== 'open' || state.page !== 0) return state
+      if (!settled || state.status !== 'open') return state
       const seq = state.seq + 1
       return {
         status: 'closing',
-        page: 0,
+        page: state.page,
         seq,
-        turn: { key: seq, kind: 'close', from: 0, to: -1 },
+        turn: { key: seq, kind: 'close', from: state.page, to: -1 },
       }
     }
 

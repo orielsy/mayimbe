@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import NotebookCoverFront from './NotebookCoverFront.vue'
 import NotebookCoverInside from './NotebookCoverInside.vue'
 import NotebookDedication from './NotebookDedication.vue'
@@ -33,6 +33,7 @@ const total = NOTEBOOK_PAGES.length
 const {
   state,
   open,
+  close,
   next,
   prev,
   settle,
@@ -103,6 +104,32 @@ function onTouchEnd(event: TouchEvent) {
 function onTouchCancel() {
   touch.value = null
 }
+
+function waitForSettled() {
+  if (!busy.value) return Promise.resolve()
+
+  return new Promise<void>((resolve) => {
+    const stop = watch(
+      busy,
+      (nextBusy) => {
+        if (nextBusy) return
+        stop()
+        resolve()
+      },
+      { flush: 'post' },
+    )
+  })
+}
+
+async function closeForDesk() {
+  await waitForSettled()
+  if (state.value.status === 'closed-front') return
+
+  close()
+  await waitForSettled()
+}
+
+defineExpose({ closeForDesk })
 
 const status = computed(() => {
   if (!ready.value) return 'Preparing the notebook…'
@@ -179,6 +206,8 @@ const rootPage = computed(() =>
         <div
           :class="['pn-book', { 'pn-book--collapsed': closed }]"
           data-testid="pn-book"
+          data-notebook-transition-anchor="focused"
+          data-notebook-transition-rotation="0"
         >
           <nav
             v-if="props.bookmarks?.length"

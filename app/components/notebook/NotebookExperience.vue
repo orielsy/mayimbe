@@ -1,10 +1,17 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import PocketNotebook from './PocketNotebook.vue'
 import { NOTEBOOK_BOOKMARKS, resolveNotebookTargetPage } from './notebookTargets'
 
 const props = defineProps<{ target?: unknown }>()
 const { go } = useMuseumNavigator()
+const { focusedHidden } = useNotebookArtifactTransition()
+
+interface PocketNotebookHandle {
+  closeForDesk: () => Promise<void>
+}
+
+const notebook = ref<PocketNotebookHandle | null>(null)
 
 const initialPage = computed(() => resolveNotebookTargetPage(props.target))
 const activeBookmark = computed(() =>
@@ -21,6 +28,12 @@ const notebookKey = computed(() =>
 function selectBookmark(target: string) {
   void go({ kind: 'exhibit', exhibit: 'notebook', target })
 }
+
+async function closeForDesk() {
+  await notebook.value?.closeForDesk()
+}
+
+defineExpose({ closeForDesk })
 </script>
 
 <template>
@@ -30,7 +43,9 @@ function selectBookmark(target: string) {
     aria-label="Notebook experience"
   >
     <PocketNotebook
+      ref="notebook"
       :key="notebookKey"
+      :class="{ 'pn-transition-hidden': focusedHidden }"
       :initial-page="initialPage"
       :bookmarks="NOTEBOOK_BOOKMARKS"
       :active-bookmark="activeBookmark"
@@ -54,6 +69,10 @@ function selectBookmark(target: string) {
     max(.75rem, env(safe-area-inset-left));
   background:
     radial-gradient(120% 80% at 50% 0%, rgba(56, 45, 36, .26) 0%, transparent 58%);
+}
+
+.notebook-experience :deep(.pn-transition-hidden) {
+  visibility: hidden;
 }
 
 /*

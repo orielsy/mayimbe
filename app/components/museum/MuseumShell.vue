@@ -1,9 +1,18 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import MuseumDesk from './MuseumDesk.vue'
 import NotebookExhibit from './NotebookExhibit.vue'
 
+interface NotebookExhibitHandle {
+  closeForDesk: () => Promise<void>
+}
+
 const { state } = useMuseum()
 const { go } = useMuseumNavigator()
+const { putDown } = useNotebookArtifactTransition()
+
+const notebookExhibit = ref<NotebookExhibitHandle | null>(null)
+const returningToDesk = ref(false)
 
 const activeTarget = computed(() => (
   state.value.destination.kind === 'exhibit'
@@ -12,6 +21,23 @@ const activeTarget = computed(() => (
 ))
 
 const isFocused = computed(() => Boolean(state.value.activeExhibit))
+
+async function returnToDesk() {
+  if (returningToDesk.value) return
+  returningToDesk.value = true
+
+  try {
+    if (state.value.activeExhibit === 'notebook') {
+      await notebookExhibit.value?.closeForDesk()
+      await putDown()
+      return
+    }
+
+    await go({ kind: 'desk' })
+  } finally {
+    returningToDesk.value = false
+  }
+}
 </script>
 
 <template>
@@ -27,7 +53,8 @@ const isFocused = computed(() => Boolean(state.value.activeExhibit))
       type="button"
       class="museum-return"
       aria-label="Return to museum desk"
-      @click="go({ kind: 'desk' })"
+      :disabled="returningToDesk"
+      @click="returnToDesk"
     >
       <span aria-hidden="true">←</span>
       <span>Desk</span>
@@ -35,6 +62,7 @@ const isFocused = computed(() => Boolean(state.value.activeExhibit))
 
     <NotebookExhibit
       v-if="state.activeExhibit === 'notebook'"
+      ref="notebookExhibit"
       :target="activeTarget"
     />
 

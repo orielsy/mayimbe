@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import NotebookArtifactTransitionLayer from '~/components/museum/NotebookArtifactTransitionLayer.vue'
+
 const route = useRoute()
 
 /*
@@ -25,5 +27,6 @@ const inMuseumExperience = computed(() => (
     <main>
       <slot />
     </main>
+    <NotebookArtifactTransitionLayer />
   </div>
 </template>
