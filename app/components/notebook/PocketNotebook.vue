@@ -182,11 +182,10 @@ const rootPage = computed(() =>
     >
       <div class="pn-spread">
         <div
-          v-if="showSpread"
+          v-if="showSpread && !closing"
           :class="[
             'pn-leaf-left',
             { 'is-revealing': state.turn?.kind === 'open' },
-            { 'pn-close-hold': closing },
           ]"
           aria-hidden="true"
         >
@@ -195,7 +194,7 @@ const rootPage = computed(() =>
               <NotebookCoverInside />
             </div>
 
-            <div v-if="leftPage && !closing" class="pn-block pn-page-inset">
+            <div v-if="leftPage" class="pn-block pn-page-inset">
               <div class="pn-mirror pn-absolute-fill">
                 <NotebookPageStack
                   :count="Math.max(2, Math.round((9 * (leftIndex + 1)) / total))"
