@@ -35,3 +35,20 @@ defineProps<{
     <span aria-hidden="true" class="pn-copy__number">{{ page.n }}</span>
   </article>
 </template>
+
+<style scoped>
+.pn-copy {
+  font-family: "Caveat", cursive;
+  font-weight: 450;
+}
+
+.pn-copy__title {
+  font-family: "Caveat", cursive;
+  font-weight: 600;
+}
+
+.pn-hand {
+  font-family: "Dancing Script", cursive;
+  font-weight: 500;
+}
+</style>

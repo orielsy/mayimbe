@@ -21,3 +21,10 @@ import { notebookAsset } from './notebookAssets'
     <span aria-hidden="true" class="pn-cover__spine-shade pn-cover__spine-shade--left" />
   </div>
 </template>
+
+<style scoped>
+.pn-dedication {
+  font-family: "Dancing Script", cursive;
+  font-weight: 500;
+}
+</style>
