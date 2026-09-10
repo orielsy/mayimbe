@@ -159,7 +159,7 @@ const artifactStyle = computed(() => {
   min-height: 2.25rem;
   padding: .72rem .3rem .45rem;
   border: 1px solid rgba(75, 52, 30, .48);
-  border-radius: .42rem;
+  border-radius: 0 0 .42rem .42rem;
   background:
     linear-gradient(90deg, rgba(255, 250, 226, .22), transparent 38%),
     #b99a67;
