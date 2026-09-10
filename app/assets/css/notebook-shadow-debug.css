@@ -60,8 +60,9 @@
  * Mobile tabs use the existing empty space above the notebook instead of taking
  * width away from the page. The rail is absolutely positioned across the top of
  * the visible notebook half, so it consumes no layout space. Tabs remain below
- * the cover/pages in z-order; only the portion protruding above the top edge is
- * visible. Desktop dimensions and placement remain unchanged.
+ * the cover/pages in z-order, and the rail is lowered slightly so the bottom of
+ * each tab is visibly tucked beneath the page edge. Desktop dimensions and
+ * placement remain unchanged.
  */
 @media (max-width: 899px) {
   .pn-stage {
@@ -72,7 +73,7 @@
   }
 
   .pn-bookmarks {
-    top: -1.55rem !important;
+    top: -1.25rem !important;
     left: 2% !important;
     right: 2% !important;
     width: auto !important;
