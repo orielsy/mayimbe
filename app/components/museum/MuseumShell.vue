@@ -64,6 +64,7 @@ async function returnToDesk() {
       v-if="state.activeExhibit === 'notebook'"
       ref="notebookExhibit"
       :target="activeTarget"
+      @request-desk="returnToDesk"
     />
 
     <div v-else-if="isFocused" class="exhibit-placeholder">

@@ -4,11 +4,16 @@ import PocketNotebook from './PocketNotebook.vue'
 import { NOTEBOOK_BOOKMARKS, resolveNotebookTargetPage } from './notebookTargets'
 
 const props = defineProps<{ target?: unknown }>()
+const emit = defineEmits<{
+  requestDesk: []
+}>()
+
 const { go } = useMuseumNavigator()
 const { focusedHidden } = useNotebookArtifactTransition()
 
 interface PocketNotebookHandle {
   closeForDesk: () => Promise<void>
+  handleOutsideClick: () => Promise<'closed' | 'putdown' | 'ignored'>
 }
 
 const notebook = ref<PocketNotebookHandle | null>(null)
@@ -33,6 +38,17 @@ async function closeForDesk() {
   await notebook.value?.closeForDesk()
 }
 
+async function onExperienceClick(event: MouseEvent) {
+  if (import.meta.server || focusedHidden.value) return
+  if (!window.matchMedia('(min-width: 900px)').matches) return
+
+  const target = event.target instanceof Element ? event.target : null
+  if (target?.closest('.pn-stage')) return
+
+  const action = await notebook.value?.handleOutsideClick()
+  if (action === 'putdown') emit('requestDesk')
+}
+
 defineExpose({ closeForDesk })
 </script>
 
@@ -41,6 +57,7 @@ defineExpose({ closeForDesk })
     class="notebook-experience"
     data-testid="notebook-integration-root"
     aria-label="Notebook experience"
+    @click="onExperienceClick"
   >
     <PocketNotebook
       ref="notebook"

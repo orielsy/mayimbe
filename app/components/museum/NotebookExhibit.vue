@@ -4,6 +4,10 @@ import NotebookExperience from '~/components/notebook/NotebookExperience.vue'
 
 defineProps<{ target?: unknown }>()
 
+const emit = defineEmits<{
+  requestDesk: []
+}>()
+
 interface NotebookExperienceHandle {
   closeForDesk: () => Promise<void>
 }
@@ -18,5 +22,9 @@ defineExpose({ closeForDesk })
 </script>
 
 <template>
-  <NotebookExperience ref="experience" :target="target" />
+  <NotebookExperience
+    ref="experience"
+    :target="target"
+    @request-desk="emit('requestDesk')"
+  />
 </template>

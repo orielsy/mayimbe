@@ -19,6 +19,8 @@ interface NotebookBookmark {
   label: string
 }
 
+type OutsideNotebookAction = 'closed' | 'putdown' | 'ignored'
+
 const props = defineProps<{
   initialPage?: number | null
   bookmarks?: readonly NotebookBookmark[]
@@ -129,7 +131,18 @@ async function closeForDesk() {
   await waitForSettled()
 }
 
-defineExpose({ closeForDesk })
+async function handleOutsideClick(): Promise<OutsideNotebookAction> {
+  if (!ready.value || busy.value) return 'ignored'
+
+  if (state.value.status === 'closed-front') return 'putdown'
+  if (state.value.status !== 'open') return 'ignored'
+
+  close()
+  await waitForSettled()
+  return 'closed'
+}
+
+defineExpose({ closeForDesk, handleOutsideClick })
 
 const status = computed(() => {
   if (!ready.value) return 'Preparing the notebook…'
@@ -182,7 +195,7 @@ const rootPage = computed(() =>
               <NotebookCoverInside />
             </div>
 
-            <div v-if="leftPage" class="pn-block pn-page-inset">
+            <div v-if="leftPage && !closing" class="pn-block pn-page-inset">
               <div class="pn-mirror pn-absolute-fill">
                 <NotebookPageStack
                   :count="Math.max(2, Math.round((9 * (leftIndex + 1)) / total))"
