@@ -13,8 +13,19 @@
   isolation: isolate;
 }
 
-.pn-book,
+/*
+ * The old drop-shadow filters also created stacking contexts. Keep those
+ * shadows disabled, but restore the same paint ordering explicitly so a turning
+ * leaf owned by the right-side book stays above the resting left leaf after it
+ * crosses the hinge.
+ */
 .pn-leaf-left {
+  z-index: 0;
+  filter: none !important;
+}
+
+.pn-book {
+  z-index: 1;
   filter: none !important;
 }
 
