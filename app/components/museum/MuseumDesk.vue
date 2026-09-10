@@ -6,7 +6,6 @@ const { go } = useMuseumNavigator()
 
 const notebook = {
   id: 'notebook',
-  target: 'early-years',
 }
 </script>
 
@@ -17,10 +16,10 @@ const notebook = {
       type="button"
       data-testid="museum-notebook-artifact"
       aria-label="Open the El Mayimbe notebook"
-      @click="go({ kind: 'exhibit', exhibit: notebook.id, target: notebook.target })"
+      @click="go({ kind: 'exhibit', exhibit: notebook.id })"
     >
       <span class="museum-notebook-shell" aria-hidden="true">
-        <NotebookCoverFront />
+        <NotebookCoverFront presentation="desk" />
       </span>
       <span class="visually-hidden">Open notebook exhibit</span>
     </button>

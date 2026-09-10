@@ -5,14 +5,22 @@ import { notebookAsset } from './notebookAssets'
 withDefaults(defineProps<{
   interactive?: boolean
   hintVisible?: boolean
+  presentation?: 'full' | 'desk'
 }>(), {
   interactive: false,
   hintVisible: false,
+  presentation: 'full',
 })
 </script>
 
 <template>
-  <div class="pn-cover pn-cover--front">
+  <div
+    :class="[
+      'pn-cover',
+      'pn-cover--front',
+      { 'pn-cover--desk': presentation === 'desk' },
+    ]"
+  >
     <img
       :src="notebookAsset('cover-brick-front').path"
       alt=""
@@ -37,3 +45,33 @@ withDefaults(defineProps<{
     <span aria-hidden="true" class="pn-cover__spine-shade pn-cover__spine-shade--left" />
   </div>
 </template>
+
+<style scoped>
+.pn-cover--desk .pn-cover__copy {
+  padding-inline: 10%;
+}
+
+.pn-cover--desk .pn-foil {
+  filter: contrast(1.18) brightness(1.08);
+}
+
+.pn-cover--desk .pn-foil-small {
+  font-size: 4.5cqw;
+  letter-spacing: .2em;
+  padding-left: .2em;
+}
+
+.pn-cover--desk .pn-foil-title {
+  margin-top: 8%;
+  font-size: 10cqw;
+  letter-spacing: .075em;
+  padding-left: .075em;
+}
+
+.pn-cover--desk .pn-foil-artist {
+  margin-top: 9%;
+  font-size: 4.15cqw;
+  letter-spacing: .16em;
+  padding-left: .16em;
+}
+</style>
