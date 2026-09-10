@@ -111,6 +111,17 @@ defineExpose({ closeForDesk })
 }
 
 /*
+ * The moving cover and the resting cover must hand off with the same physical
+ * silhouette. The global .pn-rest radius is intentionally generic for paper,
+ * so override only the cover surfaces here to match NotebookCoverFront and the
+ * mirrored inside cover exactly.
+ */
+.notebook-experience :deep(.pn-rest--cover),
+.notebook-experience :deep(.pn-leaf-left > .pn-rest) {
+  border-radius: 3px 6px 6px 3px;
+}
+
+/*
  * The lab notebook capped the mobile page at 22rem. In the production museum
  * the notebook is the focused object, so mobile spends nearly the full safe-area
  * width on the page. Portrait mobile also bends the physical page proportion
