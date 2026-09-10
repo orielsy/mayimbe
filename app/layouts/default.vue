@@ -5,13 +5,16 @@ const route = useRoute()
 
 /*
  * The desk and focused exhibits are the primary museum UI, so they never sit
- * inside conventional site chrome. Archive/research routes remain ordinary web
- * pages and keep the traditional header/navigation.
+ * inside conventional site chrome. Archive/research routes and internal labs
+ * remain ordinary scrollable web pages.
  */
 const inMuseumExperience = computed(() => (
   route.path === '/'
   || route.path === '/notebook'
-  || route.path.startsWith('/notebook/')
+  || (
+    route.path.startsWith('/notebook/')
+    && route.path !== '/notebook/font-lab'
+  )
 ))
 </script>
 
