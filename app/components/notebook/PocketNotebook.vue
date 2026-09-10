@@ -376,7 +376,7 @@ const rootPage = computed(() =>
   position: absolute;
   top: 10%;
   right: -.35rem;
-  z-index: 75;
+  z-index: 5;
   display: flex;
   flex-direction: column;
   gap: .3rem;
