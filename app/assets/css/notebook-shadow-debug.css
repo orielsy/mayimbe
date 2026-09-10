@@ -77,9 +77,9 @@
  * ------------------------
  * Mobile tabs use the existing empty space below the notebook instead of taking
  * width away from the page. The rail is absolutely positioned across the bottom
- * of the visible notebook half, so it consumes no layout space. Tabs remain
- * below the cover/pages in z-order, with roughly 1rem tucked beneath the page
- * while the labeled portion protrudes into the thumb-friendly area below.
+ * of the visible notebook half, so it consumes no layout space. Inactive tabs
+ * are tucked an extra .35rem beneath the page; the active tab slides down by the
+ * same amount, keeping its top edge under the paper while exposing more below.
  * Desktop dimensions and placement remain unchanged.
  */
 @media (max-width: 899px) {
@@ -92,7 +92,7 @@
 
   .pn-bookmarks {
     top: auto !important;
-    bottom: -1.25rem !important;
+    bottom: -.9rem !important;
     left: 2% !important;
     right: 2% !important;
     width: auto !important;
@@ -109,8 +109,8 @@
     padding: .72rem .3rem .45rem !important;
     border-right: 1px solid rgba(75, 52, 30, .48) !important;
     border-radius: 0 0 .42rem .42rem !important;
-    font-size: .68rem !important;
-    letter-spacing: .04em !important;
+    font-size: 1rem !important;
+    letter-spacing: .02em !important;
     line-height: 1.05 !important;
     writing-mode: horizontal-tb !important;
     text-orientation: mixed !important;
@@ -191,6 +191,10 @@
 
   .pn-root[data-nb-state='closing'] .pn-spread::before {
     animation-name: pn-ground-close-desktop;
+  }
+
+  .pn-bookmark {
+    font-size: .9rem !important;
   }
 
   .pn-bookmark.is-active {
