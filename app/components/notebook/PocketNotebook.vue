@@ -14,8 +14,19 @@ import { useNotebookMachine } from './useNotebookMachine'
 import { usePrefersReducedMotion } from './usePrefersReducedMotion'
 import '~/assets/css/notebook-page-turner.css'
 
+interface NotebookBookmark {
+  target: string
+  label: string
+}
+
 const props = defineProps<{
   initialPage?: number | null
+  bookmarks?: readonly NotebookBookmark[]
+  activeBookmark?: string
+}>()
+
+const emit = defineEmits<{
+  bookmark: [target: string]
 }>()
 
 const total = NOTEBOOK_PAGES.length
@@ -118,7 +129,7 @@ const rootPage = computed(() =>
     :data-nb-ready="ready ? 'true' : 'false'"
     tabindex="0"
     role="region"
-    aria-label="Interactive pocket notebook. Tap the page sides, swipe left or right, or use the arrow keys to turn pages."
+    aria-label="Interactive pocket notebook. Tap the page sides, swipe left or right, use the section bookmarks, or use the arrow keys to turn pages."
     @keydown="onKeyDown"
   >
     <div
@@ -166,6 +177,27 @@ const rootPage = computed(() =>
         </div>
 
         <div class="pn-book" data-testid="pn-book">
+          <nav
+            v-if="props.bookmarks?.length"
+            class="pn-bookmarks"
+            aria-label="Notebook sections"
+          >
+            <button
+              v-for="bookmark in props.bookmarks"
+              :key="bookmark.target"
+              type="button"
+              :class="[
+                'pn-bookmark',
+                { 'is-active': props.activeBookmark === bookmark.target },
+              ]"
+              :aria-current="props.activeBookmark === bookmark.target ? 'page' : undefined"
+              :disabled="busy"
+              @click.stop="emit('bookmark', bookmark.target)"
+            >
+              <span>{{ bookmark.label }}</span>
+            </button>
+          </nav>
+
           <div
             v-if="closed"
             :class="['pn-rest', 'pn-rest--cover', { 'pn-cover-reveal': closing }]"
@@ -296,6 +328,62 @@ const rootPage = computed(() =>
   outline-offset: -4px;
 }
 
+.pn-bookmarks {
+  position: absolute;
+  top: 10%;
+  right: -.35rem;
+  z-index: 75;
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+  align-items: flex-end;
+}
+
+.pn-bookmark {
+  width: 2.15rem;
+  min-height: 4.35rem;
+  padding: .45rem .3rem;
+  border: 1px solid rgba(75, 52, 30, .48);
+  border-right: 0;
+  border-radius: .3rem 0 0 .3rem;
+  background:
+    linear-gradient(90deg, rgba(255, 250, 226, .22), transparent 38%),
+    #b99a67;
+  box-shadow:
+    -2px 2px 5px rgba(42, 28, 15, .2),
+    inset 0 0 0 1px rgba(255, 245, 211, .14);
+  color: #493722;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: .62rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  line-height: 1;
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  cursor: pointer;
+}
+
+.pn-bookmark:nth-child(2) { background-color: #aa895d; }
+.pn-bookmark:nth-child(3) { background-color: #c2a878; }
+.pn-bookmark:nth-child(4) { background-color: #9d8059; }
+
+.pn-bookmark.is-active {
+  box-shadow:
+    -3px 2px 6px rgba(42, 28, 15, .26),
+    inset 3px 0 0 rgba(88, 58, 27, .38),
+    inset 0 0 0 1px rgba(255, 245, 211, .18);
+}
+
+.pn-bookmark:disabled {
+  cursor: default;
+}
+
+.pn-bookmark:focus-visible {
+  outline: 2px solid #d8c39a;
+  outline-offset: 2px;
+}
+
 .pn-instructions {
   max-width: 34rem;
   line-height: 1.45;
@@ -305,6 +393,36 @@ const rootPage = computed(() =>
 @media (min-width: 900px) {
   .pn-side--prev {
     left: -100%;
+  }
+
+  .pn-bookmarks {
+    top: 12%;
+    right: 0;
+    gap: .5rem;
+    align-items: flex-start;
+  }
+
+  .pn-bookmark {
+    width: auto;
+    min-width: 5.8rem;
+    min-height: 1.9rem;
+    padding: .4rem .75rem .4rem 1rem;
+    border-right: 1px solid rgba(75, 52, 30, .48);
+    border-left: 0;
+    border-radius: 0 .3rem .3rem 0;
+    font-size: .68rem;
+    letter-spacing: .08em;
+    writing-mode: horizontal-tb;
+    text-orientation: mixed;
+    text-align: left;
+    transform: translateX(calc(100% - .9rem));
+    transition: transform 160ms ease, filter 160ms ease;
+  }
+
+  .pn-bookmark:hover:not(:disabled),
+  .pn-bookmark:focus-visible,
+  .pn-bookmark.is-active {
+    transform: translateX(calc(100% - 1.35rem));
   }
 }
 </style>

@@ -1,16 +1,26 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import PocketNotebook from './PocketNotebook.vue'
-import { resolveNotebookTargetPage } from './notebookTargets'
+import { NOTEBOOK_BOOKMARKS, resolveNotebookTargetPage } from './notebookTargets'
 
 const props = defineProps<{ target?: unknown }>()
+const { go } = useMuseumNavigator()
 
 const initialPage = computed(() => resolveNotebookTargetPage(props.target))
+const activeBookmark = computed(() =>
+  typeof props.target === 'string' && props.target.length
+    ? props.target
+    : undefined,
+)
 const notebookKey = computed(() =>
   typeof props.target === 'string' && props.target.length
     ? `target:${props.target}`
     : 'cover',
 )
+
+function selectBookmark(target: string) {
+  void go({ kind: 'exhibit', exhibit: 'notebook', target })
+}
 </script>
 
 <template>
@@ -22,6 +32,9 @@ const notebookKey = computed(() =>
     <PocketNotebook
       :key="notebookKey"
       :initial-page="initialPage"
+      :bookmarks="NOTEBOOK_BOOKMARKS"
+      :active-bookmark="activeBookmark"
+      @bookmark="selectBookmark"
     />
   </article>
 </template>
