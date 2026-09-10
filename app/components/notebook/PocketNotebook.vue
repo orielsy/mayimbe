@@ -118,7 +118,7 @@ const rootPage = computed(() =>
     :data-nb-ready="ready ? 'true' : 'false'"
     tabindex="0"
     role="region"
-    aria-label="Interactive pocket notebook. Tap the page corners, swipe left or right, or use the arrow keys to turn pages."
+    aria-label="Interactive pocket notebook. Tap the page sides, swipe left or right, or use the arrow keys to turn pages."
     @keydown="onKeyDown"
   >
     <div
@@ -226,7 +226,7 @@ const rootPage = computed(() =>
           <template v-if="state.status === 'open'">
             <button
               type="button"
-              class="pn-corner pn-corner--prev"
+              class="pn-side pn-side--prev"
               data-testid="pn-prev"
               :disabled="!ready || !canPrev || busy"
               :aria-label="state.page === 0 ? 'Close the notebook' : 'Previous page'"
@@ -239,7 +239,7 @@ const rootPage = computed(() =>
 
             <button
               type="button"
-              class="pn-corner pn-corner--next"
+              class="pn-side pn-side--next"
               data-testid="pn-next"
               :disabled="!ready || !canNext || busy"
               :aria-label="atEnd ? 'The end of the notebook' : 'Next page'"
@@ -255,7 +255,7 @@ const rootPage = computed(() =>
     </div>
 
     <p class="pn-status pn-instructions">
-      Swipe left and right or use the left and right corners to flip through pages
+      Swipe left and right or use the left and right sides to flip through pages
     </p>
 
     <p aria-live="polite" class="visually-hidden" data-testid="pn-status">
@@ -265,12 +265,12 @@ const rootPage = computed(() =>
 </template>
 
 <style scoped>
-.pn-corner {
+.pn-side {
   position: absolute;
+  top: 0;
   bottom: 0;
   z-index: 55;
   width: 28%;
-  height: 28%;
   padding: 0;
   border: 0;
   background: transparent;
@@ -278,45 +278,20 @@ const rootPage = computed(() =>
   touch-action: manipulation;
 }
 
-.pn-corner--prev {
+.pn-side--prev {
   left: 0;
 }
 
-.pn-corner--next {
+.pn-side--next {
   right: 0;
 }
 
-.pn-corner:disabled {
+.pn-side:disabled {
   cursor: default;
   pointer-events: none;
 }
 
-.pn-corner::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  width: 2rem;
-  height: 2rem;
-  opacity: 0;
-  transition: opacity 140ms ease;
-}
-
-.pn-corner--prev::after {
-  left: 0;
-  background: linear-gradient(45deg, rgba(65, 45, 26, .16), transparent 62%);
-}
-
-.pn-corner--next::after {
-  right: 0;
-  background: linear-gradient(-45deg, rgba(65, 45, 26, .16), transparent 62%);
-}
-
-.pn-corner:hover:not(:disabled)::after,
-.pn-corner:focus-visible::after {
-  opacity: 1;
-}
-
-.pn-corner:focus-visible {
+.pn-side:focus-visible {
   outline: 2px solid #d8c39a;
   outline-offset: -4px;
 }
@@ -328,7 +303,7 @@ const rootPage = computed(() =>
 }
 
 @media (min-width: 900px) {
-  .pn-corner--prev {
+  .pn-side--prev {
     left: -100%;
   }
 }
