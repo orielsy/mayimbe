@@ -47,6 +47,12 @@ withDefaults(defineProps<{
 </template>
 
 <style scoped>
+.pn-cover--desk {
+  --cover-foil: oklch(0.79 0.075 78);
+  --cover-foil-highlight: oklch(0.9 0.055 83);
+  --cover-foil-shadow: oklch(0.2 0.035 55);
+}
+
 .pn-cover--desk .pn-cover__copy {
   padding-inline: 10%;
 }
