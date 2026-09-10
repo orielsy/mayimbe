@@ -57,16 +57,19 @@
 /*
  * Mobile bookmark exposure
  * ------------------------
- * Keep the intentionally hidden left page clipped at the stage's left edge,
- * while extending the clipping region to the right so tabs can protrude beyond
- * the closed cover. The buttons already have enough size; expose more of each
- * button instead of repositioning its label. Desktop dimensions and spacing
- * remain unchanged.
+ * Keep the intentionally hidden left page clipped at the stage's left edge.
+ * Reserve a narrow gutter on the right for the vertical bookmark labels, rather
+ * than trying to expose the entire tab. Most of each tab can remain tucked under
+ * the paper while its text column is guaranteed room inside the viewport.
+ * Desktop dimensions and spacing remain unchanged.
  */
 @media (max-width: 899px) {
   .pn-stage {
+    --pn-mobile-bookmark-gutter: 2.5rem;
+    width: min(calc(100% - var(--pn-mobile-bookmark-gutter)), 22rem);
     overflow: visible;
     clip-path: inset(-4rem -4rem -4rem 0);
+    transform: translateX(calc(var(--pn-mobile-bookmark-gutter) / -2));
   }
 
   .pn-bookmarks {
