@@ -130,6 +130,22 @@
   100% { left: 25%; right: 25%; }
 }
 
+/*
+ * Narrow desktop windows
+ * ----------------------
+ * The horizontal bookmark rail extends 6.35rem beyond the notebook's right
+ * edge (7.25rem rail starting 0.9rem inside the page). Around 1420px the 76rem
+ * notebook plus that overhang reaches the viewport edge. Reserve the overhang
+ * in the width budget and shift by half of it so the notebook + bookmarks are
+ * centered as one composition rather than clipping the tabs off-screen.
+ */
+@media (min-width: 900px) and (max-width: 1420px) {
+  .pn-stage:has(.pn-bookmarks) {
+    width: min(calc(100vw - 8rem), calc((100dvh - 8rem) * 1.5), 76rem);
+    transform: translateX(-3.175rem);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pn-root[data-nb-state='opening'] .pn-spread::before,
   .pn-root[data-nb-state='closing'] .pn-spread::before {
