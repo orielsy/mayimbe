@@ -204,14 +204,6 @@ const rootPage = computed(() =>
             </template>
           </div>
 
-          <div
-            v-if="state.turn?.kind === 'open'"
-            class="pn-rest pn-rest--cover pn-cover-hold"
-            aria-hidden="true"
-          >
-            <NotebookCoverFront :hint-visible="false" />
-          </div>
-
           <NotebookTurningSheet
             v-if="state.turn"
             :key="state.turn.key"
