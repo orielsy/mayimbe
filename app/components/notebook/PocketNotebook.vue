@@ -436,12 +436,17 @@ const rootPage = computed(() =>
 
 @media (max-width: 899px) {
   /*
-   * The top bookmarks protrude about 1rem into the visible notebook. Keep the
-   * invisible page-turn zones below that strip so they cannot steal taps from
-   * the bookmark buttons, without changing the physical bookmark stacking.
+   * Bottom bookmarks protrude about 1rem into the visible notebook. Keep the
+   * invisible page-turn/open zones above that strip so they cannot steal taps
+   * from the bookmark buttons, without changing the physical bookmark stacking.
    */
+  .pn-side,
+  .pn-hit {
+    bottom: 1.1rem;
+  }
+
   .pn-side {
-    top: 1.1rem;
+    top: 0;
   }
 }
 
