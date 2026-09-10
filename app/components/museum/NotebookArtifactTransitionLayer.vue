@@ -135,7 +135,7 @@ const artifactStyle = computed(() => {
 
 .museum-notebook-transition-bookmarks {
   position: absolute;
-  top: -1.55rem;
+  top: -1.25rem;
   left: 2%;
   right: 2%;
   z-index: 0;
