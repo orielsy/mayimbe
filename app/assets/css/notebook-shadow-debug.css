@@ -30,6 +30,26 @@
 }
 
 /*
+ * Physical bookmark stack
+ * -----------------------
+ * The inside/back cover is the bottom layer, bookmarks sit above it, and the
+ * actual paper block sits above the bookmarks. Let the open resting-page wrapper
+ * stop acting as one monolithic z-index layer so those three surfaces can
+ * interleave correctly.
+ */
+.pn-rest--page {
+  z-index: auto !important;
+}
+
+.pn-rest--page > .pn-absolute-fill {
+  z-index: 0;
+}
+
+.pn-rest--page > .pn-block {
+  z-index: 10;
+}
+
+/*
  * Ground shadow geometry
  * ----------------------
  * The shadow represents the projected footprint of the persistent right half
