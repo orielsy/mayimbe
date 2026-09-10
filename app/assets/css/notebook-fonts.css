@@ -5,34 +5,34 @@
   --notebook-beauty: "Dancing Script", cursive;
 }
 
-.pn-copy,
-.pn-copy__eyebrow,
-.pn-copy__title,
-.pn-copy__caption,
-.pn-copy__body,
-.pn-copy__number {
+.pn-root .pn-copy,
+.pn-root .pn-copy__eyebrow,
+.pn-root .pn-copy__title,
+.pn-root .pn-copy__caption,
+.pn-root .pn-copy__body,
+.pn-root .pn-copy__number {
   font-family: var(--notebook-handwriting);
 }
 
-.pn-copy {
+.pn-root .pn-copy {
   font-weight: 500;
 }
 
-.pn-copy__eyebrow,
-.pn-copy__caption,
-.pn-copy__body,
-.pn-copy__number {
+.pn-root .pn-copy__eyebrow,
+.pn-root .pn-copy__caption,
+.pn-root .pn-copy__body,
+.pn-root .pn-copy__number {
   font-weight: 400;
 }
 
-.pn-copy__title {
+.pn-root .pn-copy__title {
   font-weight: 600;
 }
 
-.pn-hand,
-.pn-copy__note,
-.pn-dedication,
-.pn-dedication span {
+.pn-root .pn-hand,
+.pn-root .pn-copy__note,
+.pn-root .pn-dedication,
+.pn-root .pn-dedication span {
   font-family: var(--notebook-beauty);
   font-weight: 500;
 }
