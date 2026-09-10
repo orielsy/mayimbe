@@ -231,13 +231,13 @@ const rootPage = computed(() =>
           </nav>
 
           <div
-            v-if="closed"
-            :class="['pn-rest', 'pn-rest--cover', { 'pn-cover-reveal': closing }]"
+            v-if="state.status === 'closed-front'"
+            class="pn-rest pn-rest--cover"
             data-rest="cover"
           >
             <NotebookCoverFront
-              :interactive="ready && state.status === 'closed-front'"
-              :hint-visible="ready && closed"
+              :interactive="ready"
+              :hint-visible="ready"
             />
           </div>
 
