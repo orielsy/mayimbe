@@ -89,6 +89,10 @@ function onTouchEnd(event: TouchEvent) {
   else prev()
 }
 
+function onTouchCancel() {
+  touch.value = null
+}
+
 const status = computed(() => {
   if (!ready.value) return 'Preparing the notebook…'
   if (closed.value) return 'Notebook closed'
@@ -114,7 +118,7 @@ const rootPage = computed(() =>
     :data-nb-ready="ready ? 'true' : 'false'"
     tabindex="0"
     role="region"
-    aria-label="Interactive pocket notebook. Use left and right arrow keys to turn pages."
+    aria-label="Interactive pocket notebook. Tap the page corners, swipe left or right, or use the arrow keys to turn pages."
     @keydown="onKeyDown"
   >
     <div
@@ -123,6 +127,7 @@ const rootPage = computed(() =>
       aria-label="Pocket notebook"
       @touchstart="onTouchStart"
       @touchend="onTouchEnd"
+      @touchcancel="onTouchCancel"
     >
       <div class="pn-spread">
         <div
@@ -197,15 +202,6 @@ const rootPage = computed(() =>
                 </div>
               </div>
             </template>
-
-            <button
-              v-if="ready && !busy && canNext && state.status === 'open'"
-              type="button"
-              tabindex="-1"
-              class="pn-grab"
-              aria-hidden="true"
-              @click="next"
-            />
           </div>
 
           <div
@@ -228,11 +224,40 @@ const rootPage = computed(() =>
             v-if="ready && state.status === 'closed-front'"
             type="button"
             class="pn-hit"
+            data-testid="pn-next"
             aria-label="Open the notebook"
             @click="open"
           >
             <span class="visually-hidden">Open the notebook</span>
           </button>
+
+          <template v-if="state.status === 'open'">
+            <button
+              type="button"
+              class="pn-corner pn-corner--prev"
+              data-testid="pn-prev"
+              :disabled="!ready || !canPrev || busy"
+              :aria-label="state.page === 0 ? 'Close the notebook' : 'Previous page'"
+              @click="prev"
+            >
+              <span class="visually-hidden">
+                {{ state.page === 0 ? 'Close the notebook' : 'Previous page' }}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              class="pn-corner pn-corner--next"
+              data-testid="pn-next"
+              :disabled="!ready || !canNext || busy"
+              :aria-label="atEnd ? 'The end of the notebook' : 'Next page'"
+              @click="next"
+            >
+              <span class="visually-hidden">
+                {{ atEnd ? 'The end of the notebook' : 'Next page' }}
+              </span>
+            </button>
+          </template>
         </div>
       </div>
     </div>
@@ -240,29 +265,69 @@ const rootPage = computed(() =>
     <p aria-live="polite" class="pn-status" data-testid="pn-status">
       {{ status }}
     </p>
-
-    <div class="pn-controls">
-      <button
-        type="button"
-        :disabled="!ready || !canPrev || busy"
-        data-testid="pn-prev"
-        class="pn-btn"
-        :aria-label="state.status === 'open' && state.page === 0 ? 'Close the notebook' : 'Previous page'"
-        @click="prev"
-      >
-        {{ state.status === 'open' && state.page === 0 ? 'Close' : 'Previous' }}
-      </button>
-
-      <button
-        type="button"
-        :disabled="!ready || !canNext || busy"
-        data-testid="pn-next"
-        class="pn-btn pn-btn-primary"
-        :aria-label="closed ? 'Open the notebook' : atEnd ? 'The end of the notebook' : 'Next page'"
-        @click="next"
-      >
-        {{ closed ? 'Open' : atEnd ? 'The end' : 'Next' }}
-      </button>
-    </div>
   </div>
 </template>
+
+<style scoped>
+.pn-corner {
+  position: absolute;
+  bottom: 0;
+  z-index: 55;
+  width: 28%;
+  height: 28%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.pn-corner--prev {
+  left: 0;
+}
+
+.pn-corner--next {
+  right: 0;
+}
+
+.pn-corner:disabled {
+  cursor: default;
+  pointer-events: none;
+}
+
+.pn-corner::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  width: 2rem;
+  height: 2rem;
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.pn-corner--prev::after {
+  left: 0;
+  background: linear-gradient(45deg, rgba(65, 45, 26, .16), transparent 62%);
+}
+
+.pn-corner--next::after {
+  right: 0;
+  background: linear-gradient(-45deg, rgba(65, 45, 26, .16), transparent 62%);
+}
+
+.pn-corner:hover:not(:disabled)::after,
+.pn-corner:focus-visible::after {
+  opacity: 1;
+}
+
+.pn-corner:focus-visible {
+  outline: 2px solid #d8c39a;
+  outline-offset: -4px;
+}
+
+@media (min-width: 900px) {
+  .pn-corner--prev {
+    left: -100%;
+  }
+}
+</style>
