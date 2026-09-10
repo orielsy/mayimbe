@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import NotebookTurnFace from './NotebookTurnFace.vue'
 import type { NotebookTurn } from './notebookMachine'
+import '~/assets/css/notebook-shadow-debug.css'
 
 const COVER_MS = 620
 const PAGE_MS = 460
