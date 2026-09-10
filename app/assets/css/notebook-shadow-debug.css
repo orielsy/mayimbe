@@ -109,8 +109,8 @@
     padding: .72rem .3rem .45rem !important;
     border-right: 1px solid rgba(75, 52, 30, .48) !important;
     border-radius: 0 0 .42rem .42rem !important;
-    font-size: 1rem !important;
-    letter-spacing: .02em !important;
+    font-size: 1.1rem !important;
+    letter-spacing: 0 !important;
     line-height: 1.05 !important;
     writing-mode: horizontal-tb !important;
     text-orientation: mixed !important;
@@ -194,7 +194,7 @@
   }
 
   .pn-bookmark {
-    font-size: .9rem !important;
+    font-size: 1rem !important;
   }
 
   .pn-bookmark.is-active {
