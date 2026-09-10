@@ -73,6 +73,15 @@
 }
 
 /*
+ * The terminal Legacy tab has nowhere farther to lead. Keep it at the normal
+ * physical exposure when active instead of pulling it beyond the page block.
+ * !important also cancels the earlier temporary horizontal tuck experiment.
+ */
+.pn-bookmark:last-child.is-active {
+  transform: none !important;
+}
+
+/*
  * Mobile bookmark exposure
  * ------------------------
  * Mobile tabs use the existing empty space below the notebook instead of taking
