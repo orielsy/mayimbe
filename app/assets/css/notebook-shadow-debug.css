@@ -59,8 +59,9 @@
  * ------------------------
  * Keep the intentionally hidden left page clipped at the stage's left edge,
  * while extending the clipping region to the right so tabs can protrude beyond
- * the closed cover. Give the tucked tabs more material and a larger exposed
- * edge; desktop dimensions and spacing remain unchanged.
+ * the closed cover. The buttons already have enough size; expose more of each
+ * button instead of repositioning its label. Desktop dimensions and spacing
+ * remain unchanged.
  */
 @media (max-width: 899px) {
   .pn-stage {
@@ -69,7 +70,7 @@
   }
 
   .pn-bookmarks {
-    right: -1.65rem !important;
+    right: -2.25rem !important;
     gap: .42rem !important;
   }
 
@@ -77,10 +78,7 @@
     width: 3.25rem !important;
     min-height: 5.15rem !important;
     padding: .62rem .42rem !important;
-    padding-inline-start: .28rem !important;
-    padding-inline-end: .62rem !important;
     font-size: .72rem !important;
-    text-align: start !important;
   }
 }
 
