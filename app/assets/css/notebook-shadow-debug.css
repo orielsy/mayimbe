@@ -49,7 +49,7 @@
   z-index: 10;
 }
 
-/* All physical tabs have rounded corners, even where the tucked edge is hidden. */
+/* All physical tabs have rounded corners by default. */
 .pn-bookmark {
   border-radius: .42rem !important;
 }
@@ -90,6 +90,7 @@
     min-height: 2.25rem !important;
     padding: .72rem .3rem .45rem !important;
     border-right: 1px solid rgba(75, 52, 30, .48) !important;
+    border-radius: 0 0 .42rem .42rem !important;
     font-size: .68rem !important;
     letter-spacing: .04em !important;
     line-height: 1.05 !important;
