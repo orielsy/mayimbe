@@ -262,7 +262,11 @@ const rootPage = computed(() =>
       </div>
     </div>
 
-    <p aria-live="polite" class="pn-status" data-testid="pn-status">
+    <p class="pn-status pn-instructions">
+      Swipe left and right or use the left and right corners to flip through pages
+    </p>
+
+    <p aria-live="polite" class="visually-hidden" data-testid="pn-status">
       {{ status }}
     </p>
   </div>
@@ -323,6 +327,12 @@ const rootPage = computed(() =>
 .pn-corner:focus-visible {
   outline: 2px solid #d8c39a;
   outline-offset: -4px;
+}
+
+.pn-instructions {
+  max-width: 34rem;
+  line-height: 1.45;
+  text-transform: none;
 }
 
 @media (min-width: 900px) {
