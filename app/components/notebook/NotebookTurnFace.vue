@@ -30,7 +30,6 @@ const page = computed(() => NOTEBOOK_PAGES[props.index])
         <div class="pn-mirror pn-absolute-fill">
           <NotebookCoverInside />
         </div>
-        <span aria-hidden="true" class="pn-turn-inside-spine-shade" />
       </template>
       <NotebookCoverFront v-else />
     </template>
