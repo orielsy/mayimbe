@@ -50,6 +50,32 @@
 }
 
 /*
+ * Mobile bookmark exposure
+ * ------------------------
+ * The tabs now live physically under the paper/front cover, so their mobile
+ * silhouette needs more material outside the book edge. Allow that overhang to
+ * render, move the rail farther right, and make the tabs larger. Desktop keeps
+ * its existing dimensions and spacing unchanged.
+ */
+@media (max-width: 899px) {
+  .pn-stage {
+    overflow: visible;
+  }
+
+  .pn-bookmarks {
+    right: -1.05rem !important;
+    gap: .38rem !important;
+  }
+
+  .pn-bookmark {
+    width: 2.8rem !important;
+    min-height: 4.9rem !important;
+    padding: .55rem .38rem !important;
+    font-size: .68rem !important;
+  }
+}
+
+/*
  * Ground shadow geometry
  * ----------------------
  * The shadow represents the projected footprint of the persistent right half
