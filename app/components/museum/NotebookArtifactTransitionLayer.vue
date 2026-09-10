@@ -136,7 +136,7 @@ const artifactStyle = computed(() => {
 .museum-notebook-transition-bookmarks {
   position: absolute;
   top: 10%;
-  right: -1.65rem;
+  right: -2.25rem;
   z-index: 0;
   display: flex;
   flex-direction: column;
@@ -154,8 +154,6 @@ const artifactStyle = computed(() => {
   width: 3.25rem;
   min-height: 5.15rem;
   padding: .62rem .42rem;
-  padding-inline-start: .28rem;
-  padding-inline-end: .62rem;
   border: 1px solid rgba(75, 52, 30, .48);
   border-right: 0;
   border-radius: .42rem;
@@ -171,7 +169,6 @@ const artifactStyle = computed(() => {
   font-weight: 700;
   letter-spacing: .06em;
   line-height: 1;
-  text-align: start;
   text-transform: uppercase;
   writing-mode: vertical-rl;
   text-orientation: mixed;
