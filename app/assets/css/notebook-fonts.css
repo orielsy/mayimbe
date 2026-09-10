@@ -36,3 +36,15 @@
   font-family: var(--notebook-beauty);
   font-weight: 500;
 }
+
+/*
+ * Bookmark labels use the notebook's special handwriting accent so the tabs
+ * feel like part of the artifact rather than generic browser controls. The
+ * transition overlay sits outside .pn-root, so keep an explicit fallback there.
+ */
+.pn-root .pn-bookmarks .pn-bookmark,
+.museum-notebook-transition-bookmark {
+  font-family: var(--notebook-beauty, "Dancing Script", cursive);
+  font-weight: 600;
+  text-transform: none;
+}
