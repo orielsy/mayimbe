@@ -49,29 +49,35 @@
   z-index: 10;
 }
 
+/* All physical tabs have rounded corners, even where the tucked edge is hidden. */
+.pn-bookmark {
+  border-radius: .42rem !important;
+}
+
 /*
  * Mobile bookmark exposure
  * ------------------------
- * The tabs now live physically under the paper/front cover, so their mobile
- * silhouette needs more material outside the book edge. Allow that overhang to
- * render, move the rail farther right, and make the tabs larger. Desktop keeps
- * its existing dimensions and spacing unchanged.
+ * Keep the intentionally hidden left page clipped at the stage's left edge,
+ * while extending the clipping region to the right so tabs can protrude beyond
+ * the closed cover. Give the tucked tabs more material and a larger exposed
+ * edge; desktop dimensions and spacing remain unchanged.
  */
 @media (max-width: 899px) {
   .pn-stage {
     overflow: visible;
+    clip-path: inset(-4rem -4rem -4rem 0);
   }
 
   .pn-bookmarks {
-    right: -1.05rem !important;
-    gap: .38rem !important;
+    right: -1.65rem !important;
+    gap: .42rem !important;
   }
 
   .pn-bookmark {
-    width: 2.8rem !important;
-    min-height: 4.9rem !important;
-    padding: .55rem .38rem !important;
-    font-size: .68rem !important;
+    width: 3.25rem !important;
+    min-height: 5.15rem !important;
+    padding: .62rem .42rem !important;
+    font-size: .72rem !important;
   }
 }
 
