@@ -176,7 +176,10 @@ const rootPage = computed(() =>
           </div>
         </div>
 
-        <div class="pn-book" data-testid="pn-book">
+        <div
+          :class="['pn-book', { 'pn-book--collapsed': closed }]"
+          data-testid="pn-book"
+        >
           <nav
             v-if="props.bookmarks?.length"
             class="pn-bookmarks"
@@ -391,20 +394,30 @@ const rootPage = computed(() =>
 }
 
 @media (min-width: 900px) {
+  .pn-book {
+    transition: left 620ms cubic-bezier(.3, .6, .3, 1);
+  }
+
+  .pn-book--collapsed {
+    left: 25%;
+  }
+
   .pn-side--prev {
     left: -100%;
   }
 
   .pn-bookmarks {
     top: 12%;
-    right: 0;
+    right: auto;
+    left: calc(100% - .9rem);
+    width: 7.25rem;
     gap: .5rem;
-    align-items: flex-start;
+    align-items: stretch;
   }
 
   .pn-bookmark {
-    width: auto;
-    min-width: 5.8rem;
+    width: 100%;
+    min-width: 0;
     min-height: 1.9rem;
     padding: .4rem .75rem .4rem 1rem;
     border-right: 1px solid rgba(75, 52, 30, .48);
@@ -415,14 +428,12 @@ const rootPage = computed(() =>
     writing-mode: horizontal-tb;
     text-orientation: mixed;
     text-align: left;
-    transform: translateX(calc(100% - .9rem));
-    transition: transform 160ms ease, filter 160ms ease;
+    transition: filter 160ms ease, box-shadow 160ms ease;
   }
 
   .pn-bookmark:hover:not(:disabled),
-  .pn-bookmark:focus-visible,
-  .pn-bookmark.is-active {
-    transform: translateX(calc(100% - 1.35rem));
+  .pn-bookmark:focus-visible {
+    filter: brightness(1.06);
   }
 }
 </style>
