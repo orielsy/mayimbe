@@ -11,9 +11,13 @@
  *   RED     = left/front-cover spine shade
  *   MAGENTA = resting page inset shadow (.pn-block)
  *   LIME    = page-stack seam
- *   CYAN    = right-side book depth shadow (stabilized for this test)
- *   ORANGE  = left-side leaf drop shadow
+ *   CYAN    = stable notebook ground/depth shadow
  *   PURPLE  = legacy animation-only inside spine shade, if still rendered
+ *
+ * The former CYAN .pn-book and ORANGE .pn-leaf-left drop-shadows are disabled
+ * in this experiment. They were attached to two independently managed halves,
+ * so their visibility changed when the animated cover/page handed off to the
+ * resting DOM. One persistent spread-level shadow now replaces both.
  */
 
 .pn-turn-shade {
@@ -55,27 +59,56 @@
 }
 
 /*
- * Confirmed suspect: the original filter lived on .pn-book itself, so its
- * shadow silhouette was recomputed from descendants while a page/cover was
- * rotating and again when the animated leaf unmounted. Disable that filter and
- * paint an equivalent cyan depth shadow from a fixed pseudo-element instead.
+ * Keep the ground shadow outside both leaf lifecycles. The pseudo-element lives
+ * on the persistent spread, underneath the animated and resting surfaces, so a
+ * turn finishing cannot expose a newly-created half-book shadow at the hinge.
  */
-.pn-book {
+.pn-spread {
+  isolation: isolate;
+}
+
+.pn-book,
+.pn-leaf-left {
   filter: none !important;
 }
 
 .pn-book::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  border-radius: 6px;
-  box-shadow: 0 34px 48px rgba(0, 255, 255, 0.88) !important;
+  content: none !important;
 }
 
-.pn-leaf-left {
-  filter: drop-shadow(0 34px 48px rgba(255, 128, 0, 0.88)) !important;
+.pn-spread::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 100%;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: 6px;
+  box-shadow: 0 18px 26px rgba(0, 255, 255, 0.88);
+  transition:
+    left 620ms cubic-bezier(.3, .6, .3, 1),
+    width 620ms cubic-bezier(.3, .6, .3, 1);
+}
+
+/* Mobile closed/closing notebook occupies the visible right half of the 200% spread. */
+.pn-root[data-nb-state='closed-front'] .pn-spread::before,
+.pn-root[data-nb-state='closing'] .pn-spread::before {
+  left: 50%;
+  width: 50%;
+}
+
+@media (min-width: 900px) {
+  .pn-spread::before {
+    box-shadow: 0 34px 48px rgba(0, 255, 255, 0.88);
+  }
+
+  /* Desktop closed/closing cover is centered within the full spread. */
+  .pn-root[data-nb-state='closed-front'] .pn-spread::before,
+  .pn-root[data-nb-state='closing'] .pn-spread::before {
+    left: 25%;
+    width: 50%;
+  }
 }
 
 .pn-turn-inside-spine-shade {
