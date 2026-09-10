@@ -106,7 +106,7 @@ const artifactStyle = computed(() => {
   --cover-foil-shadow: oklch(0.2 0.035 55);
   position: absolute;
   overflow: hidden;
-  border-radius: 3px 7px 7px 3px;
+  border-radius: 3px 6px 6px 3px;
   container-type: inline-size;
   transform-origin: center center;
   will-change: left, top, width, height, transform, box-shadow;
@@ -123,6 +123,15 @@ const artifactStyle = computed(() => {
 .is-start .museum-notebook-transition-artifact,
 .is-start .museum-notebook-transition-veil {
   transition: none;
+}
+
+/* Match the shadow of the exact artifact that the overlay replaces. */
+.is-start.is-pickup .museum-notebook-transition-artifact {
+  box-shadow: 0 26px 28px rgba(0, 0, 0, .52);
+}
+
+.is-start.is-putdown .museum-notebook-transition-artifact {
+  box-shadow: 0 34px 48px rgba(0, 0, 0, .6);
 }
 
 .is-lift .museum-notebook-transition-artifact {
@@ -157,12 +166,13 @@ const artifactStyle = computed(() => {
   transition-duration: 140ms;
 }
 
+/* Land on the same shadow values as the destination artifact. */
 .is-settle.is-putdown .museum-notebook-transition-artifact {
-  box-shadow: 0 12px 18px rgba(0, 0, 0, .48);
+  box-shadow: 0 26px 28px rgba(0, 0, 0, .52);
 }
 
 .is-settle.is-pickup .museum-notebook-transition-artifact {
-  box-shadow: 0 34px 48px rgba(0, 0, 0, .42);
+  box-shadow: 0 34px 48px rgba(0, 0, 0, .6);
 }
 
 .is-settle .museum-notebook-transition-veil {
