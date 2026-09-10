@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import NotebookCoverFront from '~/components/notebook/NotebookCoverFront.vue'
+import { NOTEBOOK_BOOKMARKS } from '~/components/notebook/notebookTargets'
 import '~/assets/css/notebook-page-turner.css'
 
 const { state, active } = useNotebookArtifactTransition()
@@ -76,6 +77,16 @@ const artifactStyle = computed(() => {
         :style="artifactStyle"
       >
         <NotebookCoverFront :presentation="presentation" />
+
+        <div class="museum-notebook-transition-bookmarks">
+          <span
+            v-for="bookmark in NOTEBOOK_BOOKMARKS"
+            :key="bookmark.target"
+            class="museum-notebook-transition-bookmark"
+          >
+            <span>{{ bookmark.label }}</span>
+          </span>
+        </div>
       </div>
     </div>
   </Teleport>
@@ -105,7 +116,7 @@ const artifactStyle = computed(() => {
   --cover-foil-highlight: oklch(0.9 0.055 83);
   --cover-foil-shadow: oklch(0.2 0.035 55);
   position: absolute;
-  overflow: hidden;
+  overflow: visible;
   border-radius: 3px 6px 6px 3px;
   container-type: inline-size;
   transform-origin: center center;
@@ -119,6 +130,51 @@ const artifactStyle = computed(() => {
   width: 100%;
   height: 100%;
 }
+
+.museum-notebook-transition-bookmarks {
+  position: absolute;
+  top: 10%;
+  right: -.35rem;
+  z-index: 75;
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+  align-items: flex-end;
+  opacity: 0;
+  transform: translateX(-.2rem);
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
+}
+
+.museum-notebook-transition-bookmark {
+  box-sizing: border-box;
+  width: 2.15rem;
+  min-height: 4.35rem;
+  padding: .45rem .3rem;
+  border: 1px solid rgba(75, 52, 30, .48);
+  border-right: 0;
+  border-radius: .3rem 0 0 .3rem;
+  background:
+    linear-gradient(90deg, rgba(255, 250, 226, .22), transparent 38%),
+    #b99a67;
+  box-shadow:
+    -2px 2px 5px rgba(42, 28, 15, .2),
+    inset 0 0 0 1px rgba(255, 245, 211, .14);
+  color: #493722;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: .62rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  line-height: 1;
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+.museum-notebook-transition-bookmark:nth-child(2) { background-color: #aa895d; }
+.museum-notebook-transition-bookmark:nth-child(3) { background-color: #c2a878; }
+.museum-notebook-transition-bookmark:nth-child(4) { background-color: #9d8059; }
 
 .is-start .museum-notebook-transition-artifact,
 .is-start .museum-notebook-transition-veil {
@@ -134,6 +190,12 @@ const artifactStyle = computed(() => {
   box-shadow: 0 34px 48px rgba(0, 0, 0, .6);
 }
 
+.is-start.is-putdown .museum-notebook-transition-bookmarks {
+  opacity: 1;
+  transform: translateX(0);
+  transition: none;
+}
+
 .is-lift .museum-notebook-transition-artifact {
   transition-duration: 180ms;
   box-shadow: 0 38px 56px rgba(0, 0, 0, .32);
@@ -142,6 +204,10 @@ const artifactStyle = computed(() => {
 .is-lift .museum-notebook-transition-veil {
   opacity: .72;
   backdrop-filter: blur(1.5px);
+}
+
+.is-lift.is-putdown .museum-notebook-transition-bookmarks {
+  opacity: .35;
 }
 
 .is-travel .museum-notebook-transition-artifact {
@@ -154,6 +220,10 @@ const artifactStyle = computed(() => {
 
 .is-travel.is-putdown .museum-notebook-transition-artifact {
   box-shadow: 0 20px 28px rgba(0, 0, 0, .4);
+}
+
+.is-travel.is-putdown .museum-notebook-transition-bookmarks {
+  opacity: 0;
 }
 
 .is-travel .museum-notebook-transition-veil {
@@ -175,10 +245,41 @@ const artifactStyle = computed(() => {
   box-shadow: 0 34px 48px rgba(0, 0, 0, .6);
 }
 
+.is-settle.is-pickup .museum-notebook-transition-bookmarks {
+  opacity: 1;
+  transform: translateX(0);
+}
+
 .is-settle .museum-notebook-transition-veil {
   opacity: 0;
   backdrop-filter: blur(0);
   transition-duration: 140ms;
+}
+
+@media (min-width: 900px) {
+  .museum-notebook-transition-bookmarks {
+    top: 12%;
+    right: auto;
+    left: calc(100% - .9rem);
+    width: 7.25rem;
+    gap: .5rem;
+    align-items: stretch;
+  }
+
+  .museum-notebook-transition-bookmark {
+    width: 100%;
+    min-width: 0;
+    min-height: 1.9rem;
+    padding: .4rem .75rem .4rem 1rem;
+    border-right: 1px solid rgba(75, 52, 30, .48);
+    border-left: 0;
+    border-radius: 0 .3rem .3rem 0;
+    font-size: .68rem;
+    letter-spacing: .08em;
+    writing-mode: horizontal-tb;
+    text-orientation: mixed;
+    text-align: left;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
