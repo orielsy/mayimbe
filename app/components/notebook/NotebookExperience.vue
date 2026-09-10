@@ -1,7 +1,16 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import PocketNotebook from './PocketNotebook.vue'
+import { resolveNotebookTargetPage } from './notebookTargets'
 
-defineProps<{ target?: unknown }>()
+const props = defineProps<{ target?: unknown }>()
+
+const initialPage = computed(() => resolveNotebookTargetPage(props.target))
+const notebookKey = computed(() =>
+  typeof props.target === 'string' && props.target.length
+    ? `target:${props.target}`
+    : 'cover',
+)
 </script>
 
 <template>
@@ -10,7 +19,10 @@ defineProps<{ target?: unknown }>()
     data-testid="notebook-integration-root"
     aria-label="Notebook experience"
   >
-    <PocketNotebook />
+    <PocketNotebook
+      :key="notebookKey"
+      :initial-page="initialPage"
+    />
   </article>
 </template>
 

@@ -61,6 +61,13 @@ test('Vue Page Turner traverses the notebook and returns to the cover', async ({
   expect(errors).toEqual([])
 })
 
+test('semantic notebook target opens the matching authored page', async ({ page }) => {
+  await page.goto('/museum/notebook/early-years')
+  await expectReady(page)
+  await expectSettledPage(page, '2')
+  await expect(page.getByTestId('pn-status')).toContainText('Güira first')
+})
+
 test('Vue Page Turner keeps its page across responsive resize', async ({ page }) => {
   await page.goto('/museum/notebook')
   await expectReady(page)
