@@ -136,11 +136,11 @@ const artifactStyle = computed(() => {
 .museum-notebook-transition-bookmarks {
   position: absolute;
   top: 10%;
-  right: -.35rem;
+  right: -1.05rem;
   z-index: 0;
   display: flex;
   flex-direction: column;
-  gap: .3rem;
+  gap: .38rem;
   align-items: flex-end;
   opacity: 0;
   transform: translateX(-.2rem);
@@ -151,9 +151,9 @@ const artifactStyle = computed(() => {
 
 .museum-notebook-transition-bookmark {
   box-sizing: border-box;
-  width: 2.15rem;
-  min-height: 4.35rem;
-  padding: .45rem .3rem;
+  width: 2.8rem;
+  min-height: 4.9rem;
+  padding: .55rem .38rem;
   border: 1px solid rgba(75, 52, 30, .48);
   border-right: 0;
   border-radius: .3rem 0 0 .3rem;
@@ -165,7 +165,7 @@ const artifactStyle = computed(() => {
     inset 0 0 0 1px rgba(255, 245, 211, .14);
   color: #493722;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: .62rem;
+  font-size: .68rem;
   font-weight: 700;
   letter-spacing: .06em;
   line-height: 1;
