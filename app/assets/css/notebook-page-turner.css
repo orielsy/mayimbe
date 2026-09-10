@@ -476,7 +476,7 @@
 
 @media (min-width: 900px) {
   .pn-stage {
-    width: min(100%, 52rem);
+    width: min(92vw, calc((100dvh - 8rem) * 1.5), 76rem);
     overflow: visible;
   }
 
