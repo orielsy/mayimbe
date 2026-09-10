@@ -56,6 +56,10 @@ withDefaults(defineProps<{
   padding-inline: 10%;
 }
 
+.pn-foil {
+  transition: filter 540ms cubic-bezier(.2, .72, .2, 1);
+}
+
 .pn-foil-small {
   font-size: 4.5cqw;
   letter-spacing: .2em;
