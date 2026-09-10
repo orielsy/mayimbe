@@ -32,7 +32,7 @@ const page = computed(() => NOTEBOOK_PAGES[props.index])
         </div>
         <span
           aria-hidden="true"
-          class="pn-cover__spine-shade pn-cover__spine-shade--right pn-turn-cover-shadow-bridge"
+          class="pn-cover__spine-shade pn-cover__spine-shade--right"
         />
       </template>
       <NotebookCoverFront v-else />
@@ -58,26 +58,3 @@ const page = computed(() => NOTEBOOK_PAGES[props.index])
     </div>
   </div>
 </template>
-
-<style scoped>
-/*
- * NotebookCoverInside already carries the permanent spine shade that remains
- * after the turn settles. This second layer only bridges the perspective-heavy
- * middle of the motion, then fades back to zero so the final animated frame has
- * exactly one shade layer, just like the resting cover.
- */
-.pn-turn-cover-shadow-bridge {
-  opacity: 0;
-}
-
-:global(.pn-turn[data-turning='open']) .pn-turn-cover-shadow-bridge,
-:global(.pn-turn[data-turning='close']) .pn-turn-cover-shadow-bridge {
-  animation: pn-turn-cover-shadow-bridge 620ms linear forwards;
-}
-
-@keyframes pn-turn-cover-shadow-bridge {
-  0%, 100% { opacity: 0; }
-  42% { opacity: .7; }
-  76% { opacity: 1; }
-}
-</style>
