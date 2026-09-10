@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-test('desk is the primary shell and notebook deep links remain semantic', async ({ page }) => {
+test('desk is the primary shell, notebook routes are top-level, and archive stays conventional', async ({ page }) => {
   const runtimeErrors: string[] = []
   page.on('pageerror', error => runtimeErrors.push(`pageerror: ${error.message}`))
   page.on('console', message => {
@@ -16,7 +16,7 @@ test('desk is the primary shell and notebook deep links remain semantic', async 
   expect(noOverflowAtDesk).toBe(true)
 
   await page.getByRole('button', { name: /Cuaderno/i }).click()
-  await expect(page).toHaveURL(/\/museum\/notebook\/early-years$/)
+  await expect(page).toHaveURL(/\/notebook\/early-years$/)
   await expect(page.getByTestId('notebook-integration-root')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Return to museum desk' })).toBeVisible()
 
@@ -28,6 +28,10 @@ test('desk is the primary shell and notebook deep links remain semantic', async 
   await expect(page.locator('.site-header')).toBeVisible()
   await expect(page.getByRole('link', { name: 'Desk' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Archive' })).toBeVisible()
+
+  await page.getByRole('link', { name: 'Read archive story' }).click()
+  await expect(page).toHaveURL(/\/archive\/stories\/early-years$/)
+  await expect(page.getByText('Archive / Story')).toBeVisible()
 
   expect(runtimeErrors, runtimeErrors.join('\n')).toEqual([])
 })

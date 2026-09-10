@@ -22,7 +22,7 @@ useSeoMeta({
         <h3>{{ story.title.en ?? story.title.es }}</h3>
         <p v-if="story.summary?.en">{{ story.summary.en }}</p>
         <p class="muted"><code>{{ story.id }}</code></p>
-        <NuxtLink class="button" :to="`/stories/${story.slug}`">Read archive story</NuxtLink>
+        <NuxtLink class="button" :to="`/archive/stories/${story.slug}`">Read archive story</NuxtLink>
       </article>
     </div>
 
@@ -32,7 +32,7 @@ useSeoMeta({
         <p class="eyebrow">Person</p>
         <h3>{{ person.name }}</h3>
         <p class="muted"><code>{{ person.id }}</code></p>
-        <NuxtLink class="button" :to="`/people/${person.slug}`">Open archive record</NuxtLink>
+        <NuxtLink class="button" :to="`/archive/people/${person.slug}`">Open archive record</NuxtLink>
       </article>
     </div>
   </section>

@@ -22,7 +22,7 @@ test('Vue Page Turner traverses the notebook and returns to the cover', async ({
     if (message.type() === 'error') errors.push(message.text())
   })
 
-  await page.goto('/museum/notebook')
+  await page.goto('/notebook')
   await expect(page.getByTestId('notebook-integration-root')).toBeVisible()
   await expectReady(page)
   await expectSettledPage(page, 'cover')
@@ -62,14 +62,14 @@ test('Vue Page Turner traverses the notebook and returns to the cover', async ({
 })
 
 test('semantic notebook target opens the matching authored page', async ({ page }) => {
-  await page.goto('/museum/notebook/early-years')
+  await page.goto('/notebook/early-years')
   await expectReady(page)
   await expectSettledPage(page, '2')
   await expect(page.getByTestId('pn-status')).toContainText('Güira first')
 })
 
 test('Vue Page Turner keeps its page across responsive resize', async ({ page }) => {
-  await page.goto('/museum/notebook')
+  await page.goto('/notebook')
   await expectReady(page)
 
   await page.getByTestId('pn-next').click()
@@ -93,7 +93,7 @@ test('Vue Page Turner keeps its page across responsive resize', async ({ page })
 
 test('Vue Page Turner settles immediately with reduced motion', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
-  await page.goto('/museum/notebook')
+  await page.goto('/notebook')
   await expectReady(page)
 
   await page.getByTestId('pn-next').click()

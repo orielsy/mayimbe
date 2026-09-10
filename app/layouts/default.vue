@@ -8,8 +8,8 @@ const route = useRoute()
  */
 const inMuseumExperience = computed(() => (
   route.path === '/'
-  || route.path === '/museum'
-  || route.path.startsWith('/museum/')
+  || route.path === '/notebook'
+  || route.path.startsWith('/notebook/')
 ))
 </script>
 

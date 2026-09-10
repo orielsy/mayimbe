@@ -30,13 +30,13 @@ describe('MuseumNavigator', () => {
     })
   })
 
-  it('uses the desk as the canonical root route', () => {
+  it('uses the desk as root and focused exhibits as top-level routes', () => {
     expect(destinationToPath({ kind: 'desk' })).toBe('/')
     expect(destinationToPath({
       kind: 'exhibit',
       exhibit: 'notebook',
       target: 'early-years',
-    })).toBe('/museum/notebook/early-years')
+    })).toBe('/notebook/early-years')
   })
 
   it('rejects an unregistered exhibit', async () => {
