@@ -6,8 +6,21 @@ import {
   type NotebookMachineState,
 } from './notebookMachine'
 
-export function useNotebookMachine(total: number) {
-  const state = ref<NotebookMachineState>({ ...INITIAL_NOTEBOOK_STATE })
+export function useNotebookMachine(total: number, initialPage: number | null = null) {
+  const normalizedInitialPage = typeof initialPage === 'number' && Number.isInteger(initialPage)
+    ? Math.min(Math.max(initialPage, 0), total)
+    : null
+
+  const state = ref<NotebookMachineState>(
+    normalizedInitialPage === null
+      ? { ...INITIAL_NOTEBOOK_STATE }
+      : {
+          status: 'open',
+          page: normalizedInitialPage,
+          turn: null,
+          seq: 0,
+        },
+  )
 
   const dispatch = (action: Parameters<typeof reduceNotebookState>[1]) => {
     state.value = reduceNotebookState(state.value, action, total)

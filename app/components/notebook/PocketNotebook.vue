@@ -14,6 +14,10 @@ import { useNotebookMachine } from './useNotebookMachine'
 import { usePrefersReducedMotion } from './usePrefersReducedMotion'
 import '~/assets/css/notebook-page-turner.css'
 
+const props = defineProps<{
+  initialPage?: number | null
+}>()
+
 const total = NOTEBOOK_PAGES.length
 const {
   state,
@@ -25,7 +29,7 @@ const {
   canNext,
   canPrev,
   atEnd,
-} = useNotebookMachine(total)
+} = useNotebookMachine(total, props.initialPage ?? null)
 
 const reduced = usePrefersReducedMotion()
 const ready = useNotebookAssetsReady()

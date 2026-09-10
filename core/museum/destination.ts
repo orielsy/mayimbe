@@ -16,5 +16,5 @@ export function destinationToPath(destination: MuseumDestination): string {
     ? `/${destination.target.split('/').map(encodeURIComponent).join('/')}`
     : ''
 
-  return `/museum/${encodeURIComponent(destination.exhibit)}${target}`
+  return `/${encodeURIComponent(destination.exhibit)}${target}`
 }
