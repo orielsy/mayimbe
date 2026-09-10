@@ -434,6 +434,17 @@ const rootPage = computed(() =>
   text-transform: none;
 }
 
+@media (max-width: 899px) {
+  /*
+   * The top bookmarks protrude about 1rem into the visible notebook. Keep the
+   * invisible page-turn zones below that strip so they cannot steal taps from
+   * the bookmark buttons, without changing the physical bookmark stacking.
+   */
+  .pn-side {
+    top: 1.1rem;
+  }
+}
+
 @media (min-width: 900px) {
   .pn-book {
     transition: left 620ms cubic-bezier(.3, .6, .3, 1);
