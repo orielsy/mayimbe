@@ -136,11 +136,11 @@ const artifactStyle = computed(() => {
 .museum-notebook-transition-bookmarks {
   position: absolute;
   top: 10%;
-  right: -1.05rem;
+  right: -1.65rem;
   z-index: 0;
   display: flex;
   flex-direction: column;
-  gap: .38rem;
+  gap: .42rem;
   align-items: flex-end;
   opacity: 0;
   transform: translateX(-.2rem);
@@ -151,12 +151,12 @@ const artifactStyle = computed(() => {
 
 .museum-notebook-transition-bookmark {
   box-sizing: border-box;
-  width: 2.8rem;
-  min-height: 4.9rem;
-  padding: .55rem .38rem;
+  width: 3.25rem;
+  min-height: 5.15rem;
+  padding: .62rem .42rem;
   border: 1px solid rgba(75, 52, 30, .48);
   border-right: 0;
-  border-radius: .3rem 0 0 .3rem;
+  border-radius: .42rem;
   background:
     linear-gradient(90deg, rgba(255, 250, 226, .22), transparent 38%),
     #b99a67;
@@ -165,7 +165,7 @@ const artifactStyle = computed(() => {
     inset 0 0 0 1px rgba(255, 245, 211, .14);
   color: #493722;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: .68rem;
+  font-size: .72rem;
   font-weight: 700;
   letter-spacing: .06em;
   line-height: 1;
@@ -275,7 +275,7 @@ const artifactStyle = computed(() => {
     padding: .4rem .75rem .4rem 1rem;
     border-right: 1px solid rgba(75, 52, 30, .48);
     border-left: 0;
-    border-radius: 0 .3rem .3rem 0;
+    border-radius: .42rem;
     font-size: .68rem;
     letter-spacing: .08em;
     writing-mode: horizontal-tb;
