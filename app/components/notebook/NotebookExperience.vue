@@ -45,9 +45,10 @@ const notebookKey = computed(() =>
 
 /*
  * The lab notebook capped the mobile page at 22rem. In the production museum
- * the notebook is the focused object, so portrait mobile should spend the
- * available safe-area width on the page instead of surrounding stage chrome.
- * Desktop keeps the original two-page spread sizing from the Page Turner CSS.
+ * the notebook is the focused object, so mobile spends nearly the full safe-area
+ * width on the page. Portrait mobile also bends the physical page proportion
+ * from 3:4 to 2:3 so the notebook makes better use of the taller viewport.
+ * Desktop keeps the original two-page spread proportions.
  */
 @media (max-width: 899px) {
   .notebook-experience {
@@ -70,15 +71,11 @@ const notebookKey = computed(() =>
     min-height: .875rem;
     padding-inline: .25rem;
   }
+}
 
-  .notebook-experience :deep(.pn-controls) {
-    max-width: 34rem;
-    gap: .5rem;
-    padding-inline: .25rem;
-  }
-
-  .notebook-experience :deep(.pn-btn) {
-    min-height: 44px;
+@media (max-width: 899px) and (orientation: portrait) {
+  .notebook-experience :deep(.pn-spread) {
+    aspect-ratio: 4 / 3;
   }
 }
 </style>

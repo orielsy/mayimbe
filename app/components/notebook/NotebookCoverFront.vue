@@ -32,10 +32,6 @@ withDefaults(defineProps<{
       <p class="pn-foil pn-foil-small pn-foil-artist" aria-label="Antony Santos">
         <DistressedFoilText text="ANTONY SANTOS" />
       </p>
-      <p
-        :class="['pn-cover-hint', 'pn-foil', { 'is-on': hintVisible }]"
-        :aria-hidden="!interactive"
-      >tap to open</p>
     </div>
 
     <span aria-hidden="true" class="pn-cover__spine-shade pn-cover__spine-shade--left" />
