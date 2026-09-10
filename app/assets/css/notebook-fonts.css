@@ -1,0 +1,38 @@
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&family=Dancing+Script:wght@400..700&display=swap');
+
+.pn-root {
+  --notebook-handwriting: "Caveat", cursive;
+  --notebook-beauty: "Dancing Script", cursive;
+}
+
+.pn-copy,
+.pn-copy__eyebrow,
+.pn-copy__title,
+.pn-copy__caption,
+.pn-copy__body,
+.pn-copy__number {
+  font-family: var(--notebook-handwriting);
+}
+
+.pn-copy {
+  font-weight: 500;
+}
+
+.pn-copy__eyebrow,
+.pn-copy__caption,
+.pn-copy__body,
+.pn-copy__number {
+  font-weight: 400;
+}
+
+.pn-copy__title {
+  font-weight: 600;
+}
+
+.pn-hand,
+.pn-copy__note,
+.pn-dedication,
+.pn-dedication span {
+  font-family: var(--notebook-beauty);
+  font-weight: 500;
+}
