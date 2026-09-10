@@ -330,10 +330,6 @@ const rootPage = computed(() =>
       </div>
     </div>
 
-    <p class="pn-status pn-instructions">
-      Swipe left and right or use the left and right sides to flip through pages
-    </p>
-
     <p aria-live="polite" class="visually-hidden" data-testid="pn-status">
       {{ status }}
     </p>
@@ -426,12 +422,6 @@ const rootPage = computed(() =>
 .pn-bookmark:focus-visible {
   outline: 2px solid #d8c39a;
   outline-offset: 2px;
-}
-
-.pn-instructions {
-  max-width: 34rem;
-  line-height: 1.45;
-  text-transform: none;
 }
 
 @media (max-width: 899px) {
