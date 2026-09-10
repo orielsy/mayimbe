@@ -127,6 +127,8 @@ const artifactStyle = computed(() => {
 }
 
 .museum-notebook-transition-artifact :deep(.pn-cover) {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 100%;
 }
@@ -135,7 +137,7 @@ const artifactStyle = computed(() => {
   position: absolute;
   top: 10%;
   right: -.35rem;
-  z-index: 75;
+  z-index: 0;
   display: flex;
   flex-direction: column;
   gap: .3rem;
