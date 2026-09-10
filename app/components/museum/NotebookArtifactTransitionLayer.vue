@@ -166,14 +166,17 @@ const artifactStyle = computed(() => {
   box-shadow:
     -2px 2px 5px rgba(42, 28, 15, .2),
     inset 0 0 0 1px rgba(255, 245, 211, .14);
-  color: #493722;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 1rem;
+  color: #382817;
+  font-family: "Dancing Script", cursive;
+  font-size: 1.1rem;
   font-weight: 700;
-  letter-spacing: .02em;
+  letter-spacing: 0;
   line-height: 1.05;
   text-align: center;
-  text-transform: uppercase;
+  text-transform: none;
+  text-shadow:
+    0 1px 0 rgba(255, 247, 222, .42),
+    0 0 .45px rgba(49, 31, 15, .42);
   writing-mode: horizontal-tb;
   text-orientation: mixed;
 }
@@ -283,8 +286,8 @@ const artifactStyle = computed(() => {
     border-right: 1px solid rgba(75, 52, 30, .48);
     border-left: 0;
     border-radius: .42rem;
-    font-size: .9rem;
-    letter-spacing: .04em;
+    font-size: 1rem;
+    letter-spacing: 0;
     writing-mode: horizontal-tb;
     text-orientation: mixed;
     text-align: left;
