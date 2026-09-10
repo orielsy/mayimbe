@@ -36,7 +36,7 @@ const page = computed(() => NOTEBOOK_PAGES[props.index])
 
     <div
       v-else-if="page"
-      :class="padPage ? 'pn-block pn-page-inset' : 'pn-absolute-fill'"
+      :class="padPage ? 'pn-page-inset' : 'pn-absolute-fill'"
     >
       <template v-if="back">
         <div class="pn-mirror pn-absolute-fill">
