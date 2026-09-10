@@ -77,7 +77,10 @@
     width: 3.25rem !important;
     min-height: 5.15rem !important;
     padding: .62rem .42rem !important;
+    padding-inline-start: .28rem !important;
+    padding-inline-end: .62rem !important;
     font-size: .72rem !important;
+    text-align: start !important;
   }
 }
 
