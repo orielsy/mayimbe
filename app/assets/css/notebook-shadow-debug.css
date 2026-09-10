@@ -57,12 +57,12 @@
 /*
  * Mobile bookmark exposure
  * ------------------------
- * Mobile tabs use the existing empty space above the notebook instead of taking
- * width away from the page. The rail is absolutely positioned across the top of
- * the visible notebook half, so it consumes no layout space. Tabs remain below
- * the cover/pages in z-order, and the rail is lowered slightly so the bottom of
- * each tab is visibly tucked beneath the page edge. Desktop dimensions and
- * placement remain unchanged.
+ * Mobile tabs use the existing empty space below the notebook instead of taking
+ * width away from the page. The rail is absolutely positioned across the bottom
+ * of the visible notebook half, so it consumes no layout space. Tabs remain
+ * below the cover/pages in z-order, with roughly 1rem tucked beneath the page
+ * while the labeled portion protrudes into the thumb-friendly area below.
+ * Desktop dimensions and placement remain unchanged.
  */
 @media (max-width: 899px) {
   .pn-stage {
@@ -73,7 +73,8 @@
   }
 
   .pn-bookmarks {
-    top: -1.25rem !important;
+    top: auto !important;
+    bottom: -1.25rem !important;
     left: 2% !important;
     right: 2% !important;
     width: auto !important;
@@ -87,7 +88,7 @@
     width: auto !important;
     min-width: 0 !important;
     min-height: 2.25rem !important;
-    padding: .45rem .3rem .72rem !important;
+    padding: .72rem .3rem .45rem !important;
     border-right: 1px solid rgba(75, 52, 30, .48) !important;
     font-size: .68rem !important;
     letter-spacing: .04em !important;
