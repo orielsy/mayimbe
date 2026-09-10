@@ -415,6 +415,12 @@ const rootPage = computed(() =>
     inset 0 0 0 1px rgba(255, 245, 211, .18);
 }
 
+/* The terminal bookmark belongs to the selected back section. Once active,
+ * tuck it fully under the paper so it cannot project beyond the page edge. */
+.pn-bookmark:last-child.is-active {
+  transform: translateX(calc(-.35rem - 2.2cqw));
+}
+
 .pn-bookmark:disabled {
   cursor: default;
 }
@@ -476,6 +482,10 @@ const rootPage = computed(() =>
     text-orientation: mixed;
     text-align: left;
     transition: filter 160ms ease, box-shadow 160ms ease;
+  }
+
+  .pn-bookmark:last-child.is-active {
+    transform: translateX(calc(-100% + .9rem - 2.2cqw));
   }
 
   .pn-bookmark:hover:not(:disabled),
