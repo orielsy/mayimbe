@@ -1,0 +1,71 @@
+/*
+ * TEMPORARY SHADOW DIAGNOSTIC
+ *
+ * Each shadow-like notebook treatment gets an intentionally unnatural color so
+ * the exact layer responsible for a visual stutter can be identified by eye.
+ * Remove this stylesheet once the culprit is confirmed.
+ *
+ * Legend:
+ *   YELLOW  = animated turn shade (.pn-turn-shade)
+ *   BLUE    = right/inside-cover spine shade
+ *   RED     = left/front-cover spine shade
+ *   MAGENTA = resting page inset shadow (.pn-block)
+ *   LIME    = page-stack seam
+ *   CYAN    = right-side book drop shadow
+ *   ORANGE  = left-side leaf drop shadow
+ *   PURPLE  = legacy animation-only inside spine shade, if still rendered
+ */
+
+.pn-turn-shade {
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 0, 0.95),
+    rgba(255, 255, 0, 0) 45%
+  ) !important;
+}
+
+.pn-cover__spine-shade--right {
+  background: linear-gradient(
+    to left,
+    rgba(0, 80, 255, 0.95),
+    rgba(0, 80, 255, 0)
+  ) !important;
+}
+
+.pn-cover__spine-shade--left {
+  background: linear-gradient(
+    to right,
+    rgba(255, 0, 0, 0.95),
+    rgba(255, 0, 0, 0.38),
+    rgba(255, 0, 0, 0)
+  ) !important;
+}
+
+.pn-block {
+  box-shadow: inset 0 0 22px rgba(255, 0, 255, 0.9) !important;
+}
+
+.pn-page-stack__seam {
+  background: linear-gradient(
+    to left,
+    rgba(80, 255, 0, 0.98),
+    rgba(80, 255, 0, 0.35) 60%,
+    rgba(80, 255, 0, 0)
+  ) !important;
+}
+
+.pn-book {
+  filter: drop-shadow(0 34px 48px rgba(0, 255, 255, 0.88)) !important;
+}
+
+.pn-leaf-left {
+  filter: drop-shadow(0 34px 48px rgba(255, 128, 0, 0.88)) !important;
+}
+
+.pn-turn-inside-spine-shade {
+  background: linear-gradient(
+    to left,
+    rgba(170, 0, 255, 0.95),
+    rgba(170, 0, 255, 0)
+  ) !important;
+}
