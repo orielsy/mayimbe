@@ -57,31 +57,43 @@
 /*
  * Mobile bookmark exposure
  * ------------------------
- * Keep the intentionally hidden left page clipped at the stage's left edge.
- * Reserve a narrow gutter on the right for the vertical bookmark labels, rather
- * than trying to expose the entire tab. Most of each tab can remain tucked under
- * the paper while its text column is guaranteed room inside the viewport.
- * Desktop dimensions and spacing remain unchanged.
+ * Mobile tabs use the existing empty space above the notebook instead of taking
+ * width away from the page. The rail is absolutely positioned across the top of
+ * the visible notebook half, so it consumes no layout space. Tabs remain below
+ * the cover/pages in z-order; only the portion protruding above the top edge is
+ * visible. Desktop dimensions and placement remain unchanged.
  */
 @media (max-width: 899px) {
   .pn-stage {
-    --pn-mobile-bookmark-gutter: 2.5rem;
-    width: min(calc(100% - var(--pn-mobile-bookmark-gutter)), 22rem);
+    width: min(100%, 22rem);
     overflow: visible;
     clip-path: inset(-4rem -4rem -4rem 0);
-    transform: translateX(calc(var(--pn-mobile-bookmark-gutter) / -2));
+    transform: none;
   }
 
   .pn-bookmarks {
-    right: -2.25rem !important;
-    gap: .42rem !important;
+    top: -1.55rem !important;
+    left: 2% !important;
+    right: 2% !important;
+    width: auto !important;
+    flex-direction: row !important;
+    align-items: stretch !important;
+    gap: .28rem !important;
   }
 
   .pn-bookmark {
-    width: 3.25rem !important;
-    min-height: 5.15rem !important;
-    padding: .62rem .42rem !important;
-    font-size: .72rem !important;
+    flex: 1 1 0 !important;
+    width: auto !important;
+    min-width: 0 !important;
+    min-height: 2.25rem !important;
+    padding: .45rem .3rem .72rem !important;
+    border-right: 1px solid rgba(75, 52, 30, .48) !important;
+    font-size: .68rem !important;
+    letter-spacing: .04em !important;
+    line-height: 1.05 !important;
+    writing-mode: horizontal-tb !important;
+    text-orientation: mixed !important;
+    text-align: center !important;
   }
 }
 
