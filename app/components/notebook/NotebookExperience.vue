@@ -42,4 +42,43 @@ const notebookKey = computed(() =>
   background:
     radial-gradient(120% 80% at 50% 0%, rgba(56, 45, 36, .26) 0%, transparent 58%);
 }
+
+/*
+ * The lab notebook capped the mobile page at 22rem. In the production museum
+ * the notebook is the focused object, so portrait mobile should spend the
+ * available safe-area width on the page instead of surrounding stage chrome.
+ * Desktop keeps the original two-page spread sizing from the Page Turner CSS.
+ */
+@media (max-width: 899px) {
+  .notebook-experience {
+    padding:
+      max(.5rem, env(safe-area-inset-top))
+      max(.25rem, env(safe-area-inset-right))
+      max(.75rem, env(safe-area-inset-bottom))
+      max(.25rem, env(safe-area-inset-left));
+  }
+
+  .notebook-experience :deep(.pn-root) {
+    gap: clamp(.5rem, 1.5dvh, .9rem);
+  }
+
+  .notebook-experience :deep(.pn-stage) {
+    width: min(100%, 34rem);
+  }
+
+  .notebook-experience :deep(.pn-status) {
+    min-height: .875rem;
+    padding-inline: .25rem;
+  }
+
+  .notebook-experience :deep(.pn-controls) {
+    max-width: 34rem;
+    gap: .5rem;
+    padding-inline: .25rem;
+  }
+
+  .notebook-experience :deep(.pn-btn) {
+    min-height: 44px;
+  }
+}
 </style>
