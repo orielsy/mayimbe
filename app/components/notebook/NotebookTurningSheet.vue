@@ -34,7 +34,7 @@ const leaf = computed(() =>
 
 const startDeg = computed(() =>
   props.turn.kind === 'close'
-    ? -168
+    ? -180
     : props.turn.kind === 'backward'
       ? -180
       : 0,
@@ -59,13 +59,13 @@ onMounted(() => {
   const from = props.turn.kind === 'open'
     ? 0
     : props.turn.kind === 'close'
-      ? -168
+      ? -180
       : props.turn.kind === 'forward'
         ? 0
         : -180
 
   const to = props.turn.kind === 'open'
-    ? -168
+    ? -180
     : props.turn.kind === 'close'
       ? 0
       : props.turn.kind === 'forward'
