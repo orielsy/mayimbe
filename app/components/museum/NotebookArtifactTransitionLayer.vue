@@ -135,7 +135,8 @@ const artifactStyle = computed(() => {
 
 .museum-notebook-transition-bookmarks {
   position: absolute;
-  top: -1.25rem;
+  top: auto;
+  bottom: -1.25rem;
   left: 2%;
   right: 2%;
   z-index: 0;
@@ -156,7 +157,7 @@ const artifactStyle = computed(() => {
   width: auto;
   min-width: 0;
   min-height: 2.25rem;
-  padding: .45rem .3rem .72rem;
+  padding: .72rem .3rem .45rem;
   border: 1px solid rgba(75, 52, 30, .48);
   border-radius: .42rem;
   background:
@@ -264,6 +265,7 @@ const artifactStyle = computed(() => {
 @media (min-width: 900px) {
   .museum-notebook-transition-bookmarks {
     top: 12%;
+    bottom: auto;
     right: auto;
     left: calc(100% - .9rem);
     width: 7.25rem;
