@@ -73,23 +73,13 @@
 }
 
 /*
- * The terminal Legacy tab has nowhere farther to lead. Keep it at the normal
- * physical exposure when active instead of pulling it beyond the page block.
- * !important also cancels the earlier temporary horizontal tuck experiment.
- */
-.pn-bookmark:last-child.is-active {
-  transform: none !important;
-}
-
-/*
  * Mobile bookmark exposure
  * ------------------------
  * Mobile tabs use the existing empty space below the notebook instead of taking
  * width away from the page. The rail is absolutely positioned across the bottom
- * of the visible notebook half, so it consumes no layout space. Inactive tabs
- * are tucked an extra .35rem beneath the page; the active tab slides down by the
- * same amount, keeping its top edge under the paper while exposing more below.
- * Desktop dimensions and placement remain unchanged.
+ * of the visible notebook half, so it consumes no layout space. Tabs size to
+ * their labels rather than dividing the rail equally; the longer first label
+ * therefore stays naturally wider while the shorter labels remain compact.
  */
 @media (max-width: 899px) {
   .pn-stage {
@@ -107,11 +97,12 @@
     width: auto !important;
     flex-direction: row !important;
     align-items: stretch !important;
+    justify-content: center !important;
     gap: .28rem !important;
   }
 
   .pn-bookmark {
-    flex: 1 1 0 !important;
+    flex: 0 0 auto !important;
     width: auto !important;
     min-width: 0 !important;
     min-height: 2.25rem !important;
@@ -121,6 +112,7 @@
     font-size: 1.1rem !important;
     letter-spacing: 0 !important;
     line-height: 1.05 !important;
+    white-space: nowrap !important;
     writing-mode: horizontal-tb !important;
     text-orientation: mixed !important;
     text-align: center !important;
