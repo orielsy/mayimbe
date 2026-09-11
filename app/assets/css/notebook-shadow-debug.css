@@ -91,7 +91,7 @@
 
   .pn-bookmarks {
     top: auto !important;
-    bottom: -.9rem !important;
+    bottom: -1.1rem !important;
     left: 2% !important;
     right: 2% !important;
     width: auto !important;
@@ -116,11 +116,6 @@
     writing-mode: horizontal-tb !important;
     text-orientation: mixed !important;
     text-align: center !important;
-  }
-
-  .pn-bookmark > span {
-    display: inline-block;
-    transform: translateY(.35rem);
   }
 
   .pn-bookmark.is-active {
