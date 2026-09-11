@@ -9,11 +9,11 @@ dist
 !.env.example
 coverage
 
-# Page Turner Lab is the Lovable source-of-truth project the notebook engine
-# was extracted from. It is kept locally as a read-only reference, never
-# committed to Mayimbe.
+# Local-only source/reference imports; never commit them to Mayimbe.
 /Page Turner Lab/
 /Page Turner Lab*.zip
+/incoming/
+
 # Local-only debugging artifacts from the on-device notebook work.
 device-screen*.png
 device-tiny.png
