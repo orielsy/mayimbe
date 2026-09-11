@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import NotebookBookmarkStack from './NotebookBookmarkStack.vue'
 import NotebookCoverFront from './NotebookCoverFront.vue'
 import NotebookCoverInside from './NotebookCoverInside.vue'
 import NotebookDedication from './NotebookDedication.vue'
@@ -256,26 +257,13 @@ const rootPage = computed(() =>
           data-notebook-transition-anchor="focused"
           data-notebook-transition-rotation="0"
         >
-          <nav
-            v-if="props.bookmarks?.length"
-            class="pn-bookmarks"
+          <NotebookBookmarkStack
+            :bookmarks="props.bookmarks"
+            :active-bookmark="props.activeBookmark"
+            :disabled="busy"
             :aria-label="copy.sections"
-          >
-            <button
-              v-for="bookmark in props.bookmarks"
-              :key="bookmark.target"
-              type="button"
-              :class="[
-                'pn-bookmark',
-                { 'is-active': props.activeBookmark === bookmark.target },
-              ]"
-              :aria-current="props.activeBookmark === bookmark.target ? 'page' : undefined"
-              :disabled="busy"
-              @click.stop="emit('bookmark', bookmark.target)"
-            >
-              <span>{{ bookmark.label }}</span>
-            </button>
-          </nav>
+            @select="emit('bookmark', $event)"
+          />
 
           <div
             v-if="state.status === 'closed-front'"
@@ -403,68 +391,8 @@ const rootPage = computed(() =>
   outline-offset: -4px;
 }
 
-.pn-bookmarks {
-  position: absolute;
-  top: 10%;
-  right: -.35rem;
-  z-index: 5;
-  display: flex;
-  flex-direction: column;
-  gap: .3rem;
-  align-items: flex-end;
-}
-
-.pn-bookmark {
-  width: 2.15rem;
-  min-height: 4.35rem;
-  padding: .45rem .3rem;
-  border: 1px solid rgba(75, 52, 30, .48);
-  border-right: 0;
-  border-radius: .3rem 0 0 .3rem;
-  background:
-    linear-gradient(90deg, rgba(255, 250, 226, .22), transparent 38%),
-    #b99a67;
-  box-shadow:
-    -2px 2px 5px rgba(42, 28, 15, .2),
-    inset 0 0 0 1px rgba(255, 245, 211, .14);
-  color: #493722;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: .62rem;
-  font-weight: 700;
-  letter-spacing: .06em;
-  line-height: 1;
-  text-transform: uppercase;
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-  cursor: pointer;
-}
-
-.pn-bookmark:nth-child(2) { background-color: #aa895d; }
-.pn-bookmark:nth-child(3) { background-color: #c2a878; }
-.pn-bookmark:nth-child(4) { background-color: #9d8059; }
-
-.pn-bookmark.is-active {
-  box-shadow:
-    -3px 2px 6px rgba(42, 28, 15, .26),
-    inset 3px 0 0 rgba(88, 58, 27, .38),
-    inset 0 0 0 1px rgba(255, 245, 211, .18);
-}
-
-.pn-bookmark:disabled {
-  cursor: default;
-}
-
-.pn-bookmark:focus-visible {
-  outline: 2px solid #d8c39a;
-  outline-offset: 2px;
-}
-
 @media (max-width: 899px) {
-  /*
-   * Bottom bookmarks protrude about 1rem into the visible notebook. Keep the
-   * invisible page-turn/open zones above that strip so they cannot steal taps
-   * from the bookmark buttons, without changing the physical bookmark stacking.
-   */
+  /* Keep page-turn/open zones above the protruding bookmark strip. */
   .pn-side,
   .pn-hit {
     bottom: 1.1rem;
@@ -486,36 +414,6 @@ const rootPage = computed(() =>
 
   .pn-side--prev {
     left: -100%;
-  }
-
-  .pn-bookmarks {
-    top: 12%;
-    right: auto;
-    left: calc(100% - .9rem);
-    width: 7.25rem;
-    gap: .5rem;
-    align-items: stretch;
-  }
-
-  .pn-bookmark {
-    width: 100%;
-    min-width: 0;
-    min-height: 1.9rem;
-    padding: .4rem .75rem .4rem 1rem;
-    border-right: 1px solid rgba(75, 52, 30, .48);
-    border-left: 0;
-    border-radius: 0 .3rem .3rem 0;
-    font-size: .68rem;
-    letter-spacing: .08em;
-    writing-mode: horizontal-tb;
-    text-orientation: mixed;
-    text-align: left;
-    transition: filter 160ms ease, box-shadow 160ms ease;
-  }
-
-  .pn-bookmark:hover:not(:disabled),
-  .pn-bookmark:focus-visible {
-    filter: brightness(1.06);
   }
 }
 </style>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import NotebookBookmarkStack from '~/components/notebook/NotebookBookmarkStack.vue'
 import NotebookCoverFront from '~/components/notebook/NotebookCoverFront.vue'
 import { NOTEBOOK_BOOKMARKS } from '~/components/notebook/notebookTargets'
 import '~/assets/css/notebook-page-turner.css'
@@ -79,13 +80,10 @@ const artifactStyle = computed(() => {
         <NotebookCoverFront :presentation="presentation" />
 
         <div class="museum-notebook-transition-bookmarks">
-          <span
-            v-for="bookmark in NOTEBOOK_BOOKMARKS"
-            :key="bookmark.target"
-            class="museum-notebook-transition-bookmark"
-          >
-            <span>{{ bookmark.label }}</span>
-          </span>
+          <NotebookBookmarkStack
+            :bookmarks="NOTEBOOK_BOOKMARKS"
+            :interactive="false"
+          />
         </div>
       </div>
     </div>
@@ -135,56 +133,14 @@ const artifactStyle = computed(() => {
 
 .museum-notebook-transition-bookmarks {
   position: absolute;
-  top: auto;
-  bottom: -1.7rem;
-  left: 2%;
-  right: 2%;
+  inset: 0;
   z-index: 0;
-  display: flex;
-  flex-direction: row;
-  gap: .28rem;
-  align-items: stretch;
-  justify-content: center;
   opacity: 0;
   transform: translateX(-.2rem);
   transition:
     opacity 140ms ease,
     transform 140ms ease;
 }
-
-.museum-notebook-transition-bookmark {
-  box-sizing: border-box;
-  flex: 0 0 auto;
-  width: auto;
-  min-width: 0;
-  min-height: 2.25rem;
-  padding: 1.2rem .55rem .45rem;
-  border: 1px solid rgba(75, 52, 30, .48);
-  border-radius: 0 0 .42rem .42rem;
-  background:
-    linear-gradient(90deg, rgba(255, 250, 226, .22), transparent 38%),
-    #b99a67;
-  box-shadow:
-    -2px 2px 5px rgba(42, 28, 15, .2),
-    inset 0 0 0 1px rgba(255, 245, 211, .14);
-  color: #382817;
-  font-family: "Dancing Script", cursive;
-  font-size: 1.1rem;
-  font-weight: 700;
-  letter-spacing: 0;
-  line-height: 1.05;
-  text-align: center;
-  text-transform: none;
-  text-shadow:
-    0 1px 0 rgba(255, 247, 222, .42),
-    0 0 .45px rgba(49, 31, 15, .42);
-  writing-mode: horizontal-tb;
-  text-orientation: mixed;
-}
-
-.museum-notebook-transition-bookmark:nth-child(2) { background-color: #aa895d; }
-.museum-notebook-transition-bookmark:nth-child(3) { background-color: #c2a878; }
-.museum-notebook-transition-bookmark:nth-child(4) { background-color: #9d8059; }
 
 .is-start .museum-notebook-transition-artifact,
 .is-start .museum-notebook-transition-veil {
@@ -264,35 +220,6 @@ const artifactStyle = computed(() => {
   opacity: 0;
   backdrop-filter: blur(0);
   transition-duration: 140ms;
-}
-
-@media (min-width: 900px) {
-  .museum-notebook-transition-bookmarks {
-    top: 12%;
-    bottom: auto;
-    right: auto;
-    left: calc(100% - .9rem);
-    width: 7.25rem;
-    gap: .5rem;
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .museum-notebook-transition-bookmark {
-    flex: none;
-    width: 100%;
-    min-width: 0;
-    min-height: 1.9rem;
-    padding: .4rem .75rem .4rem 1rem;
-    border-right: 1px solid rgba(75, 52, 30, .48);
-    border-left: 0;
-    border-radius: .42rem;
-    font-size: 1rem;
-    letter-spacing: 0;
-    writing-mode: horizontal-tb;
-    text-orientation: mixed;
-    text-align: left;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

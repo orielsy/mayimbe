@@ -1,5 +1,5 @@
 /*
- * SHADOW ISOLATION
+ * Physical notebook paint order and ground shadow behavior.
  *
  * Keep the notebook ground shadow outside both leaf lifecycles. The shadow lives
  * on the persistent spread, underneath animated and resting surfaces, so a turn
@@ -10,11 +10,8 @@
   isolation: isolate;
 }
 
-/*
- * The old drop-shadow filters also created stacking contexts. Keep those
- * shadows disabled, but preserve the explicit paint ordering that replaced
- * them so the turning leaf stays above the resting left leaf after the hinge.
- */
+/* The old drop-shadow filters created stacking contexts. Keep those disabled
+   while preserving the explicit paint ordering that replaced them. */
 .pn-leaf-left {
   z-index: 0;
   filter: none !important;
@@ -29,14 +26,8 @@
   content: none !important;
 }
 
-/*
- * Physical bookmark stack
- * -----------------------
- * The inside/back cover is the bottom layer, bookmarks sit above it, and the
- * actual paper block sits above the bookmarks. Let the open resting-page wrapper
- * stop acting as one monolithic z-index layer so those three surfaces can
- * interleave correctly.
- */
+/* The inside/back cover is the bottom layer, bookmarks sit above it, and the
+   actual paper block sits above the bookmarks. */
 .pn-rest--page {
   z-index: auto !important;
 }
@@ -49,77 +40,12 @@
   z-index: 10;
 }
 
-/* All physical tabs have rounded corners by default. */
-.pn-bookmark {
-  border-radius: .42rem !important;
-  transition:
-    transform 160ms ease,
-    filter 160ms ease,
-    box-shadow 160ms ease !important;
-}
-
-/*
- * Active bookmark
- * ---------------
- * Selection is expressed physically: the chosen tab is pulled farther out of
- * the notebook rather than merely recolored. Direction is resolved per layout
- * below so mobile pulls down and desktop pulls right.
- */
-.pn-bookmark.is-active {
-  filter: brightness(1.07) saturate(1.04) !important;
-  box-shadow:
-    0 4px 8px rgba(42, 28, 15, .3),
-    inset 0 0 0 1px rgba(255, 245, 211, .28) !important;
-}
-
-/*
- * Mobile bookmark exposure
- * ------------------------
- * Mobile tabs use the existing empty space below the notebook instead of taking
- * width away from the page. The rail is absolutely positioned across the bottom
- * of the visible notebook half, so it consumes no layout space. Tabs size to
- * their labels rather than dividing the rail equally; the longer first label
- * therefore stays naturally wider while the shorter labels remain compact.
- */
 @media (max-width: 899px) {
   .pn-stage {
     width: min(100%, 22rem);
     overflow: visible;
     clip-path: inset(-4rem -4rem -4rem 0);
     transform: none;
-  }
-
-  .pn-bookmarks {
-    top: auto !important;
-    bottom: -1.7rem !important;
-    left: 2% !important;
-    right: 2% !important;
-    width: auto !important;
-    flex-direction: row !important;
-    align-items: stretch !important;
-    justify-content: center !important;
-    gap: .28rem !important;
-  }
-
-  .pn-bookmark {
-    flex: 0 0 auto !important;
-    width: auto !important;
-    min-width: 0 !important;
-    min-height: 2.25rem !important;
-    padding: 1.2rem .55rem .45rem !important;
-    border-right: 1px solid rgba(75, 52, 30, .48) !important;
-    border-radius: 0 0 .42rem .42rem !important;
-    font-size: 1.1rem !important;
-    letter-spacing: 0 !important;
-    line-height: 1.05 !important;
-    white-space: nowrap !important;
-    writing-mode: horizontal-tb !important;
-    text-orientation: mixed !important;
-    text-align: center !important;
-  }
-
-  .pn-bookmark.is-active {
-    transform: translateY(.35rem);
   }
 }
 
@@ -129,9 +55,7 @@
  * The shadow represents the projected footprint of the persistent right half
  * plus the turning cover. Before the cover passes 90deg, its projection lies
  * over the right half, so the left shadow edge stays at the hinge. After 90deg,
- * that edge expands leftward along an approximation of |cos(theta)|. This keeps
- * the ground shadow detached from the animated DOM while avoiding the old
- * linear rectangle that visibly lagged behind the fake-3D cover.
+ * that edge expands leftward along an approximation of |cos(theta)|.
  */
 .pn-spread::before {
   content: '';
@@ -193,21 +117,9 @@
   .pn-root[data-nb-state='closing'] .pn-spread::before {
     animation-name: pn-ground-close-desktop;
   }
-
-  .pn-bookmark {
-    font-size: 1rem !important;
-  }
-
-  .pn-bookmark.is-active {
-    transform: translateX(.35rem);
-  }
 }
 
-/*
- * Desktop also moves the hinge from 25% to 50% while opening. These samples
- * combine that translation with the cover's rotateY easing. The free cover edge
- * does not begin contributing to the left footprint until the turn passes 90deg.
- */
+/* Desktop also moves the hinge from 25% to 50% while opening. */
 @keyframes pn-ground-open-desktop {
   0% { left: 25%; right: 25%; }
   15% { left: 33.35%; right: 16.65%; }
@@ -232,15 +144,7 @@
   100% { left: 25%; right: 25%; }
 }
 
-/*
- * Narrow desktop windows
- * ----------------------
- * The horizontal bookmark rail extends 6.35rem beyond the notebook's right
- * edge (7.25rem rail starting 0.9rem inside the page). Around 1420px the 76rem
- * notebook plus that overhang reaches the viewport edge. Reserve the overhang
- * in the width budget and shift by half of it so the notebook + bookmarks are
- * centered as one composition rather than clipping the tabs off-screen.
- */
+/* Narrow desktop windows reserve room for the horizontal bookmark rail. */
 @media (min-width: 900px) and (max-width: 1420px) {
   .pn-stage:has(.pn-bookmarks) {
     width: min(calc(100vw - 8rem), calc((100dvh - 8rem) * 1.5), 76rem);
