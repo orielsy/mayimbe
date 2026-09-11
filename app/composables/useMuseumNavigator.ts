@@ -4,6 +4,7 @@ import { getMuseumApplicationRuntime } from '~/runtime/museumRuntime'
 export function useMuseumNavigator() {
   const app = useNuxtApp()
   const { state } = useMuseum()
+  const { pathFor } = useSiteLocale()
   const { navigator } = getMuseumApplicationRuntime(app, state)
 
   async function syncDestination(destination: MuseumDestination) {
@@ -11,7 +12,7 @@ export function useMuseumNavigator() {
   }
 
   async function go(destination: MuseumDestination) {
-    return navigateTo(destinationToPath(destination))
+    return navigateTo(pathFor(destinationToPath(destination)))
   }
 
   return {

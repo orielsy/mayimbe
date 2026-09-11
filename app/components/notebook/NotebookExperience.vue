@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import PocketNotebook from './PocketNotebook.vue'
-import { NOTEBOOK_BOOKMARKS, resolveNotebookTargetPage } from './notebookTargets'
+import { notebookBookmarksForLocale, resolveNotebookTargetPage } from './notebookTargets'
 
 useHead({
   link: [
@@ -26,6 +26,7 @@ const emit = defineEmits<{
   requestDesk: []
 }>()
 
+const { locale } = useSiteLocale()
 const { go } = useMuseumNavigator()
 const { focusedHidden } = useNotebookArtifactTransition()
 
@@ -37,6 +38,7 @@ interface PocketNotebookHandle {
 const notebook = ref<PocketNotebookHandle | null>(null)
 
 const initialPage = computed(() => resolveNotebookTargetPage(props.target))
+const bookmarks = computed(() => notebookBookmarksForLocale(locale.value))
 const activeBookmark = computed(() =>
   typeof props.target === 'string' && props.target.length
     ? props.target
@@ -47,6 +49,9 @@ const notebookKey = computed(() =>
     ? `target:${props.target}`
     : 'cover',
 )
+const experienceLabel = computed(() => (
+  locale.value === 'es' ? 'Experiencia del cuaderno' : 'Notebook experience'
+))
 
 function selectBookmark(target: string) {
   void go({ kind: 'exhibit', exhibit: 'notebook', target })
@@ -74,7 +79,7 @@ defineExpose({ closeForDesk })
   <article
     class="notebook-experience"
     data-testid="notebook-integration-root"
-    aria-label="Notebook experience"
+    :aria-label="experienceLabel"
     @click="onExperienceClick"
   >
     <PocketNotebook
@@ -82,7 +87,7 @@ defineExpose({ closeForDesk })
       :key="notebookKey"
       :class="{ 'pn-transition-hidden': focusedHidden }"
       :initial-page="initialPage"
-      :bookmarks="NOTEBOOK_BOOKMARKS"
+      :bookmarks="bookmarks"
       :active-bookmark="activeBookmark"
       @bookmark="selectBookmark"
     />

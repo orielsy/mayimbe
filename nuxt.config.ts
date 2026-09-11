@@ -15,6 +15,11 @@ export default defineNuxtConfig({
       crawlLinks: true,
       routes: [
         '/',
+        '/notebook',
+        '/notebook/early-years',
+        '/en',
+        '/en/notebook',
+        '/en/notebook/early-years',
         '/archive',
         '/people/antony-santos',
         '/stories/early-years',
@@ -27,12 +32,12 @@ export default defineNuxtConfig({
 
   app: {
     head: {
-      htmlAttrs: { lang: 'en' },
+      htmlAttrs: { lang: 'es' },
       titleTemplate: '%s · AntonySantos.com',
       meta: [
         {
           name: 'description',
-          content: 'Mayimbe is the production platform for AntonySantos.com, an interactive digital museum and cultural archive.',
+          content: 'Mayimbe es la plataforma de producción de AntonySantos.com, un museo digital interactivo y archivo cultural.',
         },
       ],
     },

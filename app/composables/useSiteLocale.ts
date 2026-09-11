@@ -24,7 +24,7 @@ function splitPathSuffix(path: string) {
 export function stripSiteLocalePrefix(path: string): string {
   const { pathname, suffix } = splitPathSuffix(path)
 
-  if (pathname === '/en') return `/${suffix}`.replace('/?', '?').replace('/#', '#')
+  if (pathname === '/en') return `/${suffix}`
   if (pathname.startsWith('/en/')) return `${pathname.slice(3)}${suffix}`
 
   return `${pathname}${suffix}`
