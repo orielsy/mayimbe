@@ -18,7 +18,6 @@ export type NotebookRecipe = {
 }
 
 export const NOTEBOOK_ASSETS = manifest.assets as NotebookAsset[]
-export const NOTEBOOK_RECIPES = manifest.recipes as unknown as Record<string, NotebookRecipe>
 
 export function notebookAsset(id: string) {
   const found = NOTEBOOK_ASSETS.find(item => item.id === id)

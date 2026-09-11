@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import NotebookSheet from '~/components/notebook/NotebookSheet.vue'
+import { notebookSheetWear } from '~/components/notebook/notebookWear'
 import '~/assets/css/notebook-page-turner.css'
 
 useHead({
@@ -11,6 +12,8 @@ useHead({
     },
   ],
 })
+
+const labWear = notebookSheetWear(1, 8)
 
 const fontSamples = [
   {
@@ -75,7 +78,7 @@ const fontSamples = [
         </header>
 
         <div class="font-sample__paper">
-          <NotebookSheet recipe-id="carried">
+          <NotebookSheet :wear="labWear">
             <div
               class="font-sample__copy"
               :style="{ fontFamily: sample.family }"

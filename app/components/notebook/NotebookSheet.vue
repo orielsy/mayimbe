@@ -1,25 +1,20 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import {
-  NOTEBOOK_RECIPES,
   notebookAsset,
   type NotebookRecipe,
 } from './notebookAssets'
 
 const props = withDefaults(defineProps<{
-  recipeId?: string
-  wear?: NotebookRecipe
+  wear: NotebookRecipe
   masked?: boolean
   class?: string
 }>(), {
-  recipeId: 'carried',
   masked: true,
   class: '',
 })
 
-const recipe = computed(() =>
-  props.wear ?? NOTEBOOK_RECIPES[props.recipeId] ?? NOTEBOOK_RECIPES.carried,
-)
+const recipe = computed(() => props.wear)
 
 const maskStyle = computed(() => {
   if (!props.masked || !recipe.value) return undefined
@@ -35,7 +30,6 @@ const maskStyle = computed(() => {
 
 <template>
   <div
-    v-if="recipe"
     :class="['pn-sheet', props.class]"
     :data-recipe="recipe.id"
     :style="maskStyle"

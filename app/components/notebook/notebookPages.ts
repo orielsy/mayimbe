@@ -15,7 +15,6 @@ export interface NotebookPage extends NotebookPageCopy {
   id: string
   n: number
   kind: NotebookPageKind
-  recipe: string
   content: Record<SiteLocale, NotebookPageCopy>
 }
 
@@ -23,7 +22,6 @@ interface NotebookPageMeta {
   id: string
   n: number
   kind: NotebookPageKind
-  recipe: string
 }
 
 function notebookPage(
@@ -44,14 +42,14 @@ export function notebookPageCopy(page: NotebookPage, locale: SiteLocale): Notebo
 /**
  * Prototype Page Turner content.
  *
- * Spanish is the canonical authored version. Physical page identity, numbering,
- * wear recipe and media stay language-neutral while each locale supplies its
- * own editorial copy. The narrative itself will be replaced as museum research
- * and writing are finalized.
+ * Spanish is the canonical authored version. Physical page identity, numbering
+ * and media stay language-neutral while each locale supplies its own editorial
+ * copy. The narrative itself will be replaced as museum research and writing
+ * are finalized.
  */
 export const NOTEBOOK_PAGES: NotebookPage[] = [
   notebookPage(
-    { id: 'mayimbe', n: 1, kind: 'sketch', recipe: 'carried' },
+    { id: 'mayimbe', n: 1, kind: 'sketch' },
     {
       es: {
         eyebrow: 'Clavellinas, 1967',
@@ -68,7 +66,7 @@ export const NOTEBOOK_PAGES: NotebookPage[] = [
     },
   ),
   notebookPage(
-    { id: 'guira', n: 2, kind: 'text', recipe: 'carried' },
+    { id: 'guira', n: 2, kind: 'text' },
     {
       es: {
         eyebrow: 'Antes del nombre',
@@ -83,7 +81,7 @@ export const NOTEBOOK_PAGES: NotebookPage[] = [
     },
   ),
   notebookPage(
-    { id: 'voypalla', n: 3, kind: 'clipping', recipe: 'humidity' },
+    { id: 'voypalla', n: 3, kind: 'clipping' },
     {
       es: {
         eyebrow: '1991',
@@ -100,7 +98,7 @@ export const NOTEBOOK_PAGES: NotebookPage[] = [
     },
   ),
   notebookPage(
-    { id: 'patio', n: 4, kind: 'photo', recipe: 'humidity' },
+    { id: 'patio', n: 4, kind: 'photo' },
     {
       es: {
         eyebrow: 'Fotografía de campo',
@@ -119,7 +117,7 @@ export const NOTEBOOK_PAGES: NotebookPage[] = [
     },
   ),
   notebookPage(
-    { id: 'requinto', n: 5, kind: 'sketch', recipe: 'protected' },
+    { id: 'requinto', n: 5, kind: 'sketch' },
     {
       es: {
         eyebrow: 'Nota de escucha',
@@ -134,7 +132,7 @@ export const NOTEBOOK_PAGES: NotebookPage[] = [
     },
   ),
   notebookPage(
-    { id: 'amargue', n: 6, kind: 'text', recipe: 'protected' },
+    { id: 'amargue', n: 6, kind: 'text' },
     {
       es: {
         eyebrow: 'Definición',
@@ -149,7 +147,7 @@ export const NOTEBOOK_PAGES: NotebookPage[] = [
     },
   ),
   notebookPage(
-    { id: 'cassette', n: 7, kind: 'clipping', recipe: 'carried' },
+    { id: 'cassette', n: 7, kind: 'clipping' },
     {
       es: {
         eyebrow: 'Circulación',
@@ -166,7 +164,7 @@ export const NOTEBOOK_PAGES: NotebookPage[] = [
     },
   ),
   notebookPage(
-    { id: 'notes', n: 8, kind: 'text', recipe: 'humidity' },
+    { id: 'notes', n: 8, kind: 'text' },
     {
       es: {
         eyebrow: 'Archivo de trabajo',

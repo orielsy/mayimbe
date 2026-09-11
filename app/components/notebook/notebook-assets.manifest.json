@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "stage": "Notebook rebuild \u00b7 Stage 1",
+  "stage": "Notebook rebuild · Stage 1",
   "master": {
     "w": 840,
     "h": 1120,
@@ -59,7 +59,7 @@
     },
     {
       "id": "foxing-light",
-      "label": "Foxing \u2014 light",
+      "label": "Foxing — light",
       "group": "wear",
       "path": "/notebook-assets/foxing-light.webp",
       "w": 840,
@@ -70,7 +70,7 @@
     },
     {
       "id": "foxing-heavy",
-      "label": "Foxing \u2014 heavy",
+      "label": "Foxing — heavy",
       "group": "wear",
       "path": "/notebook-assets/foxing-heavy.webp",
       "w": 840,
@@ -158,7 +158,7 @@
     },
     {
       "id": "trauma-ring-stain",
-      "label": "Trauma \u2014 ring stain + spill",
+      "label": "Trauma — ring stain + spill",
       "group": "trauma",
       "path": "/notebook-assets/trauma-ring-stain.webp",
       "w": 840,
@@ -169,7 +169,7 @@
     },
     {
       "id": "trauma-tide-lines",
-      "label": "Trauma \u2014 multi-front tide lines",
+      "label": "Trauma — multi-front tide lines",
       "group": "trauma",
       "path": "/notebook-assets/trauma-tide-lines.webp",
       "w": 840,
@@ -180,7 +180,7 @@
     },
     {
       "id": "trauma-hand-smear",
-      "label": "Trauma \u2014 hand smear drag",
+      "label": "Trauma — hand smear drag",
       "group": "trauma",
       "path": "/notebook-assets/trauma-hand-smear.webp",
       "w": 420,
@@ -191,7 +191,7 @@
     },
     {
       "id": "trauma-thumb-grime",
-      "label": "Trauma \u2014 thumb grime",
+      "label": "Trauma — thumb grime",
       "group": "trauma",
       "path": "/notebook-assets/trauma-thumb-grime.webp",
       "w": 420,
@@ -202,7 +202,7 @@
     },
     {
       "id": "trauma-corner-fold",
-      "label": "Trauma \u2014 corner folds / dog-ear",
+      "label": "Trauma — corner folds / dog-ear",
       "group": "trauma",
       "path": "/notebook-assets/trauma-corner-fold.webp",
       "w": 840,
@@ -300,165 +300,5 @@
       "bytes": 61014
     }
   ],
-  "recipes": {
-    "carried": {
-      "id": "carried",
-      "label": "Carried / Handled",
-      "note": "Repeatedly opened, thumbed at the fore edge, exposed to light and air.",
-      "substrate": "substrate-carried",
-      "edgeMask": "edge-mask-a",
-      "layers": [
-        {
-          "asset": "fibre-stock",
-          "opacity": 0.85,
-          "repeat": true
-        },
-        {
-          "asset": "tonal-drift",
-          "opacity": 0.75
-        },
-        {
-          "asset": "foxing-light",
-          "opacity": 0.55
-        },
-        {
-          "asset": "grime-handling",
-          "opacity": 0.95
-        },
-        {
-          "asset": "smudge-abrasion",
-          "opacity": 0.6
-        },
-        {
-          "asset": "edge-oxidation",
-          "opacity": 1.0
-        },
-        {
-          "asset": "crease",
-          "opacity": 0.7
-        }
-      ]
-    },
-    "humidity": {
-      "id": "humidity",
-      "label": "Humidity Affected",
-      "note": "A damp episode shared by a run of neighbouring sheets: blooms, tide marks, heavy foxing.",
-      "substrate": "substrate-humidity",
-      "edgeMask": "edge-mask-b",
-      "layers": [
-        {
-          "asset": "fibre-stock",
-          "opacity": 0.8,
-          "repeat": true
-        },
-        {
-          "asset": "tonal-drift",
-          "opacity": 1.0
-        },
-        {
-          "asset": "humidity-bloom",
-          "opacity": 1.0
-        },
-        {
-          "asset": "water-stain",
-          "opacity": 0.85,
-          "mirror": true
-        },
-        {
-          "asset": "foxing-heavy",
-          "opacity": 0.8
-        },
-        {
-          "asset": "edge-oxidation",
-          "opacity": 0.7
-        },
-        {
-          "asset": "grime-handling",
-          "opacity": 0.35
-        }
-      ]
-    },
-    "protected": {
-      "id": "protected",
-      "label": "Protected Interior",
-      "note": "Deep in the block \u2014 protected age rather than clean paper: quiet drift, faint foxing, almost no grime.",
-      "substrate": "substrate-protected",
-      "edgeMask": "edge-mask-c",
-      "layers": [
-        {
-          "asset": "fibre-stock",
-          "opacity": 0.7,
-          "repeat": true
-        },
-        {
-          "asset": "tonal-drift",
-          "opacity": 0.4
-        },
-        {
-          "asset": "foxing-light",
-          "opacity": 0.28,
-          "mirror": true
-        },
-        {
-          "asset": "edge-oxidation",
-          "opacity": 0.35
-        }
-      ]
-    },
-    "trauma": {
-      "id": "trauma",
-      "label": "Front-of-block trauma",
-      "note": "The first sheets: a ringed spill, tide lines, a hand smear and thumb grime over a chewed fore edge. Echoes onto the two sheets behind it.",
-      "substrate": "substrate-carried",
-      "edgeMask": "edge-mask-heavy-1",
-      "layers": [
-        {
-          "asset": "fibre-stock",
-          "opacity": 0.88,
-          "repeat": true
-        },
-        {
-          "asset": "tonal-drift",
-          "opacity": 0.9
-        },
-        {
-          "asset": "trauma-tide-lines",
-          "opacity": 0.95
-        },
-        {
-          "asset": "trauma-ring-stain",
-          "opacity": 1.0
-        },
-        {
-          "asset": "foxing-heavy",
-          "opacity": 0.7
-        },
-        {
-          "asset": "trauma-thumb-grime",
-          "opacity": 1.0
-        },
-        {
-          "asset": "trauma-hand-smear",
-          "opacity": 0.9
-        },
-        {
-          "asset": "grime-handling",
-          "opacity": 0.8
-        },
-        {
-          "asset": "edge-oxidation",
-          "opacity": 1.0
-        },
-        {
-          "asset": "trauma-corner-fold",
-          "opacity": 0.8
-        },
-        {
-          "asset": "crease",
-          "opacity": 0.7
-        }
-      ]
-    }
-  },
   "totalBytes": 690534
 }
