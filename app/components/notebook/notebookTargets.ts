@@ -1,7 +1,7 @@
 import { NOTEBOOK_PAGES } from './notebookPages'
 
 export const NOTEBOOK_BOOKMARKS = [
-  { target: 'early-years', label: 'Early Years', pageId: 'guira' },
+  { target: 'early-years', label: 'Origins', pageId: 'guira' },
   { target: 'rise', label: 'Rise', pageId: 'voypalla' },
   { target: 'classics', label: 'Classics', pageId: 'requinto' },
   { target: 'legacy', label: 'Legacy', pageId: 'cassette' },
