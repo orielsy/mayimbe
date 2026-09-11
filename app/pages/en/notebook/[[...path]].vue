@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import MuseumShell from '~/components/museum/MuseumShell.vue'
 
-definePageMeta({ museum: true })
+definePageMeta({ layout: 'museum' })
 
 const { rememberLocale } = useSiteLocale()
 

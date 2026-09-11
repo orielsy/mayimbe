@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import MuseumShell from '~/components/museum/MuseumShell.vue'
 
-definePageMeta({ museum: true })
+definePageMeta({ layout: 'museum' })
 
 useSeoMeta({
   title: 'Cuaderno | Museo de Antony Santos',
