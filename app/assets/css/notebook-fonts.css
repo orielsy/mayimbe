@@ -36,21 +36,3 @@
   font-family: var(--notebook-beauty);
   font-weight: 500;
 }
-
-/*
- * Bookmark labels use the notebook's special handwriting accent, but they need
- * a clearer treatment than decorative script at small UI-label sizes. Keep the
- * original title case, remove tracking that breaks connected strokes, and use a
- * heavier ink treatment so the labels stay readable against the aged tabs.
- */
-.pn-root .pn-bookmarks .pn-bookmark,
-.museum-notebook-transition-bookmark {
-  font-family: var(--notebook-beauty, "Dancing Script", cursive);
-  font-weight: 700;
-  letter-spacing: 0;
-  text-transform: none;
-  color: #382817;
-  text-shadow:
-    0 1px 0 rgba(255, 247, 222, .42),
-    0 0 .45px rgba(49, 31, 15, .42);
-}
