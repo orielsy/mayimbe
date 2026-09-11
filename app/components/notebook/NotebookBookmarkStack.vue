@@ -80,7 +80,7 @@ const emit = defineEmits<{
   width: auto;
   min-width: 0;
   min-height: 2.25rem;
-  padding: 1.2rem .55rem .45rem;
+  padding: 1.6rem .55rem .45rem;
   border: 1px solid rgba(75, 52, 30, .48);
   border-radius: 0 0 .42rem .42rem;
   background:
