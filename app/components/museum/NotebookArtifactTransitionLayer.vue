@@ -136,7 +136,7 @@ const artifactStyle = computed(() => {
 .museum-notebook-transition-bookmarks {
   position: absolute;
   top: auto;
-  bottom: -.9rem;
+  bottom: -1.7rem;
   left: 2%;
   right: 2%;
   z-index: 0;
@@ -144,6 +144,7 @@ const artifactStyle = computed(() => {
   flex-direction: row;
   gap: .28rem;
   align-items: stretch;
+  justify-content: center;
   opacity: 0;
   transform: translateX(-.2rem);
   transition:
@@ -153,11 +154,11 @@ const artifactStyle = computed(() => {
 
 .museum-notebook-transition-bookmark {
   box-sizing: border-box;
-  flex: 1 1 0;
+  flex: 0 0 auto;
   width: auto;
   min-width: 0;
   min-height: 2.25rem;
-  padding: .72rem .3rem .45rem;
+  padding: 1.2rem .55rem .45rem;
   border: 1px solid rgba(75, 52, 30, .48);
   border-radius: 0 0 .42rem .42rem;
   background:
