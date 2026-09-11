@@ -8,16 +8,17 @@ const route = useRoute()
  * inside conventional site chrome. Archive/research routes and internal labs
  * remain ordinary scrollable web pages.
  */
+const museumPath = computed(() => route.path.replace(/\/+$/, '') || '/')
 const inMuseumExperience = computed(() => (
-  route.path === '/'
-  || route.path === '/en'
-  || route.path === '/notebook'
-  || route.path === '/en/notebook'
+  museumPath.value === '/'
+  || museumPath.value === '/en'
+  || museumPath.value === '/notebook'
+  || museumPath.value === '/en/notebook'
   || (
-    route.path.startsWith('/notebook/')
-    && route.path !== '/notebook/font-lab'
+    museumPath.value.startsWith('/notebook/')
+    && museumPath.value !== '/notebook/font-lab'
   )
-  || route.path.startsWith('/en/notebook/')
+  || museumPath.value.startsWith('/en/notebook/')
 ))
 </script>
 
