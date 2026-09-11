@@ -1,11 +1,8 @@
 <script setup lang="ts">
 import type { SourceEntity } from '~~/core/archive'
-import { resolvePreferredExperience } from '~~/core/museum'
 
 const route = useRoute()
 const archive = useArchive()
-const experienceIndex = useExperienceIndex()
-const { go } = useMuseumNavigator()
 const slug = String(route.params.slug)
 const story = archive.stories.find((candidate) => candidate.slug === slug && candidate.status === 'published')
 
@@ -13,17 +10,11 @@ if (!story) {
   throw createError({ statusCode: 404, statusMessage: 'Story not found' })
 }
 
-const experience = resolvePreferredExperience(experienceIndex, story.id)
+const museumPath = story.id === 'story:early-years' ? '/notebook/early-years' : null
 const paragraphs = story.body.split(/\n\s*\n/).map((paragraph) => paragraph.trim()).filter(Boolean)
 const sources = (story.sources ?? [])
   .map((id) => archive.byId[id])
   .filter((entity): entity is SourceEntity => entity?.type === 'source')
-
-async function openExperience() {
-  if (experience) {
-    await go(experience.destination)
-  }
-}
 
 useSeoMeta({
   title: story.title.en ?? story.title.es ?? story.slug,
@@ -54,9 +45,9 @@ useSeoMeta({
     </section>
 
     <div class="actions">
-      <button v-if="experience" class="button" type="button" @click="openExperience">
-        {{ experience.label?.en ?? 'Experience in the museum' }}
-      </button>
+      <NuxtLink v-if="museumPath" class="button" :to="museumPath">
+        Experience in the Cuaderno
+      </NuxtLink>
       <NuxtLink class="button" to="/archive">Back to archive</NuxtLink>
     </div>
   </article>
