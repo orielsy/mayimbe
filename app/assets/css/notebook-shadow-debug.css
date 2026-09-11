@@ -106,7 +106,7 @@
     width: auto !important;
     min-width: 0 !important;
     min-height: 2.25rem !important;
-    padding: 1rem .55rem .45rem !important;
+    padding: .8rem .55rem .45rem !important;
     border-right: 1px solid rgba(75, 52, 30, .48) !important;
     border-radius: 0 0 .42rem .42rem !important;
     font-size: 1.1rem !important;
@@ -116,6 +116,11 @@
     writing-mode: horizontal-tb !important;
     text-orientation: mixed !important;
     text-align: center !important;
+  }
+
+  .pn-bookmark > span {
+    display: inline-block;
+    transform: translateY(.35rem);
   }
 
   .pn-bookmark.is-active {
