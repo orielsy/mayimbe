@@ -1,10 +1,23 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import NotebookCoverFront from '~/components/notebook/NotebookCoverFront.vue'
 import '~/assets/css/notebook-page-turner.css'
 
 const notebookRef = ref<HTMLButtonElement | null>(null)
+const { locale } = useSiteLocale()
 const { pickup, deskHidden } = useNotebookArtifactTransition()
+
+const copy = computed(() => locale.value === 'es'
+  ? {
+      desk: 'Escritorio del museo',
+      openNotebook: 'Abrir el cuaderno El Mayimbe',
+      openExhibit: 'Abrir la exhibición del cuaderno',
+    }
+  : {
+      desk: 'Museum desk',
+      openNotebook: 'Open the El Mayimbe notebook',
+      openExhibit: 'Open notebook exhibit',
+    })
 
 function openNotebook() {
   if (!notebookRef.value) return
@@ -13,7 +26,7 @@ function openNotebook() {
 </script>
 
 <template>
-  <div class="museum-desk" aria-label="Museum desk">
+  <div class="museum-desk" :aria-label="copy.desk">
     <button
       ref="notebookRef"
       :class="[
@@ -25,13 +38,13 @@ function openNotebook() {
       data-testid="museum-notebook-artifact"
       data-notebook-transition-anchor="desk"
       data-notebook-transition-rotation="-3"
-      aria-label="Open the El Mayimbe notebook"
+      :aria-label="copy.openNotebook"
       @click="openNotebook"
     >
       <span class="museum-notebook-shell" aria-hidden="true">
         <NotebookCoverFront presentation="desk" />
       </span>
-      <span class="visually-hidden">Open notebook exhibit</span>
+      <span class="visually-hidden">{{ copy.openExhibit }}</span>
     </button>
   </div>
 </template>
