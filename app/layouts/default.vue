@@ -4,22 +4,10 @@ import NotebookArtifactTransitionLayer from '~/components/museum/NotebookArtifac
 const route = useRoute()
 
 /*
- * The desk and focused exhibits are the primary museum UI, so they never sit
- * inside conventional site chrome. Archive/research routes and internal labs
- * remain ordinary scrollable web pages.
+ * Museum pages opt into the immersive shell explicitly via page metadata.
+ * Archive/research routes and internal labs remain ordinary scrollable pages.
  */
-const museumPath = computed(() => route.path.replace(/\/+$/, '') || '/')
-const inMuseumExperience = computed(() => (
-  museumPath.value === '/'
-  || museumPath.value === '/en'
-  || museumPath.value === '/notebook'
-  || museumPath.value === '/en/notebook'
-  || (
-    museumPath.value.startsWith('/notebook/')
-    && museumPath.value !== '/notebook/font-lab'
-  )
-  || museumPath.value.startsWith('/en/notebook/')
-))
+const inMuseumExperience = computed(() => route.meta.museum === true)
 </script>
 
 <template>
