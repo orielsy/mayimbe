@@ -7,7 +7,7 @@ import NotebookPageContent from './NotebookPageContent.vue'
 import NotebookPageStack from './NotebookPageStack.vue'
 import NotebookSheet from './NotebookSheet.vue'
 import NotebookTurningSheet from './NotebookTurningSheet.vue'
-import { NOTEBOOK_PAGES } from './notebookPages'
+import { NOTEBOOK_PAGES, notebookPageCopy } from './notebookPages'
 import { notebookSheetWear } from './notebookWear'
 import { useNotebookAssetsReady } from './useNotebookAssetsReady'
 import { useNotebookMachine } from './useNotebookMachine'
@@ -31,6 +31,7 @@ const emit = defineEmits<{
   bookmark: [target: string]
 }>()
 
+const { locale } = useSiteLocale()
 const total = NOTEBOOK_PAGES.length
 const {
   state,
@@ -47,6 +48,36 @@ const {
 
 const reduced = usePrefersReducedMotion()
 const ready = useNotebookAssetsReady()
+
+const copy = computed(() => locale.value === 'es'
+  ? {
+      region: 'Cuaderno interactivo. Toca los lados de la página, desliza a la izquierda o derecha, usa los marcadores de sección o las flechas del teclado para pasar páginas.',
+      notebook: 'Cuaderno de bolsillo',
+      sections: 'Secciones del cuaderno',
+      preparing: 'Preparando el cuaderno…',
+      closed: 'Cuaderno cerrado',
+      dedication: 'Interior de la contraportada — una dedicatoria',
+      open: 'Abrir el cuaderno',
+      close: 'Cerrar el cuaderno',
+      previous: 'Página anterior',
+      next: 'Página siguiente',
+      end: 'Fin del cuaderno',
+      page: (n: number, pageTotal: number, title: string) => `Página ${n} de ${pageTotal}: ${title}`,
+    }
+  : {
+      region: 'Interactive pocket notebook. Tap the page sides, swipe left or right, use the section bookmarks, or use the arrow keys to turn pages.',
+      notebook: 'Pocket notebook',
+      sections: 'Notebook sections',
+      preparing: 'Preparing the notebook…',
+      closed: 'Notebook closed',
+      dedication: 'Inside the back cover — a dedication',
+      open: 'Open the notebook',
+      close: 'Close the notebook',
+      previous: 'Previous page',
+      next: 'Next page',
+      end: 'The end of the notebook',
+      page: (n: number, pageTotal: number, title: string) => `Page ${n} of ${pageTotal}: ${title}`,
+    })
 
 const closing = computed(() => state.value.turn?.kind === 'close')
 const closed = computed(() =>
@@ -145,10 +176,14 @@ async function handleOutsideClick(): Promise<OutsideNotebookAction> {
 defineExpose({ closeForDesk, handleOutsideClick })
 
 const status = computed(() => {
-  if (!ready.value) return 'Preparing the notebook…'
-  if (closed.value) return 'Notebook closed'
-  if (dedicationRight.value) return 'Inside the back cover — a dedication'
-  return `Page ${page.value.n} of ${total}: ${page.value.title}`
+  if (!ready.value) return copy.value.preparing
+  if (closed.value) return copy.value.closed
+  if (dedicationRight.value) return copy.value.dedication
+  return copy.value.page(
+    page.value.n,
+    total,
+    notebookPageCopy(page.value, locale.value).title,
+  )
 })
 
 const rootPage = computed(() =>
@@ -169,13 +204,13 @@ const rootPage = computed(() =>
     :data-nb-ready="ready ? 'true' : 'false'"
     tabindex="0"
     role="region"
-    aria-label="Interactive pocket notebook. Tap the page sides, swipe left or right, use the section bookmarks, or use the arrow keys to turn pages."
+    :aria-label="copy.region"
     @keydown="onKeyDown"
   >
     <div
       class="pn-stage"
       role="group"
-      aria-label="Pocket notebook"
+      :aria-label="copy.notebook"
       @touchstart="onTouchStart"
       @touchend="onTouchEnd"
       @touchcancel="onTouchCancel"
@@ -224,7 +259,7 @@ const rootPage = computed(() =>
           <nav
             v-if="props.bookmarks?.length"
             class="pn-bookmarks"
-            aria-label="Notebook sections"
+            :aria-label="copy.sections"
           >
             <button
               v-for="bookmark in props.bookmarks"
@@ -293,10 +328,10 @@ const rootPage = computed(() =>
             type="button"
             class="pn-hit"
             data-testid="pn-next"
-            aria-label="Open the notebook"
+            :aria-label="copy.open"
             @click="open"
           >
-            <span class="visually-hidden">Open the notebook</span>
+            <span class="visually-hidden">{{ copy.open }}</span>
           </button>
 
           <template v-if="state.status === 'open'">
@@ -305,11 +340,11 @@ const rootPage = computed(() =>
               class="pn-side pn-side--prev"
               data-testid="pn-prev"
               :disabled="!ready || !canPrev || busy"
-              :aria-label="state.page === 0 ? 'Close the notebook' : 'Previous page'"
+              :aria-label="state.page === 0 ? copy.close : copy.previous"
               @click="prev"
             >
               <span class="visually-hidden">
-                {{ state.page === 0 ? 'Close the notebook' : 'Previous page' }}
+                {{ state.page === 0 ? copy.close : copy.previous }}
               </span>
             </button>
 
@@ -318,11 +353,11 @@ const rootPage = computed(() =>
               class="pn-side pn-side--next"
               data-testid="pn-next"
               :disabled="!ready || !canNext || busy"
-              :aria-label="atEnd ? 'The end of the notebook' : 'Next page'"
+              :aria-label="atEnd ? copy.end : copy.next"
               @click="next"
             >
               <span class="visually-hidden">
-                {{ atEnd ? 'The end of the notebook' : 'Next page' }}
+                {{ atEnd ? copy.end : copy.next }}
               </span>
             </button>
           </template>
