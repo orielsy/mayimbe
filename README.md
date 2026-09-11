@@ -6,33 +6,33 @@ Mayimbe is the production platform behind AntonySantos.com: an interactive digit
 
 The primary interface is the **desk and the objects on it**. The notebook is the first real object; future objects may include a listening device/radio, photo album, records, and other memorabilia.
 
-A conventional web application exists underneath that experience and owns the structured archive, semantic routes, sources, search-friendly pages, and accessibility fallback. Both interfaces consume the same content truth.
+A conventional archive exists alongside that experience and owns structured research pages, provenance, SEO-friendly content, and fallback navigation. Both presentations should consume the same content truth.
 
 ```text
-Structured archive/content
+Structured content
         |\
-        | \__ conventional UI (/archive, /people, /stories, ...)
+        | \__ conventional archive (/archive/...)
         |
         \____ desk experience -> notebook / future objects
 ```
 
 The desk is not a decorative homepage around a traditional site. It is the primary museum shell.
 
-## Current direction
+## Current architecture
 
-The previous WebGL notebook renderer has been retired from the active development line. Its history remains available in Git branches. The next notebook implementation will be extracted from the approved Lovable **Page Turner Lab** into `app/components/notebook/` and will remain independent from Lovable's application shell/router.
-
-The current repository preparation intentionally keeps:
+The current Vue/Nuxt notebook is the production foundation. The active application intentionally keeps:
 
 - Nuxt 4 application shell
-- framework-independent archive and museum contracts
-- YAML archive content pipeline and generated indexes
-- semantic museum deep links
-- conventional archive/person/story routes
-- persistent museum navigation state
+- explicit Spanish and English museum routes
+- route-driven desk/notebook state
+- the notebook physical renderer and state machine
+- deterministic notebook wear/material logic
+- structured archive content with provenance
 - Playwright/Vitest infrastructure
 
-See `docs/product-direction.md` and `docs/notebook-integration.md` for the active architecture decisions.
+The active runtime intentionally does **not** keep a generic museum registry, exhibit lifecycle system, parallel museum navigation state, or generated experience-index layer.
+
+See `docs/product-direction.md` and `docs/content-model.md` for the current architecture and content decisions.
 
 ## Requirements
 
