@@ -74,6 +74,7 @@ function prefersReducedMotion() {
 }
 
 export function useNotebookArtifactTransition() {
+  const { pathFor } = useSiteLocale()
   const state = useState<NotebookArtifactTransitionState>(
     'museum:notebook-artifact-transition',
     idleState,
@@ -91,7 +92,7 @@ export function useNotebookArtifactTransition() {
     if (import.meta.server || active.value) return
 
     if (prefersReducedMotion()) {
-      await navigateTo('/notebook')
+      await navigateTo(pathFor('/notebook'))
       return
     }
 
@@ -107,7 +108,7 @@ export function useNotebookArtifactTransition() {
       state.value = { ...state.value, phase: 'lift' }
       await wait(PICKUP_LIFT_MS)
 
-      await navigateTo('/notebook')
+      await navigateTo(pathFor('/notebook'))
       const target = await waitForAnchor('focused')
       if (!target) {
         reset()
@@ -134,7 +135,7 @@ export function useNotebookArtifactTransition() {
     if (import.meta.server || active.value) return
 
     if (prefersReducedMotion()) {
-      await navigateTo('/')
+      await navigateTo(pathFor('/'))
       return
     }
 
@@ -142,7 +143,7 @@ export function useNotebookArtifactTransition() {
       ?? document.querySelector<HTMLElement>('[data-notebook-transition-anchor="focused"]')
 
     if (!origin) {
-      await navigateTo('/')
+      await navigateTo(pathFor('/'))
       return
     }
 
@@ -158,7 +159,7 @@ export function useNotebookArtifactTransition() {
       state.value = { ...state.value, phase: 'lift' }
       await wait(PICKUP_LIFT_MS)
 
-      await navigateTo('/')
+      await navigateTo(pathFor('/'))
       const target = await waitForAnchor('desk')
       if (!target) {
         reset()
