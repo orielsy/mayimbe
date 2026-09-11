@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-test('desk is the primary shell, notebook routes are top-level, and archive stays conventional', async ({ page }) => {
+test('desk is the primary shell, localized notebook routes stay immersive, and archive stays conventional', async ({ page }) => {
   const runtimeErrors: string[] = []
   page.on('pageerror', error => runtimeErrors.push(`pageerror: ${error.message}`))
   page.on('console', message => {
@@ -18,11 +18,25 @@ test('desk is the primary shell, notebook routes are top-level, and archive stay
   await page.getByRole('button', { name: /Cuaderno/i }).click()
   await expect(page).toHaveURL(/\/notebook\/early-years$/)
   await expect(page.getByTestId('notebook-integration-root')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Volver al escritorio del museo' })).toBeVisible()
+
+  await page.getByRole('button', { name: 'Volver al escritorio del museo' }).click()
+  await expect(page).toHaveURL(/\/$/)
+  await expect(page.getByRole('button', { name: /Cuaderno/i })).toBeVisible()
+
+  await page.goto('/en')
+  await expect(page.locator('.site-header')).toHaveCount(0)
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+  await expect(page.getByRole('button', { name: 'Open the El Mayimbe notebook' })).toBeVisible()
+
+  await page.getByRole('button', { name: 'Open the El Mayimbe notebook' }).click()
+  await expect(page).toHaveURL(/\/en\/notebook\/early-years$/)
+  await expect(page.getByTestId('notebook-integration-root')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Return to museum desk' })).toBeVisible()
 
   await page.getByRole('button', { name: 'Return to museum desk' }).click()
-  await expect(page).toHaveURL(/\/$/)
-  await expect(page.getByRole('button', { name: /Cuaderno/i })).toBeVisible()
+  await expect(page).toHaveURL(/\/en$/)
+  await expect(page.locator('.site-header')).toHaveCount(0)
 
   await page.goto('/archive')
   await expect(page.locator('.site-header')).toBeVisible()
