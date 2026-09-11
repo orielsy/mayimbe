@@ -1,16 +1,12 @@
 <script setup lang="ts">
 import MuseumShell from '~/components/museum/MuseumShell.vue'
 
-const { syncDestination } = useMuseumNavigator()
 const { preferredLocale } = useSiteLocale()
 
 onMounted(() => {
   if (preferredLocale.value === 'en') {
     void navigateTo('/en')
-    return
   }
-
-  void syncDestination({ kind: 'desk' })
 })
 
 useSeoMeta({

@@ -7,9 +7,8 @@ interface NotebookExhibitHandle {
   closeForDesk: () => Promise<void>
 }
 
-const { state } = useMuseum()
-const { go } = useMuseumNavigator()
 const { locale, switchLocale } = useSiteLocale()
+const { isNotebook, notebookTarget, goToDesk } = useMuseumRoute()
 const { putDown } = useNotebookArtifactTransition()
 
 const notebookExhibit = ref<NotebookExhibitHandle | null>(null)
@@ -21,38 +20,26 @@ const copy = computed(() => locale.value === 'es'
       returnDesk: 'Volver al escritorio del museo',
       desk: 'Escritorio',
       language: 'Idioma',
-      unavailableEyebrow: 'Exhibición no disponible',
-      unavailable: 'Este objeto todavía no forma parte de la versión activa del museo.',
     }
   : {
       stage: 'Mayimbe museum shell',
       returnDesk: 'Return to museum desk',
       desk: 'Desk',
       language: 'Language',
-      unavailableEyebrow: 'Unavailable exhibit',
-      unavailable: 'This object is not part of the active museum build yet.',
     })
-
-const activeTarget = computed(() => (
-  state.value.destination.kind === 'exhibit'
-    ? state.value.destination.target
-    : undefined
-))
-
-const isFocused = computed(() => Boolean(state.value.activeExhibit))
 
 async function returnToDesk() {
   if (returningToDesk.value) return
   returningToDesk.value = true
 
   try {
-    if (state.value.activeExhibit === 'notebook') {
+    if (isNotebook.value) {
       await notebookExhibit.value?.closeForDesk()
       await putDown()
       return
     }
 
-    await go({ kind: 'desk' })
+    await goToDesk()
   } finally {
     returningToDesk.value = false
   }
@@ -62,7 +49,7 @@ async function returnToDesk() {
 <template>
   <section
     class="museum-stage"
-    :class="{ 'museum-stage--focused': isFocused }"
+    :class="{ 'museum-stage--focused': isNotebook }"
     :aria-label="copy.stage"
   >
     <div class="museum-language" role="group" :aria-label="copy.language">
@@ -85,10 +72,10 @@ async function returnToDesk() {
       </button>
     </div>
 
-    <MuseumDesk v-if="!isFocused" />
+    <MuseumDesk v-if="!isNotebook" />
 
     <button
-      v-if="isFocused"
+      v-if="isNotebook"
       type="button"
       class="museum-return"
       :aria-label="copy.returnDesk"
@@ -100,16 +87,11 @@ async function returnToDesk() {
     </button>
 
     <NotebookExhibit
-      v-if="state.activeExhibit === 'notebook'"
+      v-if="isNotebook"
       ref="notebookExhibit"
-      :target="activeTarget"
+      :target="notebookTarget"
       @request-desk="returnToDesk"
     />
-
-    <div v-else-if="isFocused" class="exhibit-placeholder">
-      <p class="eyebrow">{{ copy.unavailableEyebrow }}</p>
-      <h2>{{ copy.unavailable }}</h2>
-    </div>
   </section>
 </template>
 

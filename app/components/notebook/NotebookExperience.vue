@@ -26,8 +26,7 @@ const emit = defineEmits<{
   requestDesk: []
 }>()
 
-const { locale } = useSiteLocale()
-const { go } = useMuseumNavigator()
+const { locale, pathFor } = useSiteLocale()
 const { focusedHidden } = useNotebookArtifactTransition()
 
 interface PocketNotebookHandle {
@@ -54,7 +53,7 @@ const experienceLabel = computed(() => (
 ))
 
 function selectBookmark(target: string) {
-  void go({ kind: 'exhibit', exhibit: 'notebook', target })
+  void navigateTo(pathFor(`/notebook/${target}`))
 }
 
 async function closeForDesk() {
