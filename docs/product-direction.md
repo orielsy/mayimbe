@@ -4,61 +4,65 @@
 
 ## Core thesis
 
-Mayimbe is not a conventional website that contains a notebook experience.
+Mayimbe is an interactive digital museum and cultural archive for Antony Santos.
 
-The **desk is the primary website interface**. The notebook is the first real object on that desk. Future objects may include a radio/listening device, photo album, records, instruments, and other memorabilia.
+The **desk is the primary website interface**. The notebook is the first real object on that desk. Future objects may include a radio/listening device, photo album, records, instruments, and other memorabilia, but they should only enter the runtime when they are genuinely implemented.
 
-A conventional web application remains available underneath the desk experience. It owns structured archive data, source-oriented pages, semantic routes, search/SEO surfaces, and accessibility-friendly navigation.
-
-Both presentations consume the same content truth.
+A conventional archive remains available alongside the immersive museum. It owns source-oriented pages, structured research surfaces, SEO-friendly content, and accessible conventional navigation. Both presentations should consume the same content truth.
 
 ```text
-                    Structured archive
+                    Structured content
                            |
              +-------------+-------------+
              |                           |
              v                           v
-     Desk/object experience       Conventional UI
-        notebook first          archive / people / stories
+     Desk/object experience       Conventional archive
+        notebook first          people / stories / sources
 ```
 
 ## Interface hierarchy
 
 1. **Desk environment** — primary entry point and navigation shell.
-2. **Physical object experiences** — notebook first; other objects only when genuinely implemented.
-3. **Traditional archive UI** — direct research, sources, search-friendly pages, and fallback navigation.
-4. **Content/domain layer** — shared structured truth powering both interfaces.
+2. **Physical object experiences** — notebook first.
+3. **Traditional archive UI** — research, provenance, and fallback navigation.
+4. **Content/domain layer** — shared structured truth powering both presentations.
 
-The traditional UI must not visually frame or compete with the desk. It is invoked through its own routes and may later be exposed from the desk through subtle controls.
+The traditional archive must not visually frame or compete with the desk.
 
-## Routing
+## Current routing
 
-- `/` is the canonical desk.
-- `/museum` remains a semantic alias for the desk and supports object deep links.
-- `/museum/notebook/...` addresses notebook state semantically.
-- `/archive`, `/people/...`, `/stories/...` remain conventional structured pages.
+Spanish is the default site locale and has no URL prefix.
 
-A shared URL should be able to open the museum directly into an object's relevant state without requiring the visitor to traverse a traditional website first.
+- `/` — museum desk
+- `/notebook` — notebook cover
+- `/notebook/<target>` — notebook deep link
+- `/en` — English museum desk
+- `/en/notebook` — English notebook cover
+- `/en/notebook/<target>` — English notebook deep link
+- `/archive` and `/archive/...` — conventional archive surfaces
 
-## Repository boundaries
+Do not add speculative museum aliases or generic exhibit routes. Add a route when a real surface exists.
+
+## Runtime boundaries
 
 ```text
-core/                         framework-independent museum/archive contracts
-content/                      authored archive truth
-scripts/ + generated/         validation/index pipeline
-app/components/museum/        desk and object orchestration
-app/components/notebook/      notebook renderer and notebook-specific UI
-app/pages/                    route surfaces
+core/archive/                  archive domain types
+core/museum/destination.ts     small semantic destination helper
+content/                       authored archive truth
+scripts/ + generated/          archive validation/build pipeline
+app/components/museum/         desk and object orchestration
+app/components/notebook/       notebook renderer and notebook-specific UI
+app/pages/                     explicit route surfaces
 ```
 
-Renderer experiments and superseded implementations should not remain in the active runtime tree merely as reference material. Git history and dedicated historical branches provide that reference.
+The route is the source of truth for whether the desk or notebook is active. There is no generic museum registry, exhibit lifecycle, or parallel navigation state.
 
-## Current implementation decision
+## Notebook decision
 
-Lovable's **Page Turner Lab** won the notebook implementation comparison and becomes the notebook foundation.
+The current Vue/Nuxt notebook is the production foundation. Its physical renderer, state machine, page stack, deterministic wear/material system, and transition behavior have earned their complexity and should not be rewritten casually.
 
-Mayimbe will extract that notebook implementation into its Vue/Nuxt architecture rather than embedding/promoting the Lovable application itself. The GitHub Stage 2 branch remains a behavioral/testing reference, especially for transition locking, resize continuity, reduced motion, transient-layer cleanup, and complete forward/backward traversal.
+Renderer experiments and superseded implementations belong in Git history or dedicated historical branches, not the active runtime tree.
 
-## Stretch goal
+## Near-term focus
 
-Deformable/curling sheet geometry is explicitly a stretch goal. The canonical notebook does not need to solve physical page deformation before the rest of the museum architecture and content are mature.
+Infrastructure work should stop once it supports real museum content. New effort should favor authored content, provenance, localization, and additional desk objects only when those experiences are ready to be built.
