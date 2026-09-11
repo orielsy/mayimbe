@@ -10,11 +10,14 @@ const route = useRoute()
  */
 const inMuseumExperience = computed(() => (
   route.path === '/'
+  || route.path === '/en'
   || route.path === '/notebook'
+  || route.path === '/en/notebook'
   || (
     route.path.startsWith('/notebook/')
     && route.path !== '/notebook/font-lab'
   )
+  || route.path.startsWith('/en/notebook/')
 ))
 </script>
 
