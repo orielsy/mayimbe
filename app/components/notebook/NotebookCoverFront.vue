@@ -60,6 +60,32 @@ withDefaults(defineProps<{
   transition: filter 540ms cubic-bezier(.2, .72, .2, 1);
 }
 
+/*
+ * Preserve the distressed per-character foil pattern, but lift its opacity
+ * range so worn letters remain legible against the brick cloth. The nth-child
+ * pattern and vertical wear shift stay unchanged; only the visibility floor
+ * and ceiling are raised.
+ */
+.pn-cover--front :deep(.pn-foil-letters span) {
+  opacity: .62;
+}
+
+.pn-cover--front :deep(.pn-foil-letters span:nth-child(3n + 1)) {
+  opacity: .46;
+}
+
+.pn-cover--front :deep(.pn-foil-letters span:nth-child(4n + 2)) {
+  opacity: .72;
+}
+
+.pn-cover--front :deep(.pn-foil-letters span:nth-child(5n)) {
+  opacity: .54;
+}
+
+.pn-cover--front :deep(.pn-foil-letters span:nth-child(7n + 3)) {
+  opacity: .4;
+}
+
 .pn-foil-small {
   font-size: 4.5cqw;
   letter-spacing: .2em;
