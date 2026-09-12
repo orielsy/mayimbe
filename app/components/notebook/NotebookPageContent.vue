@@ -25,16 +25,11 @@ const pageLabel = computed(() => (
     <h2 class="pn-copy__title">{{ copy.title }}</h2>
     <div aria-hidden="true" class="pn-copy__rule" />
 
-    <figure v-if="page.kind === 'photo'" class="pn-copy__figure">
-      <img
-        src="/notebook-assets/photo-band.jpg"
-        width="768"
-        height="576"
-        loading="lazy"
-        :alt="copy.imageAlt ?? ''"
-        class="pn-copy__photo"
-      >
-      <figcaption class="pn-copy__caption">{{ copy.caption }}</figcaption>
+    <figure v-if="copy.mediaPlaceholder" class="pn-copy__figure pn-copy__placeholder-wrap">
+      <div class="pn-copy__placeholder" aria-hidden="true">
+        <span>{{ copy.mediaPlaceholder }}</span>
+      </div>
+      <figcaption v-if="copy.caption" class="pn-copy__caption">{{ copy.caption }}</figcaption>
     </figure>
 
     <p class="pn-copy__body">{{ copy.body }}</p>
@@ -59,5 +54,24 @@ const pageLabel = computed(() => (
 .pn-hand {
   font-family: "Dancing Script", cursive;
   font-weight: 500;
+}
+
+.pn-copy__placeholder {
+  min-height: 24cqw;
+  display: grid;
+  place-items: center;
+  padding: 6%;
+  border: 1px dashed rgba(80, 61, 43, 0.45);
+  border-radius: 2px;
+  background:
+    linear-gradient(135deg, rgba(79, 58, 37, 0.035) 25%, transparent 25%) 0 0 / 10cqw 10cqw,
+    linear-gradient(315deg, rgba(79, 58, 37, 0.035) 25%, transparent 25%) 0 0 / 10cqw 10cqw;
+  color: rgba(61, 45, 31, 0.58);
+  text-align: center;
+  font-family: "Caveat", cursive;
+  font-size: 3.4cqw;
+  line-height: 1.25;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 </style>
