@@ -9,13 +9,18 @@ export interface NotebookPageCopy {
   note?: string
   caption?: string
   imageAlt?: string
+  mediaPlaceholder?: string
+}
+
+type LocalizedNotebookPageCopy = Partial<Record<SiteLocale, NotebookPageCopy>> & {
+  es: NotebookPageCopy
 }
 
 export interface NotebookPage extends NotebookPageCopy {
   id: string
   n: number
   kind: NotebookPageKind
-  content: Record<SiteLocale, NotebookPageCopy>
+  content: LocalizedNotebookPageCopy
 }
 
 interface NotebookPageMeta {
@@ -26,7 +31,7 @@ interface NotebookPageMeta {
 
 function notebookPage(
   meta: NotebookPageMeta,
-  content: Record<SiteLocale, NotebookPageCopy>,
+  content: LocalizedNotebookPageCopy,
 ): NotebookPage {
   return {
     ...meta,
@@ -40,141 +45,127 @@ export function notebookPageCopy(page: NotebookPage, locale: SiteLocale): Notebo
 }
 
 /**
- * Prototype Page Turner content.
+ * Origins notebook narrative.
  *
- * Spanish is the canonical authored version. Physical page identity, numbering
- * and media stay language-neutral while each locale supplies its own editorial
- * copy. The narrative itself will be replaced as museum research and writing
- * are finalized.
+ * Spanish is canonical. English intentionally falls back to Spanish until the
+ * separate English adaptation is authored. Physical page identity, numbering,
+ * media placeholders and wear remain language-neutral.
  */
 export const NOTEBOOK_PAGES: NotebookPage[] = [
   notebookPage(
-    { id: 'mayimbe', n: 1, kind: 'sketch' },
+    { id: 'el-campo', n: 1, kind: 'photo' },
     {
       es: {
-        eyebrow: 'Clavellinas, 1967',
-        title: 'El Mayimbe',
-        body: 'Antony Santos — Las Matas de Santa Cruz, Monte Cristi. Un cuaderno guardado como se guardó la bachata en el campo: a mano, fuera de orden y más fuerte de lo que parece.',
-        note: 'empieza aquí',
-      },
-      en: {
-        eyebrow: 'Clavellinas, 1967',
-        title: 'El Mayimbe',
-        body: 'Antony Santos — Las Matas de Santa Cruz, Monte Cristi. A notebook kept the way bachata was kept in the campo: by hand, out of order, and louder than it looks.',
-        note: 'start here',
+        eyebrow: 'Clavellina · La Línea',
+        title: 'El campo',
+        body: 'Anthony Santos nació en una familia campesina del noroeste dominicano, en una vida amarrada al trabajo, a la familia y al ritmo del campo. Años después, cuando ya era famoso, todavía hablaba de aquel lugar como “mi campo”. Recordaba una niñez sencilla, sin lujos, pero también bonita: amigos, juegos, familia y una tranquilidad que nunca dejó de extrañar.',
+        mediaPlaceholder: 'IMAGEN · Clavellina / paisaje rural del noroeste',
+        caption: 'Pendiente: imagen de época o paisaje con procedencia verificable.',
       },
     },
   ),
   notebookPage(
-    { id: 'guira', n: 2, kind: 'text' },
+    { id: 'cuando-no-habia', n: 2, kind: 'sketch' },
     {
       es: {
-        eyebrow: 'Antes del nombre',
-        title: 'Primero, la güira',
-        body: 'Antes de que su propio nombre significara algo, él era el ritmo detrás del nombre de otro. Las noches en la carretera le enseñaron la forma de trabajo de una banda de bachata: guitarra, bajo, bongó, güira y quien todavía pudiera mantenerse de pie a las cuatro de la mañana.',
-      },
-      en: {
-        eyebrow: 'Before the name',
-        title: 'Güira first',
-        body: "Before his own name meant anything, he was the rhythm behind someone else's. Nights on the road taught him the working shape of a bachata band: guitar, bass, bongó, güira, and whoever could still stand at four in the morning.",
+        eyebrow: 'Infancia',
+        title: 'Cuando no había',
+        body: 'La belleza del campo no borraba la pobreza. Anthony recordó días en que en la casa no había qué comer y el sacrificio de un padre que trabajaba para sostener a los suyos. Pero nunca contó su infancia solamente desde la carencia. También la recordó feliz. Escasez, amor, familia y música podían ocupar la misma página.',
+        mediaPlaceholder: 'ARTE · casa rural / familia / memoria de infancia',
       },
     },
   ),
   notebookPage(
-    { id: 'voypalla', n: 3, kind: 'clipping' },
+    { id: 'hacer-musica', n: 3, kind: 'sketch' },
     {
       es: {
-        eyebrow: '1991',
-        title: "Voy Pa'llá",
-        body: 'El disco que dejó de ser un disco local. Amargue con una sonrisa metida dentro: el desamor seguía ahí, pero el tempo discutía con él. En los colmados sonaba hasta que los altavoces no podían más.',
-        note: 'verificar fecha de prensado',
-      },
-      en: {
-        eyebrow: '1991',
-        title: "Voy Pa'llá",
-        body: 'The record that stopped being a local record. Amargue with a grin in it — the heartbreak was still there, but the tempo argued with it. Colmados played it until the speakers gave out.',
-        note: 'verify pressing date',
+        eyebrow: 'Antes de la guitarra',
+        title: 'Hacer música con lo que había',
+        body: 'Antes de tener instrumentos de verdad, ya buscaba cómo hacer música. De niño usaba latas como tamboras, fabricaba guayos para hacer de güira y construía guitarras con madera e hilos de plástico. No había instrumentos. Los inventaba. Mucho antes de “El Mayimbe”, ya estaba allí el niño que necesitaba hacer música aunque todavía no tuviera con qué.',
+        mediaPlaceholder: 'ARTE · lata, guayo y guitarra casera de madera e hilo',
+        note: 'hacer música con la escasez',
       },
     },
   ),
   notebookPage(
-    { id: 'patio', n: 4, kind: 'photo' },
+    { id: 'trabajo-y-guitarra', n: 4, kind: 'photo' },
     {
       es: {
-        eyebrow: 'Fotografía de campo',
-        title: 'Patio, cuatro de la mañana',
-        body: 'El mismo repertorio podía sonar en un patio del campo una semana antes de una fecha en una arena, y a nadie en ninguno de los dos públicos le parecía extraño.',
-        caption: 'Copia sin atribuir, costa norte, principios de los noventa. Crédito pendiente.',
-        imageAlt: 'Dos guitarristas y un güirero en un pequeño escenario al aire libre de noche, en una fotografía descolorida de los años noventa.',
-      },
-      en: {
-        eyebrow: 'Field photograph',
-        title: 'Patio, four in the morning',
-        body: 'The same set played in a campo patio the week before an arena date, and nobody in either crowd thought that was strange.',
-        caption: 'Unattributed print, north coast, early nineties. Credit outstanding.',
-        imageAlt: 'Two guitarists and a güira player on a small outdoor patio stage at night, faded 1990s film print.',
+        eyebrow: 'Trabajo',
+        title: 'El trabajo y la guitarra',
+        body: 'Como muchos niños del campo, Anthony ayudaba a su padre. Él mismo contó que trabajaba con él en el campo; gente de la zona lo recuerda cuidando arroz para espantar las aves. Su padre tapaba gomas. Y alrededor de aquella gomera quedó una constante: cuando había trabajo que hacer, Anthony encontraba la manera de volver a la guitarra. No rechazaba su tierra. Parecía resistirse a que aquel trabajo fuera su destino.',
+        mediaPlaceholder: 'IMAGEN / ARTE · arrozal, gomera y guitarra',
+        caption: 'Pendiente: fotografía local de época o ilustración documental.',
       },
     },
   ),
   notebookPage(
-    { id: 'requinto', n: 5, kind: 'sketch' },
+    { id: 'aprender-mirando', n: 5, kind: 'photo' },
     {
       es: {
-        eyebrow: 'Nota de escucha',
-        title: 'Requinto',
-        body: 'La línea principal responde a la frase vocal un compás más tarde, como alguien terminando tu oración mal a propósito. Escucha el doblez al final de la corrida: esa vacilación es la firma, no la velocidad.',
-      },
-      en: {
-        eyebrow: 'Listening note',
-        title: 'Requinto',
-        body: 'The lead line answers the vocal phrase one bar late, like someone finishing your sentence badly on purpose. Listen for the bend at the end of the run — that hesitation is the signature, not the speed.',
+        eyebrow: 'Aprendizaje',
+        title: 'Aprender mirando',
+        body: 'La bachata todavía vivía en los márgenes. Los músicos se cruzaban, se enseñaban cosas, cambiaban de grupo y recorrían pueblos buscando dónde tocar. Anthony entró desde abajo: primero en la güira con Luis Vargas. Miraba las guitarras, practicaba cuando podía y buscó a Antonio Carrasco para aprender. Con el tiempo pasó de la güira a la segunda guitarra. Ya no estaba mirando desde un lado. Estaba dentro.',
+        mediaPlaceholder: 'IMAGEN · Anthony con Luis Vargas / agrupación temprana',
+        caption: 'Pendiente: seleccionar y acreditar fotografía de época.',
       },
     },
   ),
   notebookPage(
-    { id: 'amargue', n: 6, kind: 'text' },
+    { id: 'algo-suyo', n: 6, kind: 'sketch' },
     {
       es: {
-        eyebrow: 'Definición',
-        title: 'Amargue',
-        body: 'No es tristeza exactamente: es una dulzura dentro de la tristeza. La palabra se resiste a la traducción de la misma manera que la música se resiste al tempo; ambas insisten en su propio tiempo.',
-      },
-      en: {
-        eyebrow: 'Definition',
-        title: 'Amargue',
-        body: 'Not sadness exactly — a sweetness about the sadness. The word resists translation the way the music resists tempo: both insist on their own time.',
+        eyebrow: 'Primer grupo',
+        title: 'Algo suyo',
+        body: 'Mientras tocaba con otros, Anthony comenzó a preparar su propio grupo. No había infraestructura esperando por él: había que formar músicos, conseguir instrumentos, ensayar, buscar bailes y moverse como se pudiera. Motocicletas. Carros pequeños cargados de gente y equipos. Instrumentos prestados. Caminos difíciles. Presentaciones por poco dinero. Y ensayo, una y otra vez, hasta encontrar un sonido que sintiera suyo.',
+        mediaPlaceholder: 'ARTE · músicos, motocicleta y equipo en el camino',
       },
     },
   ),
   notebookPage(
-    { id: 'cassette', n: 7, kind: 'clipping' },
+    { id: 'la-musica-viaja', n: 7, kind: 'clipping' },
     {
       es: {
         eyebrow: 'Circulación',
-        title: 'Cinco minutos',
-        body: 'Un sencillo que viajó en casete antes de viajar por la radio. De mano en mano, de colmadón en colmadón, la copia se degradaba y la canción no. Para la tercera generación de duplicados, el siseo de la cinta ya parecía parte del arreglo.',
-        note: 'el hiss también cuenta la historia',
-      },
-      en: {
-        eyebrow: 'Circulation',
-        title: 'Cinco minutos',
-        body: 'A single that travelled on cassette before it travelled on radio. Hand to hand, colmadón to colmadón, the copy degraded and the song did not. The tape hiss became part of the arrangement by the third generation of dubs.',
-        note: 'tape hiss = arrangement',
+        title: 'La música empieza a viajar',
+        body: 'Antes de que Anthony pudiera recorrer el país, empezaron a hacerlo sus grabaciones. Se hicieron copias en cassette. Las cintas pasaban de mano en mano, llegaban a negocios y ayudaban a conseguir nuevos bailes. Anthony mismo contó que repartía su música para que la gente comenzara a conocerlo. No había una gran campaña. Había insistencia: una cinta, un negocio, un baile, otro pueblo.',
+        mediaPlaceholder: 'ARTE / ARTEFACTO · cassette temprano / cinta circulando en un negocio',
+        note: 'la canción viajó primero',
       },
     },
   ),
   notebookPage(
-    { id: 'notes', n: 8, kind: 'text' },
+    { id: 'voy-palla', n: 8, kind: 'clipping' },
     {
       es: {
-        eyebrow: 'Archivo de trabajo',
-        title: 'Notas al archivo',
-        body: 'Preguntas abiertas para la construcción del museo: fechas de discografía por verificar contra prensados, audio de entrevistas por licenciar y créditos fotográficos todavía pendientes. Esta página existe para que la última hoja sea una página real y no una hoja vacía.',
+        eyebrow: 'Principios de los noventa',
+        title: "Voy Pa’llá",
+        body: 'Entre aquellas canciones estaba “Voy Pa’llá”. La canción no se quedó en el circuito donde había nacido. Comenzó a sonar y siguió creciendo. Una bachata que todavía encontraba puertas cerradas en la radio y en la industria empezó a cruzarlas. Anthony la recordaría de una manera sencilla: fue la canción que lo levantó. La que lo sacó de la pobreza.',
+        mediaPlaceholder: 'ARTEFACTO / ARTE · Voy Pa’llá / primera producción',
+        note: 'el momento en que cambió la escala',
       },
-      en: {
-        eyebrow: 'Working file',
-        title: 'Notes to file',
-        body: 'Open questions for the museum build: discography dates to verify against pressings, interview audio to license, photo credits still outstanding. This page exists so the last sheet is a real page and not a blank.',
+    },
+  ),
+  notebookPage(
+    { id: 'television', n: 9, kind: 'photo' },
+    {
+      es: {
+        eyebrow: '1992',
+        title: 'De los caminos a la televisión',
+        body: 'Para 1992, el hombre que poco antes recorría pueblos tratando de conseguir bailes ya aparecía en la televisión nacional. En El Show del Mediodía, Anthony Santos interpretó “Voy Pa’llá”. Del campo, los instrumentos improvisados, la güira, las motocicletas, los bailes pequeños y las cintas pasadas de negocio en negocio, a una pantalla vista en todo el país.',
+        mediaPlaceholder: 'IMAGEN · El Show del Mediodía, 1992',
+        caption: 'Pendiente: frame de la presentación y crédito de la fuente.',
+      },
+    },
+  ),
+  notebookPage(
+    { id: 'el-comienzo', n: 10, kind: 'text' },
+    {
+      es: {
+        eyebrow: 'El comienzo',
+        title: 'Voy Pa’llá',
+        body: 'No fue el final de la historia. Fue el momento en que la historia cambió de escala. Anthony ya no era solamente uno de los músicos de la Línea buscando dónde tocar. Ahora había un público esperando por él. Vendrían discos, rivalidades, grandes escenarios y una influencia que transformaría la bachata. Pero antes del Mayimbe estuvo el muchacho del campo que hacía música con lo que tenía. Y cuando por fin tuvo una canción capaz de llevarlo más lejos, la llamó: Voy Pa’llá.',
+        note: 'de aquí en adelante, todo cambia',
       },
     },
   ),
